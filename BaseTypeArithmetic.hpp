@@ -24,6 +24,8 @@ namespace twmath_base{
 	template<class Tl, class Tr> constexpr decltype(std::declval<Tl>() << std::declval<Tr>()) lshift (const Tl& lhs, const Tr& rhs){return lhs << rhs;}
 	template<class Tl, class Tr> constexpr decltype(std::declval<Tl>() >> std::declval<Tr>()) rshift (const Tl& lhs, const Tr& rhs){return lhs >> rhs;}
 	
+	template<class Tl, class Tr> inline decltype(std::pow(std::declval<Tl>(), std::declval<Tr>())) pow (const Tl& lhs, const Tr& rhs){return std::pow(lhs, rhs);}
+	
 	// # unary operators
 	template<class T>constexpr decltype(-std::declval<T>()) negate (const T& a){return -a;}
 	
@@ -40,6 +42,8 @@ namespace twmath_base{
 	template<class T>inline T log2(const T& n){using namespace std;return log2(n);}
 	template<class T>inline T log10(const T& n){using namespace std;return log10(n);}
 	template<class T>inline T logp1(const T& n){using namespace std;return logp1(n);}
+	
+	
 	
 	// ## trigonometric functions
 	template<class T>inline T sin(const T& n){using namespace std;return sin(n);}
@@ -67,7 +71,7 @@ namespace twmath_base{
 	template<class T>inline T trunk(const T& n){using namespace std;return trunk(n);}
 	template<class T>inline T round(const T& n){using namespace std;return round(n);}
 	template<class T>inline int32_t rint(const T& n){using namespace std;return lrint(n);}
-	template<class T>inline int64_t rint(const T& n){using namespace std;return llrint(n);}
+	template<class T>inline int64_t llrint(const T& n){using namespace std;return llrint(n);}
 
 
 	// ## classification

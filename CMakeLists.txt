@@ -17,7 +17,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-	
+	.
+	Matrix
+	Vector
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

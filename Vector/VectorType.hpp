@@ -1,14 +1,12 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <cmath>
-#include <utility>
 #include <type_traits>
 
 #include "BaseTypeArithmetic.hpp"
 #include "definitions.hpp"
-#include "VectorToken.hpp"
+#include "VectorTraits.hpp"
+#include "VectorRef.hpp"
+#include "ConstVectorRef.hpp"
 
 namespace twmath{
 	
@@ -25,16 +23,10 @@ namespace twmath{
 		constexpr Vector(const T (&array)[N]){
 			this->assign(array);
 		}
-		inline Vector& operator=(const T (&array)[N]){
-			this->assign(array);
-			return *this;
-		}
+		inline Vector& operator=(const T (&array)[N]){return this->assign(array);}
 		
 		constexpr Vector(const Vector&) = default;
-		inline Vector& operator= (const Vector<T, N>& other){
-			this->assign(other.begin());
-			return *this;
-		}
+		inline Vector& operator= (const Vector<T, N>& other){return this->assign(other.begin());}
 		
 		template<class Ta>
 		constexpr Vector(const Vector<Ta, N>& v){this->assign(v.begin());}
@@ -51,34 +43,21 @@ namespace twmath{
 		constexpr Vector& operator=(const Vector<Ta, Na>& v){this->assign(v.begin(), v.end());}
 		
 		template<size_t sub_size>
-		constexpr Vector<T, sub_size> subvector(ptrdiff_t offset) const {
-			offset = (offset >= 0) ? offset : offset + this->size();
-			twmath_assert(sub_size + offset <= this->size(), 
-					"subvector would read from elements past the end of this:'\n'"
-					<< "failed because of: " << "sub_size + offset > this->size(): "
-					<< "(" << sub_size << " + " << offset << " > " << this->size() << ")");
-			Vector<T, sub_size> result;
-			size_t result_i = 0;
-			size_t this_i = offset;
-			for(; result_i < sub_size && this_i < N; ++result_i, (void)++this_i){
-				result.at(result_i) = this->at(this_i);
-			}
-			return result;
+		constexpr VectorRef<T, sub_size> sub_vector(size_t offset=0, size_t stride=1) {
+			twmath_assert(offset + sub_size * stride < N, "Error: Vector.sub_vector(size_t, size_t): subvector would access elemens not contained in origin");
+			return VectorRef<T, sub_size>(&this->at(offset), stride);
 		}
 		
 		template<size_t sub_size>
-		constexpr Vector& assign(const Vector<T, sub_size>& subvector, ptrdiff_t offset){
-			offset = (offset >= 0) ? offset : offset + this->size();
-			twmath_assert(subvector.size() + offset <= this->size(), 
-					"subvector would write to elements past the end of this:'\n'"
-					<< "failed because of: " << "subvector.size() + offset > this->size(): "
-					<< "(" << subvector.size() << " + " << offset << " > " << this->size() << ")");
-			size_t result_i = 0;
-			size_t this_i = offset;
-			for(; result_i < subvector.size(); ++result_i, (void)++this_i){
-				this->at(this_i) = subvector.at(result_i);
-			}
-			return *this;
+		constexpr ConstVectorRef<T, sub_size> sub_vector(size_t offset=0, size_t stride=1) const {
+			twmath_assert(offset + sub_size * stride < N, "Error: Vector.sub_vector(size_t, size_t): subvector would access elemens not contained in origin");
+			return ConstVectorRef<T, sub_size>(&this->at(offset), stride);
+		}
+		
+		template<size_t sub_size>
+		constexpr ConstVectorRef<T, sub_size> const_sub_vector(size_t offset=0, size_t stride=1) const {
+			twmath_assert(offset + sub_size * stride < N, "Error: Vector.sub_vector(size_t, size_t): subvector would access elemens not contained in origin");
+			return ConstVectorRef<T, sub_size>(&this->at(offset), stride);
 		}
 		
 		template<class Itr>
@@ -120,19 +99,39 @@ namespace twmath{
 			return *this;
 		}
 		
-		constexpr T& operator[] (ptrdiff_t i) {return this->at(i);}
-		constexpr const T& operator[](ptrdiff_t i) const {return this->at(i);}
+		template<class Integer, TWMATH_ENABLE_IF(std::is_integral_v<Integer>)>
+		constexpr T& operator[](Integer i) {return this->at(i);}
 		
-		constexpr T& at(ptrdiff_t i) {
-			i = (i >= 0) ? i : i + this->size();
+		template<class Integer, TWMATH_ENABLE_IF(std::is_integral_v<Integer>)>
+		constexpr const T& operator[](Integer i) const {return this->at(i);}
+		
+		constexpr T& at(size_t i){
 			twmath_assert(i < this->size(), "Out of range element access. Accessed element '" << i << "', but vector has size '" << this->size() << "'.");
 			return this->_values[i];
 		}
 		
-		constexpr const T& at(ptrdiff_t i) const {
-			i = (i >= 0) ? i : i + this->size();
+		template<class UInteger, TWMATH_ENABLE_IF(std::is_unsigned_v<UInteger>)>
+		constexpr T& at(UInteger i){return this->at(static_cast<size_t>(i));}
+		
+		template<class SInteger, TWMATH_ENABLE_IF(std::is_signed_v<SInteger>)>
+		constexpr T& at(SInteger i){
+			size_t ui = (i >= 0) ? i : i + this->size();
+			return this->at(ui);
+		}
+		
+		
+		constexpr const T& at(size_t i) const {
 			twmath_assert(i < this->size(), "Out of range element access. Accessed element '" << i << "', but vector has size '" << this->size() << "'.");
 			return this->_values[i];
+		}
+		
+		template<class UInteger, TWMATH_ENABLE_IF(std::is_unsigned_v<UInteger>)>
+		constexpr const T& at(UInteger i) const {return this->at(static_cast<size_t>(i));}
+		
+		template<class SInteger, TWMATH_ENABLE_IF(std::is_signed_v<SInteger>)>
+		constexpr const T& at(SInteger i) const {
+			size_t ui = (i >= 0) ? i : i + this->size();
+			return this->at(ui);
 		}
 		
 		constexpr T* begin(){return this->_values;}
@@ -203,11 +202,15 @@ namespace twmath{
 			return U(*this->begin());
 		}
 		
-		// conversion to scalar
-		template <class U = T, typename std::enable_if<(std::is_same<T, U>::value && N == 1), int>::type = 0>
-		constexpr operator U () const {
-			return U(*this->begin());
-		}
+		// ---------------------- conversion to scalar ---------------------------
+		template <class U = T, TWMATH_ENABLE_IF((std::is_same_v<T, U> && N == 1))>
+		constexpr operator U& () {return this->at(0);}
+		
+		template <class U = T, TWMATH_ENABLE_IF((std::is_same_v<T, U> && N == 1))>
+		constexpr operator const U& () const {return this->at(0);}
+		
+		template <class U = T, TWMATH_ENABLE_IF((std::is_same_v<T, U> && N == 1))>
+		constexpr operator U () const {return U(this->at(0));}
 	};
 	
 	template<class T, size_t N> struct value_type<Vector<T, N>>{using type = T;};

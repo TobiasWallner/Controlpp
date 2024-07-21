@@ -42,14 +42,18 @@
 
 using namespace twmath;
 
-template<class T, size_t internal_states, size_t inputs = 1, size_t outputs = 1>
+template<class T, size_t internal_states, size_t inputs, size_t outputs>
 struct StateSpace{
 	Matrix<T, internal_states, internal_states> _A;
-	Matrix<T, internal_states, inputs > _B;
+	Matrix<T, internal_states, inputs> _B;
 	Matrix<T, outputs, internal_states> _C;
 	Matrix<T, outputs, inputs> _D;
 	
 	constexpr StateSpace() = default;
+	
+	constexpr static size_t number_of_states = internal_states;
+	constexpr static size_t number_of_inputs = inputs;
+	constexpr static size_t number_of_outputs = outputs;
 	
 	constexpr Matrix<T, internal_states, internal_states>& A(){return this->_A;}
 	constexpr const Matrix<T, internal_states, internal_states>& A()const{return this->_A;}
@@ -62,10 +66,6 @@ struct StateSpace{
 	
 	constexpr Matrix<T, outputs, inputs> D() {return this->_D;}
 	constexpr const Matrix<T, outputs, inputs> D() const {return this->_D;}
-	
-	constexpr static size_t number_of_states = internal_states;
-	constexpr static size_t number_of_inputs = inputs;
-	constexpr static size_t number_of_outputs = outputs;
 };
 
 template<class T, size_t num_size, size_t den_size>
@@ -75,17 +75,17 @@ constexpr StateSpace<T, den_size-1, 1, 1> state_space(const RationalPolynom<T, n
 	const Polynom<T, den_size> a = -(rp.den/a_n);
 	const Polynom<T, num_size> b = rp.num / a_n;
 	
-	result._A.set_unity(0, 1);
-	result._A.set_zero(0, 0, -2, 1);
-	result._A.assign_row(a.vec.begin(), -1);
+	result.A().template sub_matrix<result.A().rows()-1, result.A().columns()-1>(0, 1).set_unity();
+	result.A().template column<result.A().rows()-1>(0).set_zero();
+	result.A().row(result.A().rows()-1) = a.vec.template sub_vector<a.vec.size()-1>();
 	
-	result._B.set_zero(0, 0, -1, -1);
-	result._B.at(-1, 0) = T(1);
+	result.B().template column<result.B().size()-1>(0).set_zero();
+	result.B().at(-1, 0) = T(1);
 	
-	result._C.assign_row(b.begin(), b.end() , 0);
-	result._C.set_zero(0, b.size(), -1, -1);
+	result.C().template row<b.size()>(0) = b.vec;
+	result.C().template row<result.C().columns() - b.size()>(b.size()).set_zero();
 	
-	result._D.at(0,0) = (b.size() > (den_size-1)) ? b[den_size-1] : T(0);
+	result.D().at(0, 0) = (b.size() > (den_size-1)) ? b[den_size-1] : T(0);
 	
 	return result;
 }
@@ -93,24 +93,28 @@ constexpr StateSpace<T, den_size-1, 1, 1> state_space(const RationalPolynom<T, n
 template<class Stream, class T, size_t states, size_t inputs = 1, size_t outputs = 1>
 Stream& print_pretty(Stream& stream, const StateSpace<T, states, inputs, outputs>& lsys, const char* indentation = ""){
 	size_t max_elem_sizeAC = 0;
-	if(lsys.A().rows() > 1) for(const auto& elem : lsys.A()){
+	if(lsys.A().rows() > 1) for(size_t row=0; row<lsys.A().rows(); ++row) for(size_t col=0; col<lsys.A().columns(); ++col){
+		auto elem = lsys.A().at(row, col);
 		std::stringstream s;
 		s << elem;
 		max_elem_sizeAC = (s.str().size() > max_elem_sizeAC) ? s.str().size() : max_elem_sizeAC;
 	}
-	if(lsys.C().rows() > 1) for(const auto& elem : lsys.C()){
+	if(lsys.C().rows() > 1) for(size_t row=0; row<lsys.C().rows(); ++row) for(size_t col=0; col<lsys.C().columns(); ++col){
+		auto elem = lsys.C().at(row, col);
 		std::stringstream s;
 		s << elem;
 		max_elem_sizeAC = (s.str().size() > max_elem_sizeAC) ? s.str().size() : max_elem_sizeAC;
 	}
 	
 	size_t max_elem_sizeBD = 0;
-	if(lsys.B().rows() > 1) for(const auto& elem : lsys.B()){
+	if(lsys.B().rows() > 1) for(size_t row=0; row<lsys.B().rows(); ++row) for(size_t col=0; col<lsys.B().columns(); ++col){
+		auto elem = lsys.B().at(row, col);
 		std::stringstream s;
 		s << elem;
 		max_elem_sizeBD = (s.str().size() > max_elem_sizeBD) ? s.str().size() : max_elem_sizeBD;
 	}
-	if(lsys.D().rows() > 1) for(const auto& elem : lsys.D()){
+	if(lsys.D().rows() > 1) for(size_t row=0; row<lsys.D().rows(); ++row) for(size_t col=0; col<lsys.D().columns(); ++col){
+		auto elem = lsys.D().at(row, col);
 		std::stringstream s;
 		s << elem;
 		max_elem_sizeBD = (s.str().size() > max_elem_sizeBD) ? s.str().size() : max_elem_sizeBD;
@@ -295,13 +299,17 @@ constexpr DiscreteStateSpace<result_type_bop(Tm, *, Ts), states, 1, 1> discretis
 	DiscreteStateSpace<ValueType, states, 1, 1> result;
 	Matrix<ValueType, states+1, states+1> M;
 
-	M.assign(sys.A());
-	M.assign(sys.B(), 0, -1);
-	M.set_zero(-1, 0);	
-	M = exp(M * sample_time);
+	// preparation
+	M.template sub_matrix<states, states>(0, 0) = sys.A();
+	M.template column<states>(states) = sys.B().column();
+	M.row(states).set_zero();	
 	
-	result.A().assign(M);
-	result.B().assign_column(M.column(-1));
+	// calculation
+	M = mexp(M * sample_time);
+	
+	// re-assignment
+	result.A() = M.template sub_matrix<states, states>(0, 0);
+	result.B().column() = M.template column<states>(states);
 	result.C() = sys.C();
 	result.D() = sys.D();
 	result.ts = sample_time;
@@ -321,8 +329,8 @@ struct DiscreteLinearSystem{
 	Vector<T, internal_states> x;
 	
 	Vector<T, outputs> input(const Vector<T, inputs>& u){
-		auto y = this->sys.C() * this->x + this->sys.D() * u;
-		this->x = this->sys.A() * this->x + this->sys.B() * u;
+		auto y = this->sys.C * this->x + this->sys.D * u;
+		this->x = this->sys.A * this->x + this->sys.B * u;
 		return y;
 	}
 	
@@ -395,7 +403,7 @@ TimeSeries<double, T> step(const DiscreteStateSpace<T, states, 1, 1>& sys, doubl
 		
 		const auto v3 = sys.B() * u;
 		const auto v4 = sys.A() * x;
-		x = v3 + v4;
+		x = v3.column() + v4;
 		
 		ts.push_back(t, value);
 	}
@@ -407,6 +415,7 @@ TimeSeries<double, T> step(const DiscreteStateSpace<T, states, 1, 1>& sys, doubl
 #undef result_type_bop
 
 int main(){
+	
 	
 	std::cout << "<Project Name> Tests:" << std::endl;
 	std::cout << "---------------" << std::endl;
@@ -436,9 +445,9 @@ int main(){
 	
 	print_pretty(std::cout, Gsys, "    ") << std::endl;
 	
-	const auto expG = exp(Gsys.A());
+	const auto expG = mexp(Gsys.A());
 	
-	print_pretty(std::cout, expG, "exp(G.A())", "    ") << std::endl;
+	print_pretty(std::cout, expG, "mexp(G.A)", "    ") << std::endl;
 	
 	
 	const auto Gsys_d = discretise(Gsys, 0.01);

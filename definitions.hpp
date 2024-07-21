@@ -22,7 +22,7 @@
 		TWMATH_CERR	(default is std::cerr)
 */
 
-#define TWMATH_ENABLE_IF(condition) typename std::enable_if<(condition), int>::type = 0
+#define TWMATH_ENABLE_IF(condition) typename std::enable_if_t<(condition), int> = 0
 
 #ifdef DISABLE_TWMATH_BOUNDARY_CHECKS
 	#define twmath_assert(condition, message)
