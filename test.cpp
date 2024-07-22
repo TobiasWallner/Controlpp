@@ -83,7 +83,7 @@ constexpr StateSpace<T, den_size-1, 1, 1> state_space(const RationalPolynom<T, n
 	result.B().at(-1, 0) = T(1);
 	
 	result.C().template row<b.size()>(0) = b.vec;
-	result.C().template row<result.C().columns() - b.size()>(b.size()).set_zero();
+	result.C().template row<result.C().columns() - b.size()>(0, b.size()).set_zero();
 	
 	result.D().at(0, 0) = (b.size() > (den_size-1)) ? b[den_size-1] : T(0);
 	
@@ -302,7 +302,7 @@ constexpr DiscreteStateSpace<result_type_bop(Tm, *, Ts), states, 1, 1> discretis
 	// preparation
 	M.template sub_matrix<states, states>(0, 0) = sys.A();
 	M.template column<states>(states) = sys.B().column();
-	M.row(states).set_zero();	
+	M.row(states).set_zero();
 	
 	// calculation
 	M = mexp(M * sample_time);
