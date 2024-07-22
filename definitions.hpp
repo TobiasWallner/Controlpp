@@ -10,7 +10,7 @@
 
 /*
 	To disable boundary checks:
-		Define: DISABLE_TWMATH_BOUNDARY_CHECKS
+		Define: DISABLE_TWMATH_ASSERTIONS
 		
 	To handle errors, define one of the following
 		TWMATH_THROW 				(default)
@@ -24,7 +24,7 @@
 
 #define TWMATH_ENABLE_IF(condition) typename std::enable_if_t<(condition), int> = 0
 
-#ifdef DISABLE_TWMATH_BOUNDARY_CHECKS
+#ifdef DISABLE_TWMATH_ASSERTIONS
 	#define twmath_assert(condition, message)
 #else
 	
