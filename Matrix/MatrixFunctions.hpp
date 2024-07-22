@@ -14,14 +14,14 @@ namespace twmath{
 	// --------------------- transpose -----------------------
 	
 	template<class M, TWMATH_ENABLE_IF(is_static_matrix_v<M>)>
-	constexpr MatrixRef<value_type_t<M>, M::smem_rows(), !M::smem_columns(), M::stransposed> transpose(M& m){
-		MatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed> result (m.data(), m.row_increment(), m.column_increment());
+	constexpr MatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed()> transpose(M& m) {
+		MatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed()> result(m.data(), m.row_increment(), m.column_increment());
 		return result;
 	}
 	
 	template<class M, TWMATH_ENABLE_IF(is_static_matrix_v<M>)>
-	constexpr ConstMatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed> transpose(const M& m){
-		ConstMatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed> result (m.cdata(), m.row_increment(), m.column_increment());
+	constexpr ConstMatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed()> transpose(const M& m) {
+		ConstMatrixRef<value_type_t<M>, M::smem_rows(), M::smem_columns(), !M::stransposed()> result(m.cdata(), m.row_increment(), m.column_increment());
 		return result;
 	}
 

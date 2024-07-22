@@ -67,14 +67,14 @@ namespace twmath{
 		//------------------- size / capacity / co. ---------------------
 		
 		constexpr size_t columns()const{return _columns;}
-		static constexpr scolumns(){return _columns;}
-		constexpr mem_columns()const{return _columns;} // returns the number of columns as layed out in memory
-		static constexpr smem_columns(){return _columns;} // returns the number of columns as layed out in memory
+		static size_t constexpr scolumns(){return _columns;}
+		constexpr size_t mem_columns()const{return _columns;} // returns the number of columns as layed out in memory
+		static constexpr size_t smem_columns(){return _columns;} // returns the number of columns as layed out in memory
 		
 		constexpr size_t rows()const{return _rows;}
-		static constexpr srows(){return _rows;}
-		constexpr mem_rows()const{return _rows;} // returns the number of rows as layed out in memory
-		static constexpr smem_rows(){return _rows;} // returns the number of rows as layed out in memory
+		static constexpr size_t srows(){return _rows;}
+		constexpr size_t mem_rows()const{return _rows;} // returns the number of rows as layed out in memory
+		static constexpr size_t smem_rows(){return _rows;} // returns the number of rows as layed out in memory
 		
 		constexpr size_t row_increment() const {return this->columns();}
 		constexpr size_t column_increment() const {return 1;}

@@ -30,7 +30,7 @@ namespace twmath{
 		constexpr T& at(size_t row, size_t col){
 			twmath_assert(col < this->columns(), "Column '" << col << "' is out of bound of '" << this->columns() << "'.");
 			twmath_assert(row < this->rows(), "Row '" << row << "' is out of bound of '" << this->rows() << "'.");
-			return *(_ptr + ((!_transposed) ? col : row) + ((!_transposed) ? row : col) * _columns);
+			return *(_ptr + ((!_transposed) ? col : row) * _column_increment + ((!_transposed) ? row : col) * _row_increment);
 		}
 
 		template<class UInteger, TWMATH_ENABLE_IF(std::is_unsigned_v<UInteger>)>
@@ -58,7 +58,7 @@ namespace twmath{
 		constexpr const T& at(size_t row, size_t col) const {
 			twmath_assert(col < this->columns(), "Column '" << col << "' is out of bound of '" << this->columns() << "'.");
 			twmath_assert(row < this->rows(), "Row '" << row << "' is out of bound of '" << this->rows() << "'.");
-			return *(_ptr + ((!_transposed) ? col : row) + ((!_transposed) ? row : col) * _columns);
+			return *(_ptr + ((!_transposed) ? col : row) * _column_increment + ((!_transposed) ? row : col) * _row_increment);
 		}
 		
 		template<class UInteger, TWMATH_ENABLE_IF(std::is_unsigned_v<UInteger>)>
@@ -87,14 +87,14 @@ namespace twmath{
 		constexpr size_t column_increment() const {return this->_column_increment;}
 		
 		constexpr size_t columns() const {return (_transposed) ? _rows : _columns;}
-		static constexpr scolumns(){return (_transposed) ? _rows : _columns;}
-		constexpr mem_columns()const{return _columns;} // returns the number of columns as layed out in memory
-		static constexpr smem_columns(){return _columns;} // returns the number of columns as layed out in memory
+		static size_t constexpr scolumns(){return (_transposed) ? _rows : _columns;}
+		constexpr size_t mem_columns()const{return _columns;} // returns the number of columns as layed out in memory
+		static size_t constexpr smem_columns(){return _columns;} // returns the number of columns as layed out in memory
 		
 		constexpr size_t rows() const {return (_transposed) ? _columns : _rows;}
 		static constexpr size_t srows() {return (_transposed) ? _columns : _rows;}
-		constexpr mem_rows()const{return _rows;} // returns the number of rows as layed out in memory
-		static constexpr smem_rows(){return _rows;} // returns the number of rows as layed out in memory
+		constexpr size_t mem_rows()const{return _rows;} // returns the number of rows as layed out in memory
+		static constexpr size_t smem_rows(){return _rows;} // returns the number of rows as layed out in memory
 		
 		constexpr size_t transposed() const {return _transposed;}
 		static constexpr size_t stransposed() {return _transposed;}
