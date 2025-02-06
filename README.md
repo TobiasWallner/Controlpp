@@ -1,13 +1,33 @@
 TWMATH
 ======
 
-A library for controll systems engineering that brings transfere functions, laplace variables, and complex system analysis to C++. This will allow you to devolpe and analyse and test the exact same code on your PC that will later run on your micro-processor. 
+*! In heavy developement !*
+*! developement has been stalled in favour of my plotting library, that this project will depend on: https://github.com/TobiasWallner/plotpp !*
+
+A library for controll systems engineering that brings transfere functions, laplace variables, and complex system analysis to C++. This will allow you to devolpe and analyse and test the exact same code on your PC that will later run on your micro-processor.
 
 ```C++
+// develope controll systems with the complex laplace variable 's'
+const auto s = tf::s;
+const auto G = (1.f) / (1 + s + s*s);
 
+// transform the transfere function into its matrix system form
+const auto Gsys = c_state_space(G);
+
+// discretise the system to the samplerate of your e.g.: ADC
+const auto Gsys_d = discretise(Gsys, 0.01);
+
+// plot your calculations 
+// (for plotting: see my other library https://github.com/TobiasWallner/plotpp)
+const auto ts = stepplot(Gsys_d, 20);
+
+// save the stepplot
+std::ofstream file("step.csv");
+file << "t, value" << std::endl;
+file << ts << std::endl;
 ```
 
-*! In developement !*
+![transfere function plot](export.png)
 
 Linear Algebra
 --------------
