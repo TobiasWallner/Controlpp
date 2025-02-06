@@ -1,6 +1,12 @@
 TWMATH
 ======
 
+A library for controll systems engineering that brings transfere functions, laplace variables, and complex system analysis to C++. This will allow you to devolpe and analyse and test the exact same code on your PC that will later run on your micro-processor. 
+
+```C++
+
+```
+
 *! In developement !*
 
 Linear Algebra
