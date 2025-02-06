@@ -14,7 +14,9 @@ const auto G = (1.f) / (1 + s + s*s);
 // transform the transfere function into its matrix system form
 const auto Gsys = c_state_space(G);
 
-// discretise the system to the samplerate of your e.g.: ADC
+// discretise the system
+// for example to the smaple rate of your ADC
+// uses exact zero-order-hold discretisation
 const auto Gsys_d = discretise(Gsys, 0.01);
 
 // plot your calculations 
@@ -26,7 +28,7 @@ std::ofstream file("step.csv");
 file << "t, value" << std::endl;
 file << ts << std::endl;
 ```
-
+Resulting plot of: `G = (1.f) / (1 + s + s*s)`
 ![transfere function plot](export.png)
 
 Linear Algebra
