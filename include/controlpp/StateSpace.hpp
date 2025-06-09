@@ -53,6 +53,11 @@ namespace control
             constexpr D_matrix_type& D() {return this->_D;}
     };
 
+    /**
+     * \brief calculates the state space representation from a rational polynomial
+     * 
+     * TODO: Testing
+     */
     template<class T, size_t num_size, size_t den_size>
     constexpr StateSpace<T, den_size-1, 1, 1> to_state_space(const RationalPolynom<T, num_size, den_size>& rp){
         StateSpace<T, den_size-1, 1, 1> result;
@@ -60,19 +65,17 @@ namespace control
         const Polynom<T, den_size> a = -(rp.den/a_n);
         const Polynom<T, num_size> b = rp.num / a_n;
         
-        result.A().block()
-
-        result.A().template sub_matrix<result.A().rows()-1, result.A().columns()-1>(0, 1).set_unity();
-        result.A().template column<result.A().rows()-1>(0).set_zero();
-        result.A().row(result.A().rows()-1) = a.vec.template sub_vector<a.vec.size()-1>();
+        result.A().template block<result.A().rows()-1, result.A().columns()-1>(0, 1) = Eigen::Matrix<result.A().rows()-1, result.A().columns()-1>::Identity();
+        result.A().col(result.A().rows()-1).setZero();
+        result.A().row(result.A().rows()-1) = a.vector().head(a.vector().size()-1);
         
-        result.B().template column<result.B().size()-1>(0).set_zero();
-        result.B().at(-1, 0) = T(1);
+        result.B().col(0).head(result.B().size()-1).setZero();
+        result.B()(-1, 0) = T(1);
         
-        result.C().template row<b.size()>(0) = b.vec;
-        result.C().template row<result.C().columns() - b.size()>(0, b.size()).set_zero();
+        result.C().row(0).head(b.size()) = b.vector();
+        result.C().row(0).tail(result.C().columns() - b.size()).setZero();
         
-        result.D().at(0, 0) = (b.size() > (den_size-1)) ? b[den_size-1] : T(0);
+        result.D()(0, 0) = (b.size() > (den_size-1)) ? b[den_size-1] : T(0);
         
         return result;
     }
