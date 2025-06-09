@@ -15,6 +15,7 @@ namespace control
     template<class T, size_t N>
     class Polynom{
         public:
+            using value_type = T;
             using vector_type = Eigen::Matrix<T, N, 1>;
 
         private:

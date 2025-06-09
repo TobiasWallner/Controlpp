@@ -8,6 +8,7 @@ namespace control
     template<class T, size_t NumSize, size_t DenSize>
     class ContinuousTransferFunction{
         public:
+            using value_type = T;
             using ratpoly_type = RationalPolynomial<T, NumSize, DenSize>;
             using num_type = typename ratpoly_type::num_type;
             using den_type = typename ratpoly_type::den_type;

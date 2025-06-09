@@ -7,6 +7,7 @@ namespace control
     template<class T, size_t NumSize, size_t DenSize>
     class RationalPolynomial{
         public:
+            using value_type = T;
             using num_type = Polynom<T, NumeratorSize>;
             using den_type = Polynom<T, DenominatorSize>;
 
