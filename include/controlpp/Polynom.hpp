@@ -8,10 +8,12 @@ namespace control
 {
 
     /**
-     * \brief Describes a mathematical polynomial like $a_1 + a_2 x+ a_3 x^2 ..$
+     * \brief Describes a mathematical polynomial like \f$ a_1 + a_2 x + a_3 x^2 .. \f$
+     * 
+     * Indices correspond to the parameter number and the potence
      */
     template<class T, size_t N>
-    class Polynomial{
+    class Polynom{
         public:
             using vector_type = Eigen::Matrix<T, N, 1>;
 
@@ -20,16 +22,16 @@ namespace control
 
         public:
 
-            constexpr Polynomial() = default;
-            explicit constexpr Polynomial(const T (&values)[N]) : _vector(values){}
-            explicit constexpr Polynomial(const vector_type& vector) : _vector(vector){}
-            constexpr Polynomial(const Polynomial&) = default;
-            constexpr Polynomial& operator=(const Polynomial&) = default;
-            constexpr Polynomial& operator=(T (&values)[N]) {
+            constexpr Polynom() = default;
+            explicit constexpr Polynom(const T (&values)[N]) : _vector(values){}
+            explicit constexpr Polynom(const vector_type& vector) : _vector(vector){}
+            constexpr Polynom(const Polynom&) = default;
+            constexpr Polynom& operator=(const Polynom&) = default;
+            constexpr Polynom& operator=(T (&values)[N]) {
                 this->_vector = values;
                 return *this;
             }
-            constexpr Polynomial& operator=(const vector_type& vector){
+            constexpr Polynom& operator=(const vector_type& vector){
                 this->_vector = vector;
                 return *this;
             }
@@ -63,12 +65,12 @@ namespace control
     // -----------------------------------------------------------------------------------------------
 
     template<class T, size_t N>
-    constexpr bool operator==(const Polynomial<T, N>& lhs, const Polynomial<T, N>& rhs){
+    constexpr bool operator==(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
         return lhs.vector() == rhs.vector();
     }
 
     template<class T, size_t N>
-    constexpr bool operator!=(const Polynomial<T, N>& lhs, const Polynomial<T, N>& rhs){
+    constexpr bool operator!=(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
         return lhs.vector() != rhs.vector();
     }
 
@@ -77,29 +79,29 @@ namespace control
     // -----------------------------------------------------------------------------------------------
 
     template<class T, size_t N>
-    constexpr Polynomial<T, N> operator+(const Polynomial<T, N>& lhs, const Polynomial<T, N>& rhs){
-        return Polynomial<T, N>(lhs.vector() + rhs.vector());
+    constexpr Polynom<T, N> operator+(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
+        return Polynom<T, N>(lhs.vector() + rhs.vector());
     }
 
     template<class T, size_t N>
-    constexpr Polynomial<T, N> operator-(const Polynomial<T, N>& lhs, const Polynomial<T, N>& rhs){
-        return Polynomial<T, N>(lhs.vector() - rhs.vector());
+    constexpr Polynom<T, N> operator-(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
+        return Polynom<T, N>(lhs.vector() - rhs.vector());
     }
 
     template<class T, size_t N>
-    constexpr Polynomial<T, N> operator*(const Polynomial<T, N>& lhs, const T& rhs){
+    constexpr Polynom<T, N> operator*(const Polynom<T, N>& lhs, const T& rhs){
         const Eigen::Vector<T, N> result = lhs.vector() * rhs;
-        return Polynomial<T, N>(result);
+        return Polynom<T, N>(result);
     }
 
     template<class T, size_t N>
-    constexpr Polynomial<T, N> operator*(const T& lhs, const Polynomial<T, N>& rhs){
+    constexpr Polynom<T, N> operator*(const T& lhs, const Polynom<T, N>& rhs){
         return (rhs * lhs);
     }
 
     template<class T, size_t N1, size_t N2>
-    constexpr Polynomial<T, N1+N2-1> operator*(const Polynomial<T, N1>& lhs, const Polynomial<T, N2>& rhs){
-        Polynomial<T, N1+N2-1> result;
+    constexpr Polynom<T, N1+N2-1> operator*(const Polynom<T, N1>& lhs, const Polynom<T, N2>& rhs){
+        Polynom<T, N1+N2-1> result;
         result.setZero();
 
         for(size_t i = 0; i < N2; ++i){

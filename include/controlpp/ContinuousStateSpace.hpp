@@ -2,5 +2,8 @@
 
 namespace control
 {
-    //TODO:
+    template<class T, size_t inputs, size_t outputs>
+    class ContinuousStateSpace{
+
+    };
 } // namespace control
