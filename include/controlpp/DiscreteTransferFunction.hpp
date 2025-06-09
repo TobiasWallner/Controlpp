@@ -33,8 +33,8 @@ namespace control
             constexpr num_type& den() {return this->_ratpoly.den();}
             constexpr const num_type& den() const {return this->_ratpoly.den();}
 
-            constexpr time_type& sampleTime() {return this->_ratpoly._time();}
-            constexpr const time_type& sampleTime() const {return this->_ratpoly._time();}
+            constexpr time_type& sample_time() {return this->_ratpoly._time();}
+            constexpr const time_type& sample_time() const {return this->_ratpoly._time();}
     };
 
     template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>

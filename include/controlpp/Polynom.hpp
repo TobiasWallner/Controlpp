@@ -46,6 +46,9 @@ namespace control
             constexpr vector_type& vector(){return this->_vector;}
             constexpr const vector_type& vector() const {return this->_vector;}
 
+
+            constexpr size_t size() const {return N;}
+
             constexpr size_t order() const {
                 size_t result = N-1;
                 const T zero(0);
@@ -58,7 +61,15 @@ namespace control
                 return result;
             }
 
-            constexpr void setZero() {this->_vector.setZero();}
+            constexpr void set_zero() {this->_vector.setZero();}
+
+            template<class Stream>
+            friend void print (Stream& stream, const Polynom& poly){
+                stream << poly[0];
+                for(size_t i = 1; i < poly.size(); ++i){
+                    stream << " + " << poly[i] << " x^" << i;
+                }
+            }
     };
 
     // -----------------------------------------------------------------------------------------------
@@ -103,7 +114,7 @@ namespace control
     template<class T, size_t N1, size_t N2>
     constexpr Polynom<T, N1+N2-1> operator*(const Polynom<T, N1>& lhs, const Polynom<T, N2>& rhs){
         Polynom<T, N1+N2-1> result;
-        result.setZero();
+        result.set_zero();
 
         for(size_t i = 0; i < N2; ++i){
             result.vector().segment(i, N1) += lhs.vector() * rhs[i];

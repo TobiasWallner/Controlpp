@@ -20,7 +20,7 @@ TEST(Polynom, array_construction){
     ASSERT_EQ(p.order(), 2);
 }
 
-
+#include <iostream>
 TEST(Polynom, vector_construction){
     Eigen::Vector<float, 3> vector({1.0f,2.0f,3.0f});
     control::Polynom<float, 3> p(vector);
