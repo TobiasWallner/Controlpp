@@ -3,18 +3,20 @@
 #include "Polynom.hpp"
 #include "RationalPolynom.hpp"
 
-namespace control
+namespace controlpp
 {
-    template<class T, size_t NumSize, size_t DenSize>
+    template<class ValueType, size_t NumSize, size_t DenSize>
     class ContinuousTransferFunction{
         public:
-            using value_type = T;
-            using ratpoly_type = RationalPolynomial<T, NumSize, DenSize>;
+            using value_type = ValueType;
+            using ratpoly_type = RationalPolynom<ValueType, NumSize, DenSize>;
             using num_type = typename ratpoly_type::num_type;
             using den_type = typename ratpoly_type::den_type;
+            using num_vector_type = typename ratpoly_type::num_vector_type;
+            using den_vector_type = typename ratpoly_type::den_vector_type;
 
         private:
-            ratpoly_type ratpoly;
+            ratpoly_type _ratpoly;
 
         public:
 
@@ -22,38 +24,110 @@ namespace control
             constexpr ContinuousTransferFunction(const ContinuousTransferFunction&) = default;
             constexpr ContinuousTransferFunction& operator=(const ContinuousTransferFunction&) = default;
 
-            constexpr ContinuousTransferFunction(const Polynom<T, NumeratorSize>& num, const Polynom<T, DenominatorSize>& den)
-                : ratpoly_type(num, den){}
+            constexpr explicit ContinuousTransferFunction(const Polynom<ValueType, NumSize>& num, const Polynom<ValueType, DenSize>& den)
+                : _ratpoly(num, den){}
 
-            constexpr ContinuousTransferFunction(const RationalPolynomial<T, NumSize, DenSize>& ratpoly)
-                : ratpoly_type(ratpoly){}
+            constexpr explicit ContinuousTransferFunction(const RationalPolynom<ValueType, NumSize, DenSize>& ratpoly)
+                : _ratpoly(ratpoly){}
 
-            constexpr num_type& num() {return this->ratpoly.num();}
-            constexpr const num_type& num() const {return this->ratpoly.num();}
+            constexpr explicit ContinuousTransferFunction(const num_vector_type& num, const den_vector_type& den)
+                : _ratpoly(num, den){}
 
-            constexpr num_type& den() {return this->ratpoly.den();}
-            constexpr const num_type& den() const {return this->ratpoly.den();}
+            constexpr explicit ContinuousTransferFunction(const ValueType(&num)[NumSize], const ValueType(&den)[DenSize])
+                : _ratpoly(num, den){}
+
+            constexpr num_type& num() {return this->_ratpoly.num();}
+            constexpr const num_type& num() const {return this->_ratpoly.num();}
+
+            constexpr num_type& den() {return this->_ratpoly.den();}
+            constexpr const num_type& den() const {return this->_ratpoly.den();}
+
+            constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
+            constexpr const ratpoly_type& ratpoly() const {return this->_ratpoly;}
+
+            friend std::ostream& operator<<(std::ostream& stream, const ContinuousTransferFunction& ctf){
+                ctf.ratpoly().print(stream, "s");
+                return stream;
+            }
     };
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator+(const ContinuousTransferFunction<T, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<T, NumSize1, DenSize1>& rhs){
-        return ContinuousTransferFunction(lhs.num() * rhs.den() + rhs.num() * lhs.den(), lhs.den() * rhs.den());
+    // operator +
+    // -----------
+
+    template<class ValueType, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
+    constexpr auto operator+(const ContinuousTransferFunction<ValueType, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<ValueType, NumSize2, DenSize2>& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() + rhs.ratpoly());
     }
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator-(const ContinuousTransferFunction<T, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<T, NumSize1, DenSize1>& rhs){
-        return ContinuousTransferFunction(lhs.num() * rhs.den() - rhs.num() * lhs.den(), lhs.den() * rhs.den());
+    template<class Tpoly, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator+(const Tscalar& lhs, const ContinuousTransferFunction<Tpoly, NumSize, DenSize>& rhs){
+        return ContinuousTransferFunction(lhs + rhs.ratpoly());
     }
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator*(const ContinuousTransferFunction<T, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<T, NumSize1, DenSize1>& rhs){
-        return ContinuousTransferFunction(lhs.num() * rhs.num(), rhs.den() * rhs.den());
+    template<class Tpoly, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator+(const ContinuousTransferFunction<Tpoly, NumSize, DenSize>& lhs, const Tscalar& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() + rhs);
     }
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator/(const ContinuousTransferFunction<T, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<T, NumSize1, DenSize1>& rhs){
-        return ContinuousTransferFunction(lhs.num() * rhs.den(), rhs.den() * rhs.num());
+    // operator -
+    // -----------
+
+    template<class ValueType, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
+    constexpr auto operator-(const ContinuousTransferFunction<ValueType, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<ValueType, NumSize2, DenSize2>& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() - rhs.ratpoly());
     }
 
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator-(const Tscalar& lhs, const ContinuousTransferFunction<ValueType, NumSize, DenSize>& rhs){
+        return ContinuousTransferFunction(lhs + rhs.ratpoly());
+    }
 
-} // namespace control
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator-(const ContinuousTransferFunction<ValueType, NumSize, DenSize>& lhs, const Tscalar& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() - rhs);
+    }
+
+    // operator *
+    // -----------
+
+    template<class ValueType, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
+    constexpr auto operator*(const ContinuousTransferFunction<ValueType, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<ValueType, NumSize2, DenSize2>& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() * rhs.ratpoly());
+    }
+
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator*(const Tscalar& lhs, const ContinuousTransferFunction<ValueType, NumSize, DenSize>& rhs){
+        return ContinuousTransferFunction(lhs * rhs.ratpoly());
+    }
+
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator*(const ContinuousTransferFunction<ValueType, NumSize, DenSize>& lhs, const Tscalar& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() * rhs);
+    }
+
+    // operator /
+    // -----------
+
+    template<class ValueType, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
+    constexpr auto operator/(const ContinuousTransferFunction<ValueType, NumSize1, DenSize1>& lhs, const ContinuousTransferFunction<ValueType, NumSize2, DenSize2>& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() / rhs.ratpoly());
+    }
+
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator/(const Tscalar& lhs, const ContinuousTransferFunction<ValueType, NumSize, DenSize>& rhs){
+        return ContinuousTransferFunction(lhs / rhs.ratpoly());
+    }
+
+    template<class ValueType, class Tscalar, size_t NumSize, size_t DenSize>
+    constexpr auto operator/(const ContinuousTransferFunction<ValueType, NumSize, DenSize>& lhs, const Tscalar& rhs){
+        return ContinuousTransferFunction(lhs.ratpoly() / rhs);
+    }
+
+    namespace tf{
+        template<class ValueType=double>
+        constexpr ContinuousTransferFunction<ValueType, 2, 1> s(){
+            return ContinuousTransferFunction<ValueType, 2, 1>({ValueType(0), ValueType(1)}, {ValueType(1)});
+        }
+    }
+
+} // namespace controlpp

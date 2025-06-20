@@ -15,6 +15,8 @@ project(Controlpp LANGUAGES CXX)
 
 add_library(controlpp INTERFACE)
 
+# target_compile_features(controlpp PRIVATE cxx_std_20)
+
 target_include_directories(controlpp INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
@@ -33,6 +35,8 @@ if (CONTROLPP_COMPILE_TEST)
     add_executable(controlpp_tests)
 
     include(tests/sources.cmake)
+
+    target_compile_features(controlpp_tests PRIVATE cxx_std_23)
 
     target_link_libraries(controlpp_tests
         controlpp

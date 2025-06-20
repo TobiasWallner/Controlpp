@@ -1,15 +1,17 @@
 #pragma once
 
 #include "StateSpace.hpp"
+#include "RationalPolynom.hpp"
+#include "ContinuousTransferFunction.hpp"
 
-namespace control
+namespace controlpp
 {
     template<class T, size_t internal_states, size_t inputs, size_t outputs>
     class ContinuousStateSpace{
         public:
             using value_type = T;
 
-            using state_space_type = StateSpace<T, internal_states, inputs, outputs>
+            using state_space_type = StateSpace<T, internal_states, inputs, outputs>;
 
             using A_matrix_type = typename state_space_type::A_matrix_type;
             using B_matrix_type = typename state_space_type::B_matrix_type;
@@ -35,21 +37,51 @@ namespace control
                 const D_matrix_type& D
             ) : _state_space(A, B, C, D){}
 
-            constexpr ContinuousStateSpace(const state_space_type& state_space) : _state_space(state_space){}
+            constexpr ContinuousStateSpace(const StateSpace<T, internal_states, inputs, outputs>& state_space) : _state_space(state_space){}
             
-            constexpr state_space_type& state_space(){return this->_state_space;}
-            constexpr const state_space_type& state_space() const {return this->_state_space;}
+            constexpr StateSpace<T, internal_states, inputs, outputs>& state_space(){return this->_state_space;}
+            constexpr const StateSpace<T, internal_states, inputs, outputs>& state_space() const {return this->_state_space;}
 
-            constexpr A_matrix_type& A(){return this->_state_space.A();}
-            constexpr const A_matrix_type& A()const{return this->_state_space.A();}
-            
-            constexpr B_matrix_type& B(){return this->_state_space.B();}
+            constexpr std::tuple<Eigen::Vector<T, internal_states>, Eigen::Vector<T, outputs>> eval(const Eigen::Vector<T, internal_states>& x, const Eigen::Vector<T, inputs>& u) const {
+                this->_state_space(x, u);
+            }
+
+            template<std::same_as<T> U>
+                requires(inputs == 1)
+            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                this->_state_space(x, u_scalar);
+            }
+
+            constexpr A_matrix_type& A() {return this->_state_space.A();}
+            constexpr B_matrix_type& B() {return this->_state_space.B();}
+            constexpr C_matrix_type& C() {return this->_state_space.C();}
+            constexpr D_matrix_type& D() {return this->_state_space.D();}
+
+            constexpr const A_matrix_type& A() const {return this->_state_space.A();}
             constexpr const B_matrix_type& B() const {return this->_state_space.B();}
-            
-            constexpr C_matrix_type& C(){return this->_state_space.C();}
             constexpr const C_matrix_type& C() const {return this->_state_space.C();}
-            
-            constexpr D_matrix_type D() {return this->_state_space.D();}
-            constexpr const D_matrix_type D() const {return this->_state_space.D();}
+            constexpr const D_matrix_type& D() const {return this->_state_space.D();}
+
+            friend std::ostream& operator<<(std::ostream& stream, const ContinuousStateSpace& css){
+                stream << css.state_space();
+                return stream;
+            }
     };
-} // namespace control
+
+    /**
+     * \brief constructs a continuous state space function from a rational polynom
+     */
+    template<class T, size_t num_size, size_t den_size>
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const RationalPolynom<T, num_size, den_size>& rp){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(rp));
+    }
+
+    /**
+     * \brief constructs a continuous state space function from a continuous transfer function
+     */
+    template<class T, size_t num_size, size_t den_size>
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+    }
+    
+} // namespace controlpp

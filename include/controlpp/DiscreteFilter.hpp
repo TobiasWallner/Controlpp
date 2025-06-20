@@ -1,6 +1,6 @@
 #pragma once
 
-namespace control
+namespace controlpp
 {
     //TODO:
-} // namespace control
+} // namespace controlpp

@@ -5,13 +5,13 @@
 #include <controlpp/Polynom.hpp>
 
 TEST(Polynom, default_construction){
-    control::Polynom<float, 3>();
-    control::Polynom<double, 10>();
-    control::Polynom<int, 1>();
+    controlpp::Polynom<float, 3>();
+    controlpp::Polynom<double, 10>();
+    controlpp::Polynom<int, 1>();
 }
 
 TEST(Polynom, array_construction){
-    control::Polynom<int, 3> p({1,2,3});
+    controlpp::Polynom<int, 3> p({1,2,3});
 
     ASSERT_EQ(p[0], 1);
     ASSERT_EQ(p[1], 2);
@@ -23,7 +23,7 @@ TEST(Polynom, array_construction){
 #include <iostream>
 TEST(Polynom, vector_construction){
     Eigen::Vector<float, 3> vector({1.0f,2.0f,3.0f});
-    control::Polynom<float, 3> p(vector);
+    controlpp::Polynom<float, 3> p(vector);
 
     ASSERT_EQ(p.at(0), 1.0f);
     ASSERT_EQ(p.at(1), 2.0f);
@@ -32,10 +32,10 @@ TEST(Polynom, vector_construction){
 
 
 TEST(Polynom, addition){
-    const int arr_a[]  = {1, 2, 3};
-    const int arr_b[]  = {4, 5, 6};
-    control::Polynom<int, 3> a(arr_a);
-    control::Polynom<int, 3> b(arr_b);
+    const int arr_a[] = {1, 2, 3};
+    const int arr_b[] = {4, 5, 6};
+    controlpp::Polynom<int, 3> a(arr_a);
+    controlpp::Polynom<int, 3> b(arr_b);
 
     const auto result = a + b;
 
@@ -45,8 +45,8 @@ TEST(Polynom, addition){
 }
 
 TEST(Polynom, scalar_multiplication){
-    control::Polynom<int, 3> a({1, 2, 3});
-    control::Polynom<int, 3> expected({2, 4, 6});
+    controlpp::Polynom<int, 3> a({1, 2, 3});
+    controlpp::Polynom<int, 3> expected({2, 4, 6});
 
     const auto result1 = a * 2;
     const auto result2 = 2 * a;
@@ -58,18 +58,17 @@ TEST(Polynom, scalar_multiplication){
 }
 
 TEST(Polynom, multiplication){
-    const control::Polynom<int, 3> a({1, 2, 3});
-    const control::Polynom<int, 2> b({1, 2});
+    const controlpp::Polynom<int, 3> a({1, 2, 3});
+    const controlpp::Polynom<int, 2> b({1, 2});
 
     // 1, 2, 3
     //    2, 4, 6
     // --------------
     // 1, 4, 7, 6
-    const control::Polynom<int, 4> expected({1, 4, 7, 6});
+    const controlpp::Polynom<int, 4> expected({1, 4, 7, 6});
 
     const auto result = a * b;
 
     ASSERT_EQ(result.order(), expected.order());
     ASSERT_EQ(result, expected);
 }
-
