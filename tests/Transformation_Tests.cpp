@@ -8,7 +8,7 @@
 
 TEST(Transformation, continuous_ss_to_discrete_ss){
     // preparation
-    const auto s = controlpp::tf::s();
+    const auto s = controlpp::tf::s<double>;
     const auto G_s = 1 / (1 + s + s*s);
     const auto Sys_s = controlpp::to_ContinuousStateSpace(G_s);
     const double sample_time = 0.01; // seconds
@@ -44,16 +44,25 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
 
 TEST(Transformation, continuous_tf_to_discrete_tf){
     // preparation
-    const auto s = controlpp::tf::s();
+    const auto s = controlpp::tf::s<double>;
     const auto G_s = 1 / (1 + s + s*s);
     const auto Sys_s = controlpp::to_ContinuousStateSpace(G_s);
     const double sample_time = 0.01; // seconds
     const auto Sys_z = controlpp::continuous_to_discrete(Sys_s, sample_time);
     
     // transform from state space to transfer function
-    const auto z = controlpp::tf::z(sample_time);
+    const auto z = controlpp::tf::z<double>;
     const auto I = controlpp::identity_like(Sys_s.A());
-    const auto Iz = I.cwiseProduct(z);
+
+    const auto temp = Sys_s.C() * Eigen::Inverse(I * z - Sys_z.A()) * Sys_s.B() + Sys_s.D();
+    
+    
+    // calculate: C * (I * z - A)^{-1} * B + D
+    const auto X = I * z - Sys_z.A();
+    const auto Y = Eigen::Inverse(X).eval();
+    std::cout << "Y(0,0): " << Y(0,0) << std::endl;
+    // const auto Z = (Sys_z.C() * Y).eval();
+
     //const auto G_z = Sys_s.C() * Eigen::inverse(Iz - Sys_s.A()) * Sys_s.B() + Sys_s.D();
 
 }

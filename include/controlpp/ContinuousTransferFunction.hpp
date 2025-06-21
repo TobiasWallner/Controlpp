@@ -125,9 +125,7 @@ namespace controlpp
 
     namespace tf{
         template<class ValueType=double>
-        constexpr ContinuousTransferFunction<ValueType, 2, 1> s(){
-            return ContinuousTransferFunction<ValueType, 2, 1>({ValueType(0), ValueType(1)}, {ValueType(1)});
-        }
+        static inline const ContinuousTransferFunction<ValueType, 2, 1> s({ValueType(0), ValueType(1)}, {ValueType(1)});
     }
 
 } // namespace controlpp

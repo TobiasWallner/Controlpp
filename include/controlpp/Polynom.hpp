@@ -117,7 +117,7 @@ namespace controlpp
         if constexpr (Nl > Nr){
             Polynom<T, Nl> result;
             result.vector().head(Nr) = lhs.vector().head(Nr) + rhs.vector();
-            result.vector().tail(Nl - Nr) = lhs.vector.tail(Nl - Nr);
+            result.vector().tail(Nl - Nr) = lhs.vector().tail(Nl - Nr);
             return result;
         }else if constexpr (Nl == Nr){
             return Polynom<T, Nl>(lhs.vector() + rhs.vector());
@@ -151,7 +151,7 @@ namespace controlpp
         if constexpr (Nl > Nr){
             Polynom<T, Nl> result;
             result.vector().head(Nr) = lhs.vector().head(Nr) - rhs.vector();
-            result.vector().tail(Nl - Nr) = lhs.vector.tail(Nl - Nr);
+            result.vector().tail(Nl - Nr) = lhs.vector().tail(Nl - Nr);
             return result;
         }else if constexpr (Nl == Nr){
             return Polynom<T, Nl>(lhs.vector() - rhs.vector());
