@@ -13,6 +13,17 @@
 namespace controlpp
 {
 
+    enum class Domain{s, q, z};
+    
+    constexpr std::string_view to_string(Domain domain){
+        switch(domain){
+            case Domain::s : return "s";
+            case Domain::q : return "q";
+            case Domain::z : return "z";
+            default : return "None";
+        }
+    }
+
     /**
      * \brief Base class for the state space representation of a linear time invariant system
      * 
@@ -52,10 +63,10 @@ namespace controlpp
             constexpr StateSpace& operator=(const StateSpace&) = default;
 
             constexpr StateSpace(
-                const A_matrix_type& A,
-                const B_matrix_type& B,
-                const C_matrix_type& C,
-                const D_matrix_type& D
+                const Eigen::Matrix<T, internal_states, internal_states>& A,
+                const Eigen::Matrix<T, internal_states, inputs>& B,
+                const Eigen::Matrix<T, outputs, internal_states>& C,
+                const Eigen::Matrix<T, outputs, inputs>& D
             )
                 : _A(A)
                 , _B(B)

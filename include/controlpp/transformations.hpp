@@ -1,11 +1,20 @@
 #pragma once
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/LU>
+
+
 // controlpp
 #include <controlpp/math.hpp>
+
 #include <controlpp/ContinuousStateSpace.hpp>
 #include <controlpp/ContinuousTransferFunction.hpp>
+
 #include <controlpp/DiscreteStateSpace.hpp>
 #include <controlpp/DiscreteTransferFunction.hpp>
+
+#include <controlpp/BilinearStateSpace.hpp>
 
 
 namespace controlpp
@@ -68,7 +77,6 @@ namespace controlpp
         result.B().col(0) = M.col(states).head(states);
         result.C() = sys.C();
         result.D() = sys.D();
-        result.sample_time() = sample_time;
 
         return result;
     }
@@ -96,8 +104,6 @@ namespace controlpp
     /**
      * \brief transform from z-domain into q-domain using the tustin (bilinear) transformation
      * 
-     * Use this function to continuize a plant and perform the digital controller desing in the q-domain.
-     * 
      * Controller design chain:
      * -------------------------
      * - G ... Plant
@@ -108,7 +114,23 @@ namespace controlpp
      * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
      * 4. bilinear_to_discrete (tustin) --> R(z)
      */
-    //BilinearTransferFunction discrete_to_bilinear(const DiscreteTransferFunction& css){//TODO}
+    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    BilinearStateSpace<ValueType, internal_states, inputs, outputs> discrete_to_bilinear(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
+        const auto I = identity_like(dss.A());
+        const auto ApI = (dss.A() + I).eval();
+
+        const auto inv_ApI = ApI.inverse().eval();
+
+        const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
+
+        const auto A_q = ((dss.A() - I) * inv_ApI).eval();
+        const auto B_q = (sqrt_2 * inv_ApI * dss.B()).eval();
+        const auto C_q = (sqrt_2 * dss.C() * inv_ApI).eval();
+        const auto D_q = (dss.D() - dss.C() * inv_ApI * dss.B()).eval();
+
+        BilinearStateSpace<ValueType, internal_states, inputs, outputs> result(A_q, B_q, C_q, D_q);
+        return result;
+    }
 
     /**
      * \brief transform from q-domain into z-domain using the tustin (inverse bilinear) transformation
@@ -126,6 +148,23 @@ namespace controlpp
      * 4. bilinear_to_discrete (tustin) --> R(z)
      */
     //DiscreteStateSpace bilinear_to_discrete(const BilinearTransferFunction& css, float sample_time){//TODO}
+    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    DiscreteStateSpace<ValueType, internal_states, inputs, outputs> bilinear_to_discrete(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& bss){
+        const auto I = identity_like(bss.A());
+        const auto AmI = (bss.A() - I).eval();
+        const auto inv_AmI = AmI.inverse().eval();
+        
+        const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
+
+        const auto A_z = (I + bss.A()) * inv_AmI;
+        const auto B_z = sqrt_2 * inv_AmI * bss.B();
+        const auto C_z = sqrt_2 * bss.C() * inv_AmI;
+        const auto D_z = bss.D() + bss.C() * inv_AmI * bss.B();
+
+        DiscreteStateSpace<ValueType, internal_states, inputs, outputs> result(A_z, B_z, C_z, D_z);
+        return result;
+    }
+
 
     /**
      * \brief convenience transform from s-domain into q-domain

@@ -5,7 +5,7 @@
 namespace controlpp
 {
     template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
-    class DiscreteStateSpace{
+    class BilinearStateSpace{
         public:
             using value_type = ValueType;
 
@@ -24,18 +24,19 @@ namespace controlpp
             state_space_type _state_space;
 
         public:
-            constexpr DiscreteStateSpace() = default;
-            constexpr DiscreteStateSpace(const DiscreteStateSpace&) = default;
-            constexpr DiscreteStateSpace& operator=(const DiscreteStateSpace&) = default;
+            constexpr BilinearStateSpace() = default;
+            constexpr BilinearStateSpace(const BilinearStateSpace&) = default;
+            constexpr BilinearStateSpace& operator=(const BilinearStateSpace&) = default;
 
-            constexpr DiscreteStateSpace(
+            constexpr BilinearStateSpace(
                 const Eigen::Matrix<ValueType, internal_states, internal_states>& A,
                 const Eigen::Matrix<ValueType, internal_states, inputs>& B,
                 const Eigen::Matrix<ValueType, outputs, internal_states>& C,
-                const Eigen::Matrix<ValueType, outputs, inputs>& D)
+                const Eigen::Matrix<ValueType, outputs, inputs>& D
+            )
                 : _state_space(A, B, C, D){}
 
-            constexpr DiscreteStateSpace(const state_space_type& state_space) 
+            constexpr BilinearStateSpace(const state_space_type& state_space) 
                 : _state_space(state_space){}
 
             constexpr state_space_type& state_space(){return this->_state_space;}
@@ -62,7 +63,7 @@ namespace controlpp
             constexpr const C_matrix_type& C() const {return this->_state_space.C();}
             constexpr const D_matrix_type& D() const {return this->_state_space.D();}
 
-            friend std::ostream& operator<<(std::ostream& stream, const DiscreteStateSpace& dss){
+            friend std::ostream& operator<<(std::ostream& stream, const BilinearStateSpace& dss){
                 stream << dss.state_space();
                 return stream;
             }
@@ -72,24 +73,21 @@ namespace controlpp
      * \brief constructs a continuous state space function from a rational polynom
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
+    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
     }
 
-    /**
-     * \brief constructs a continuous state space function from a continuous transfer function
-     */
-    template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_StateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
-    }
+    // template<class ValueType, size_t num_size, size_t den_size>
+    // constexpr DiscreteTransferFunction<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const BilinearStateSpace<ValueType, num_size, den_size>& dtf){
+    //     return DiscreteTransferFunction<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+    // }
 
 } // namespace controlpp

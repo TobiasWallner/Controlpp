@@ -31,10 +31,10 @@ namespace controlpp
             constexpr ContinuousStateSpace& operator=(const ContinuousStateSpace&) = default;
 
             constexpr ContinuousStateSpace(
-                const A_matrix_type& A,
-                const B_matrix_type& B,
-                const C_matrix_type& C,
-                const D_matrix_type& D
+                const Eigen::Matrix<T, internal_states, internal_states>& A,
+                const Eigen::Matrix<T, internal_states, inputs>& B,
+                const Eigen::Matrix<T, outputs, internal_states>& C,
+                const Eigen::Matrix<T, outputs, inputs>& D
             ) : _state_space(A, B, C, D){}
 
             constexpr ContinuousStateSpace(const StateSpace<T, internal_states, inputs, outputs>& state_space) : _state_space(state_space){}
@@ -81,6 +81,14 @@ namespace controlpp
      */
     template<class T, size_t num_size, size_t den_size>
     constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+    }
+
+    /**
+     * \brief constructs a continuous state space function from a continuous transfer function
+     */
+    template<class T, size_t num_size, size_t den_size>
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_StateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
         return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
     }
     
