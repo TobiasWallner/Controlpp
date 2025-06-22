@@ -82,24 +82,14 @@ namespace controlpp
     }
 
     /**
-     * \brief convenience overload that transfrom from s-domain into z-domain using zero-order-hold
+     * \brief transform s-domain into z-domain using zero-order-hold
      * 
-     * Use this function to discretize a plant
-     * 
-     * Controller design chain:
-     * -------------------------
-     * - G ... Plant
-     * - R ... Controller
-     * 
-     * 1. mathematical model --> G(s)
-     * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
-     * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
-     * 4. bilinear_to_discrete (tustin) --> R(z)
+     * alias for the function: `controlpp::continuous_to_discrete()`.
      */
-    //template<class T, size_t NumSize, size_t DenSize>
-    //DiscreteTransferFunction<T, NumSize, DenSize> continuous_to_discrete(const ContinuousTransferFunction<T, NumSize, DenSize>& ctf, float sample_time){
-        
-    //}
+    template<class ValueType, size_t states>
+    constexpr DiscreteStateSpace<ValueType, states, 1, 1> s_to_z(const ContinuousStateSpace<ValueType, states, 1, 1>& sys, ValueType sample_time){
+        return continuous_to_discrete<ValueType, states>(sys, sample_time);
+    }
 
     /**
      * \brief transform from z-domain into q-domain using the tustin (bilinear) transformation
@@ -130,6 +120,16 @@ namespace controlpp
 
         BilinearStateSpace<ValueType, internal_states, inputs, outputs> result(A_q, B_q, C_q, D_q);
         return result;
+    }
+
+    /**
+     * \brief transform from z-domain into q-domain using the tustin (bilinear) transformation
+     * 
+     * alias for the function `controlpp::discrete_to_bilinear()`.
+     */
+    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    BilinearStateSpace<ValueType, internal_states, inputs, outputs> z_to_q(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
+        return discrete_to_bilinear(dss);
     }
 
     /**
