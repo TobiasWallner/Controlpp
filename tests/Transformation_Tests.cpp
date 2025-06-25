@@ -76,3 +76,29 @@ TEST(Transformation, discrete_ss_to_bilinear_ss){
     ASSERT_TRUE(Sys_q.C().isApprox(expected_C, 0.01));
     ASSERT_TRUE(Sys_q.D().isApprox(expected_D, 0.01));
 }
+
+TEST(Transformation, continuous_ss_to_bilinear_ss){
+    // preparation
+    const auto z = controlpp::tf::z<double>;
+    const auto G_z = (1 + z) / (1 + 3*z + z*z);
+    const auto Sys_z = controlpp::to_StateSpace(G_z);
+    const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
+
+    // function under test
+    const auto Sys_z2 = controlpp::bilinear_to_discrete(Sys_q);
+
+    // check
+    if(Sys_z2.A().isApprox(Sys_z.A(), 0.01)){
+        ASSERT_TRUE(Sys_z2.A().isApprox(Sys_z.A(), 0.01));
+        ASSERT_TRUE(Sys_z2.B().isApprox(Sys_z.B(), 0.01));
+        ASSERT_TRUE(Sys_z2.C().isApprox(Sys_z.C(), 0.01));
+        ASSERT_TRUE(Sys_z2.D().isApprox(Sys_z.D(), 0.01));
+    }else{
+        // maybe signs have flipped
+        ASSERT_TRUE(Sys_z2.A().isApprox((-Sys_z.A()).eval(), 0.01));
+        ASSERT_TRUE(Sys_z2.B().isApprox((-Sys_z.B()).eval(), 0.01));
+        ASSERT_TRUE(Sys_z2.C().isApprox((-Sys_z.C()).eval(), 0.01));
+        ASSERT_TRUE(Sys_z2.D().isApprox((-Sys_z.D()).eval(), 0.01));
+    }
+
+}

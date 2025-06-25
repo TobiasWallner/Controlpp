@@ -133,6 +133,29 @@ namespace controlpp
     }
 
     /**
+     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
+     * 
+     * Internally performs:
+     * 
+     * 1. a zero-order-hold to go from the s-domain into the z-domain
+     * 2. a forward bilinear tustin to go from the z-domain into the q-domain
+     */
+    template<class ValueType, size_t internal_states>
+    BilinearStateSpace<ValueType, internal_states, 1, 1> continuous_to_bilinear(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
+        return discrete_to_bilinear(continuous_to_discrete(css));
+    }
+
+    /**
+     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
+     * 
+     * alias for the function `controlpp::continuous_to_bilinear()`.
+     */
+    template<class ValueType, size_t internal_states>
+    BilinearStateSpace<ValueType, internal_states, 1, 1> s_to_q(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
+        return z_to_q(s_to_z(css));
+    }
+
+    /**
      * \brief transform from q-domain into z-domain using the tustin (inverse bilinear) transformation
      * 
      * Use this function to convert a controller designed in the q-domain back into the z-domain (discrete sampled world).
@@ -146,6 +169,12 @@ namespace controlpp
      * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
      * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
      * 4. bilinear_to_discrete (tustin) --> R(z)
+     * 
+     * ---
+     * 
+     * Tip: For controll systems that are oversampled (\f$f_s >> f_{-3dB}\f$) the q- and s-domains are approximatelly similar.
+     * Thus many desing their controller directly in the q-domain without converting to the z-domain first and then only perform
+     * one bilinear transformation to go from the q-domain to the z-domain. (They may also not write q but s in their equations).
      */
     //DiscreteStateSpace bilinear_to_discrete(const BilinearTransferFunction& css, float sample_time){//TODO}
     template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
@@ -165,25 +194,16 @@ namespace controlpp
         return result;
     }
 
-
     /**
-     * \brief convenience transform from s-domain into q-domain
+     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
      * 
-     * Convenience transformation that will simplify the following processing chain:
-     * 
-     * Will internally do `continuous_to_discrete()` followed by `discrete_to_bilinear()`
-     * 
-     * Controller design chain:
-     * -------------------------
-     * - G ... Plant
-     * - R ... Controller
-     * 
-     * 1. mathematical model --> G(s)
-     * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
-     * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
-     * 4. bilinear_to_discrete (tustin) --> R(z)
+     * alias for the function `controlpp::continuous_to_bilinear()`.
      */
-    //BilinearTransferFunction continuous_to_bilinear(const ContinuousTransferFuntion& css, float sample_time){//TODO}
+    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    DiscreteStateSpace<ValueType, internal_states, inputs, outputs> q_to_z(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& qss){
+        return bilinear_to_discrete(qss);
+    }
+
     
 } // namespace controlpp
 

@@ -165,5 +165,28 @@ namespace controlpp
         return result;
     }
 
+    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    StateSpace<...> operator+(const StateSpace<>& lhs, const StateSpace<>& rhs){
+        // TODO:    
+    }
 
+    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    StateSpace<...> operator-(const StateSpace<>& lhs, const StateSpace<>& rhs){
+        // TODO:
+    }
+
+    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    StateSpace<...> operator*(const StateSpace<>& lhs, const StateSpace<>& rhs){
+        // TODO:
+    }
+
+    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    StateSpace<...> operator/(const StateSpace<>& lhs, const StateSpace<>& rhs){
+        // TODO:
+    }
+
+    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    StateSpace<...> inverse(const StateSpace<>& Sys){
+        // TODO:
+    }
 } // namespace controlpp
