@@ -107,16 +107,23 @@ namespace controlpp
     template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
     BilinearStateSpace<ValueType, internal_states, inputs, outputs> discrete_to_bilinear(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
         const auto I = identity_like(dss.A());
-        const auto ApI = (dss.A() + I).eval();
-
-        const auto inv_ApI = ApI.inverse().eval();
 
         const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
 
-        const auto A_q = ((dss.A() - I) * inv_ApI).eval();
-        const auto B_q = (sqrt_2 * inv_ApI * dss.B()).eval();
-        const auto C_q = (sqrt_2 * dss.C() * inv_ApI).eval();
-        const auto D_q = (dss.D() - dss.C() * inv_ApI * dss.B()).eval();
+        const auto ApI = (dss.A() + I).eval();
+        const auto ApI_inv_B = ApI.partialPivLu().solve(dss.B()).eval();
+
+        // (A - I) * (A + I)^{-1}
+        const auto A_q = ApI.transpose().partialPivLu().solve((dss.A() - I).transpose()).transpose().eval(); 
+
+        // sqrt(2) * (A + I)^{-1} * B
+        const auto B_q = (sqrt_2 * ApI_inv_B).eval();
+
+        // sqrt(2) * C * (A + I)^{-1}
+        const auto C_q = (sqrt_2 * ApI.transpose().partialPivLu().solve(dss.C().transpose()).transpose()).eval();
+
+        // D - C * (A + I)^{-1} * B
+        const auto D_q = (dss.D() - dss.C() * ApI_inv_B).eval();
 
         BilinearStateSpace<ValueType, internal_states, inputs, outputs> result(A_q, B_q, C_q, D_q);
         return result;
@@ -181,14 +188,22 @@ namespace controlpp
     DiscreteStateSpace<ValueType, internal_states, inputs, outputs> bilinear_to_discrete(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& bss){
         const auto I = identity_like(bss.A());
         const auto AmI = (bss.A() - I).eval();
-        const auto inv_AmI = AmI.inverse().eval();
         
         const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
 
-        const auto A_z = (I + bss.A()) * inv_AmI;
-        const auto B_z = sqrt_2 * inv_AmI * bss.B();
-        const auto C_z = sqrt_2 * bss.C() * inv_AmI;
-        const auto D_z = bss.D() + bss.C() * inv_AmI * bss.B();
+        const auto AmI_inv_B = AmI.partialPivLu().solve(bss.B()).eval();
+
+        // (A + I) * (A - I)^{-1}
+        const auto A_z = AmI.transpose().partialPivLu().solve((I + bss.A()).transpose()).transpose().eval();
+
+        // sqrt(2) * (A - I)^{-1} * B
+        const auto B_z = (sqrt_2 * AmI_inv_B).eval();
+
+        // sqrt(2) * C * (A - I)^{-1}
+        const auto C_z = (sqrt_2 * AmI.transpose().partialPivLu().solve(bss.C().transpose()).transpose()).eval();
+
+        // D + C * (A - I)^{-1} * B
+        const auto D_z = bss.D() + bss.C() * AmI_inv_B;
 
         DiscreteStateSpace<ValueType, internal_states, inputs, outputs> result(A_z, B_z, C_z, D_z);
         return result;

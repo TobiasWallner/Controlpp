@@ -164,7 +164,7 @@ namespace controlpp
         result.D()(0, 0) = (b.size() > (number_of_states)) ? b[number_of_states] : T(0);
         return result;
     }
-
+/*
     template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
     StateSpace<...> operator+(const StateSpace<>& lhs, const StateSpace<>& rhs){
         // TODO:    
@@ -189,4 +189,5 @@ namespace controlpp
     StateSpace<...> inverse(const StateSpace<>& Sys){
         // TODO:
     }
+*/
 } // namespace controlpp
