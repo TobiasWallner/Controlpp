@@ -47,8 +47,8 @@ namespace controlpp
             constexpr num_type& num() {return this->_ratpoly.num();}
             constexpr const num_type& num() const {return this->_ratpoly.num();}
 
-            constexpr num_type& den() {return this->_ratpoly.den();}
-            constexpr const num_type& den() const {return this->_ratpoly.den();}
+            constexpr den_type& den() {return this->_ratpoly.den();}
+            constexpr const den_type& den() const {return this->_ratpoly.den();}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
                 dtf.ratpoly().print(stream, "z");
