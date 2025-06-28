@@ -41,14 +41,32 @@ namespace controlpp
             constexpr state_space_type& state_space(){return this->_state_space;}
             constexpr const state_space_type& state_space() const {return this->_state_space;}
 
+            /**
+             * \brief calculates the next states and calculates the output from the previous states and new inputs
+             * \returns a tuple of `[nest_states, output]`
+             */
             constexpr std::tuple<Eigen::Vector<ValueType, internal_states>, Eigen::Vector<ValueType, outputs>> eval(const Eigen::Vector<ValueType, internal_states>& x, const Eigen::Vector<ValueType, inputs>& u) const {
-                this->_state_space.eval(x, u);
+                return this->_state_space.eval(x, u);
             }
 
+            /**
+             * \brief calculates the next states and calculates the output from the previous states and new inputs
+             * \returns a tuple of `[nest_states, output]`
+             */
             template<std::same_as<ValueType> U>
-                requires(inputs == 1)
+                requires(inputs == 1 && outputs != 1)
             constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                this->_state_space.eval(x, u_scalar);
+                return this->_state_space.eval(x, u_scalar);
+            }
+
+            /**
+             * \brief calculates the next states and calculates the output from the previous states and new inputs
+             * \returns a tuple of `[nest_states, output]`
+             */
+            template<std::same_as<ValueType> U>
+                requires(inputs == 1 && outputs == 1)
+            constexpr std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                return this->_state_space.eval(x, u_scalar);
             }
             
             
@@ -73,7 +91,7 @@ namespace controlpp
      */
     template<class ValueType, size_t num_size, size_t den_size>
     constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(rp));
     }
 
     /**
@@ -81,7 +99,7 @@ namespace controlpp
      */
     template<class ValueType, size_t num_size, size_t den_size>
     constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
     }
 
     /**
@@ -89,7 +107,7 @@ namespace controlpp
      */
     template<class ValueType, size_t num_size, size_t den_size>
     constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_StateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
     }
 
 } // namespace controlpp

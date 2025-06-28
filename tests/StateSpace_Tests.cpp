@@ -14,7 +14,7 @@ TEST(StateSpace, construct_with_to_state_space){
     using namespace controlpp;
     const RationalPolynom<float, 2, 3> rp({2.f, 1.f}, {3.f, 2.f, 1.f});
     
-    const StateSpace ss = to_state_space(rp);
+    const StateSpace ss = to_StateSpace(rp);
 
     const Eigen::Matrix<float, 2, 2> expected_A({
         {0.f, 1.f}, 

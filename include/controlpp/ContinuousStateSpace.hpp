@@ -73,7 +73,7 @@ namespace controlpp
      */
     template<class T, size_t num_size, size_t den_size>
     constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const RationalPolynom<T, num_size, den_size>& rp){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(rp));
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(rp));
     }
 
     /**
@@ -81,7 +81,7 @@ namespace controlpp
      */
     template<class T, size_t num_size, size_t den_size>
     constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(ctf.ratpoly()));
     }
 
     /**
@@ -89,7 +89,7 @@ namespace controlpp
      */
     template<class T, size_t num_size, size_t den_size>
     constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_StateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(ctf.ratpoly()));
     }
     
 } // namespace controlpp

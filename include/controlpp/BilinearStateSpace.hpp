@@ -74,7 +74,7 @@ namespace controlpp
      */
     template<class ValueType, size_t num_size, size_t den_size>
     constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
-        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(rp));
     }
 
     /**
@@ -82,12 +82,12 @@ namespace controlpp
      */
     template<class ValueType, size_t num_size, size_t den_size>
     constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
     }
 
     // template<class ValueType, size_t num_size, size_t den_size>
     // constexpr DiscreteTransferFunction<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const BilinearStateSpace<ValueType, num_size, den_size>& dtf){
-    //     return DiscreteTransferFunction<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+    //     return DiscreteTransferFunction<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
     // }
 
 } // namespace controlpp

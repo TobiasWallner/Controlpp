@@ -92,6 +92,26 @@ namespace controlpp
             /**
              * \brief calculates the new system states and outupts for SISO (single input, single output) systems
              * 
+             * Overload for SI systems that accepts scalar values as inputs.
+             * 
+             * Usage Example:
+             * ```
+             * StateSpace ss = some_calculation();
+             * float input = some_measurement();
+             * auto [new_internal_states, new_output] = ss(internal_states, input);
+             * ```
+             */
+            template<std::same_as<T> U>
+                requires(inputs == 1 && outputs != 1)
+            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                Eigen::Vector<T, 1> u;
+                u(0) = u_scalar;
+                return this->eval(x, u);
+            }
+
+            /**
+             * \brief calculates the new system states and outupts for SISO (single input, single output) systems
+             * 
              * Overload for SISO systems that accepts scalar values as inputs.
              * 
              * Usage Example:
@@ -102,10 +122,12 @@ namespace controlpp
              * ```
              */
             template<std::same_as<T> U>
-                requires(inputs == 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                Eigen::Vector<T, 1> u({u_scalar});
-                return this->eval(x, u);
+                requires(inputs == 1 && outputs == 1)
+            constexpr std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                Eigen::Vector<T, 1> u;
+                u(0) = u_scalar;
+                const auto [new_x, y] = this->eval(x, u);
+                return {new_x, y(0)};
             }
 
             constexpr const A_matrix_type& A() const {return this->_A;}
@@ -131,7 +153,7 @@ namespace controlpp
      * \brief calculates the state space representation from a rational polynomial
      */
     template<class T, size_t num_size, size_t den_size>
-    constexpr StateSpace<T, den_size-1, 1, 1> to_state_space(const RationalPolynom<T, num_size, den_size>& rp){
+    constexpr StateSpace<T, den_size-1, 1, 1> to_StateSpace(const RationalPolynom<T, num_size, den_size>& rp){
         static constexpr size_t number_of_states = den_size-1;
         StateSpace<T, number_of_states, 1, 1> result;
         const T a_n = rp.den()[rp.den().order()];
