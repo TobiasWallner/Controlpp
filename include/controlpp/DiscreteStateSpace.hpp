@@ -4,6 +4,34 @@
 
 namespace controlpp
 {
+    /**
+     * \brief Matrix (A, B, C, D) representation of a linear time invariant system
+     * 
+     * \f[
+     * \hat{x} = \mathbf{A} x + \mathbf{B} u
+     * \f]
+     * 
+     * \f[
+     * y = \mathbf{C} x + \mathbf{D} u
+     * \f]
+     * 
+     * - u is the input
+     * - x are the internal states
+     * - y is the output
+     * 
+     * This is only a representation using the A, B, C, D matrices.
+     * This does **not** contain an internal state. 
+     * You may use the `.eval()` method, but have to provide the state manually.
+     * 
+     * If you want a system with internal state have a look at: `DiscreteStateSpaceFilter`.
+     * 
+     * \see controlpp::DiscreteStateSpaceFilter
+     * 
+     * \tparam ValueType The value type of the matrix elements and arithmetic calculations (usually `double` or `float`)
+     * \tparam internal_states The number of internal states, this influences the size of the A, B and C matrices
+     * \tparam inputs The number of input to the system, this influences the size of the B and D matrix
+     * \tparam outputs The number of outputs of the system, this influences the size of the C and D matrix
+     */
     template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
     class DiscreteStateSpace{
         public:
