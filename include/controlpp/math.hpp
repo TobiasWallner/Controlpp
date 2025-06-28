@@ -107,4 +107,20 @@ namespace controlpp{
 	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> identity_like([[maybe_unused]]const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& unused){
 		return Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>::Identity();
 	}
+
+	template<class T, int LSize, int RSize>
+	Eigen::Matrix<T, LSize + RSize, LSize + RSize> join_to_diagonal(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
+		Eigen::Matrix<T, LSize + RSize, LSize + RSize> result;
+		result.diagonal().head(LSize) = l;
+		result.diagonal().tail(RSize) = r;
+		return result;
+	}
+
+	template<class T, int LSize, int RSize>
+	Eigen::Vector<T, LSize + RSize> join_to_vector(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
+		Eigen::Vector<T, LSize + RSize> result;
+		result.head(LSize) = l;
+		result.tail(RSize) = r;
+		return result;
+	}
 }
