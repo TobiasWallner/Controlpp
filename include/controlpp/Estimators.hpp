@@ -9,6 +9,8 @@ namespace controlpp
     /**
      * \brief Solves the overdefined system \f$y = X p\f$ for p 
      * 
+     * There have to be more measurements than parameters.
+     * Meaning `XRows >= XCols` has to be true.
      * 
      * \param X the systems matrix that describes how the parameters p can be transformed into the measured output y
      * \param y the actual measured system output
@@ -16,7 +18,8 @@ namespace controlpp
      * \returns the approximated optimal solution for the parameter vector p
      */
     template<class T, int XRows, int XCols, int XOpt, int XMaxRows, int XMaxCols>
-    Eigen::Vector<T, XCols> least_squares(const Eigen::Matrix<T, XRows, XCols, XOpt, XMaxRows, XMaxCols>& X, const Eigen::Vector<T, XRows>& y){
+    requires((XRows >= XCols) || (XRows == Eigen::Dynamic) || (XCols == Eigen::Dynamic))
+    Eigen::Vector<T, XCols> least_squares(const Eigen::Matrix<T, XRows, XCols, XOpt, XMaxRows, XMaxCols>& X, const Eigen::Vector<T, XRows>& y) noexcept {
         Eigen::Vector<T, XCols> result = X.colPivHouseholderQr().solve(y).eval();
         return result;
     }
@@ -75,14 +78,18 @@ namespace controlpp
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between 0.8 and 0.98
          */
-        ReccursiveLeastSquares(
+        inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
             double memory = 0.95)
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
-            {}
+            {
+                if(memory <= T(0) || memory > T(1)){
+                    throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
+                }
+            }
 
         /**
          * \brief Adds a new input output pair that updates the estimate
@@ -90,7 +97,7 @@ namespace controlpp
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s){
+        void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s) noexcept {
             const Eigen::Matrix<T, NMeasurements, NMeasurements> I = Eigen::Matrix<T, NMeasurements, NMeasurements>::Identity();
 
             // Gain
@@ -101,11 +108,13 @@ namespace controlpp
                 Note that B is positive definite:
                     - memory > 0 ... is a positive scalar
                     - I ... is positive definite
-                    - s * Cov * s^t
+                    - s * Cov * s^t ... is a squared therm which is positive definite
+
+                thus the 'ldlt' solver can be used which is more numerically stable an also faster
             */
 
             // calculate: K = A * B^-1
-            const Eigen::Vector<T, NParams> K = B.transpose().partialPivLu().solve(A.transpose()).transpose();
+            const Eigen::Vector<T, NParams> K = B.transpose().ldlt().solve(A.transpose()).transpose();
 
             // Update
             this->_param = this->_param + K * (y - s * this->_param);
@@ -118,7 +127,7 @@ namespace controlpp
          * \brief returns the current best estimate
          * \returns the parameter vector
          */
-        const Eigen::Vector<T, NParams>& estimate() const {return this->_param;}
+        inline const Eigen::Vector<T, NParams>& estimate() const noexcept {return this->_param;}
 
         /**
          * \brief returns the current covariance
@@ -127,7 +136,7 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        const Eigen::Matrix<T, NParams, NParams>& covariance() const {return this->_cov;}
+        inline const Eigen::Matrix<T, NParams, NParams>& covariance() const noexcept {return this->_cov;}
     };
 
     /**
@@ -186,16 +195,20 @@ namespace controlpp
          * Remembers more of the past with higher `memory` and forgets more with lower `memory`
          * - `memory` = 1: no forgetting, converges to standard least squares
          * - `memory` < 1: forgetting older values with an exponential decay
-         * Often used values are between 0.8 and 0.98
+         * Often used values are between `0.9 `and `0.995`.
          */
-        ReccursiveLeastSquares(
+        inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.95)
+            double memory = 0.99)
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
-            {}
+            {
+                if(memory <= T(0) || memory > T(1)){
+                    throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
+                }
+            }
 
         /**
          * \brief Adds a new input output pair that updates the estimate
@@ -203,7 +216,7 @@ namespace controlpp
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Vector<T, NParams>& s){
+        void add(const T& y, const Eigen::Vector<T, NParams>& s) noexcept {
             // Gain
             const Eigen::Vector<T, NParams> K = (this->_cov * s) / (this->_memory + s.transpose() * this->_cov * s);
 
@@ -218,7 +231,7 @@ namespace controlpp
          * \brief returns the current best estimate
          * \returns the parameter vector
          */
-        const Eigen::Vector<T, NParams>& estimate() const {return this->_param;}
+        inline const Eigen::Vector<T, NParams>& estimate() const noexcept {return this->_param;}
 
         /**
          * \brief returns the current covariance
@@ -227,7 +240,7 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        const Eigen::Matrix<T, NParams, NParams>& covariance() const {return this->_cov;}
+        inline const Eigen::Matrix<T, NParams, NParams>& covariance() const noexcept {return this->_cov;}
     };
 
     /**
@@ -248,7 +261,7 @@ namespace controlpp
      * of an autoregressive signal process with zero-mean white noise corresponding to the transfer 
      * function being identified.
      */
-    template<class T, size_t NumSize, size_t DenSize, class Measurements=1>
+    template<class T, size_t NumSize, size_t DenSize, size_t Measurements=1>
     class DTFEstimator{
         private:
 
@@ -271,11 +284,17 @@ namespace controlpp
             const DiscreteTransferFunction<T, NumSize, DenSize>& hint = DiscreteTransferFunction<T, NumSize, DenSize>(Eigen::Vector<T, NumSize>().setZero(), Eigen::Vector<T, DenSize>().setZero()),
             const Eigen::Vector<T, NumSize> NumeratorUncertainty = Eigen::Vector<T, NumSize>().setOnes()*T(1000),
             const Eigen::Vector<T, DenSize - 1> DenominatorUncertainty = Eigen::Vector<T, DenSize-1>().setOnes()*T(1000),
-            const T& memory = 0.98)
+            const T& memory = 0.99)
             : rls(
                 controlpp::join_to_vector<T, NumSize, DenSize-1>(hint.num().vector(), hint.den().vector().tail(DenSize - 1).eval()), 
                 controlpp::join_to_diagonal<T, NumSize, DenSize-1>(NumeratorUncertainty, DenominatorUncertainty), 
-                memory){}
+                memory)
+        {
+            static_assert(NumSize <= DenSize, "The Discrete Transfer Function has to be propper. Meaning `NumSize <= DenSize` has to be true.");
+            if(memory <= T(0) || memory > T(1)){
+                throw std::invalid_argument("Error: DTFEstimator::DTFEstimator(): memory has to be in the open-closed range of: (0, 1]");
+            }
+        }
 
         /**
          * \brief Adds an interation step to the estimate

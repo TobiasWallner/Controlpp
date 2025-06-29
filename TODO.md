@@ -9,7 +9,6 @@ State Space to Transfer Function
 
 Estimators
 ----------
-- function: least_squares
 - function: weighted_least_squares
 - class: RecursiveLeastSquares
 - function: minimum_variance

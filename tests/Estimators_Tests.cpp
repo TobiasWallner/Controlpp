@@ -69,7 +69,7 @@ TEST(Estimators, reccursive_least_squares_1memory){
 TEST(Estimators, DTFEstimator){
     const auto s = controlpp::tf::s<double>;
 
-    const auto Gs = (1) / (1 + s);
+    const auto Gs = (8) / (1 + 3*s);
 
     const auto Sz = controlpp::s_to_z(controlpp::to_StateSpace(Gs), 0.1);
 
@@ -84,7 +84,16 @@ TEST(Estimators, DTFEstimator){
 
     const auto Gz_est = dtf_est.estimate();
 
-    ASSERT_NEAR(Gz_est.num()[0], 0.09529, 0.005);
-    ASSERT_NEAR(Gz_est.den()[0], -0.9048, 0.005);
-    ASSERT_NEAR(Gz_est.den()[1], 1.0, 0.005);
+    const auto Sz_est = to_StateSpace(Gz_est);
+    controlpp::DiscreteStateSpaceFilter dssf_est(Sz_est);
+    dssf.clear();
+
+    // check by comparing step responses
+    for(int i = 0; i < 100; ++i){
+        const double u = (i == 0) ? 0.0 : 1.0;
+        const double y = dssf.input(u);
+        const double y_est = dssf_est.input(u);
+        ASSERT_NEAR(y, y_est, 0.005);
+    }
+
 }
