@@ -83,20 +83,8 @@ TEST(Estimators, DTFEstimator){
     }
 
     const auto Gz_est = dtf_est.estimate();
-    std::cout << "Gz_est:\n" << Gz_est << std::endl;
 
-    // ASSERT_NEAR(Gz_est.num()[0], 0.09529, 0.005);
-    // ASSERT_NEAR(Gz_est.den()[0], 0.9048, 0.005);
-    // ASSERT_NEAR(Gz_est.den()[1], 1.0, 0.005);
-
-    const auto Sz_est = to_StateSpace(Gz_est);
-    controlpp::DiscreteStateSpaceFilter dssf_est(Sz_est);
-    dssf.clear();
-    for(int i = 0; i < 100; ++i){
-        const double u = (i == 0) ? 0.0 : 1.0;
-        const double y = dssf.input(u);
-        const double y_est = dssf_est.input(u);
-        std::cout << "u: " << u << ", y: " << y << ", y_est: " << y_est << std::endl;
-    }
-
+    ASSERT_NEAR(Gz_est.num()[0], 0.09529, 0.005);
+    ASSERT_NEAR(Gz_est.den()[0], -0.9048, 0.005);
+    ASSERT_NEAR(Gz_est.den()[1], 1.0, 0.005);
 }

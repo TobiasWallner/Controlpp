@@ -96,8 +96,15 @@ namespace controlpp
             // Gain
             const auto A = (this->_cov * s.transpose());
             const auto B = (this->_memory * I + s * this->_cov * s.transpose());
-            // calculate: K = A * B^-1
+            
+            /*
+                Note that B is positive definite:
+                    - memory > 0 ... is a positive scalar
+                    - I ... is positive definite
+                    - s * Cov * s^t
+            */
 
+            // calculate: K = A * B^-1
             const Eigen::Vector<T, NParams> K = B.transpose().partialPivLu().solve(A.transpose()).transpose();
 
             // Update
@@ -227,10 +234,10 @@ namespace controlpp
      * \brief Estimates a discrete transfer function from online data points
      * 
      * \f[
-     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{-1} + b_2 z^{-2} \cdots}{1 + a_1 z^{-1} + a_2 z^{-2} \cdots} u_k
+     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{1} + b_2 z^{2} \cdots b_m z^{m} }{1 + a_1 z^{1} + a_2 z^{2} \cdots 1 z^{n}} u_k
      * \f]
      *
-     * > Note: That \f$a_0\f$ has been set to 1
+     * > Note: That \f$a_n\f$ has been set to 1
      * 
      * Estimates/Identifies model parameters online using the recursive least squares algorithm
      * 
@@ -241,14 +248,14 @@ namespace controlpp
      * of an autoregressive signal process with zero-mean white noise corresponding to the transfer 
      * function being identified.
      */
-    template<class T, size_t NumSize, size_t DenSize>
+    template<class T, size_t NumSize, size_t DenSize, class Measurements=1>
     class DTFEstimator{
         private:
 
         ReccursiveLeastSquares<T, NumSize + DenSize - 1> rls;
 
         Eigen::Vector<T, DenSize> uk = Eigen::Vector<T, DenSize>::Zero();
-        Eigen::Vector<T, DenSize - 1> yk = Eigen::Vector<T, DenSize - 1>::Zero();
+        Eigen::Vector<T, DenSize - 1> neg_yk = Eigen::Vector<T, DenSize - 1>::Zero();
         T _memory;
 
         public:
@@ -273,7 +280,7 @@ namespace controlpp
         /**
          * \brief Adds an interation step to the estimate
          * 
-         * Estimates the states of a system based on inputs (u) and outputs (y) 
+         * Advances the estimation by another input output pair
          * 
          * \param y the systems outpout value
          * \param u the systems input value
@@ -281,27 +288,14 @@ namespace controlpp
          * \returns the 
          */
         const void add(const T& y, const T& u){
-            // TODO: Rethink with positive powers
-            
-            // for(int i = this->uk.size() - 1; i > 0; --i){
-            //     this->uk(i) = this->uk(i-1);
-            // }
-            // this->uk(0) = u;
-            
-            this->uk.head(uk.size()-1) = this->uk.tail(uk.size()-1);
-            this->uk.tail(1)(0) = u;
+            this->uk.head(this->uk.size()-1) = this->uk.tail(this->uk.size()-1);
+            this->uk(this->uk.size()-1) = u;
 
-            const auto s = join_to_vector<T, NumSize, DenSize-1>(uk.tail(NumSize), (-yk).eval());
-            
+            const auto s = join_to_vector<T, NumSize, DenSize-1>(this->uk.head(NumSize), (this->neg_yk).eval());
             this->rls.add(y, s);
 
-            this->yk.head(yk.size()-1) = this->yk.tail(yk.size()-1);
-            this->yk.tail(1)(0) = y;
-
-            // for(int i = this->yk.size() - 1; i > 0; --i){
-            //     this->yk(i) = this->yk(i-1);
-            // }
-            // this->yk(0) = y;
+            this->neg_yk.head(this->neg_yk.size()-1) = this->neg_yk.tail(this->neg_yk.size()-1);
+            this->neg_yk(this->neg_yk.size()-1) = -y;
         }
 
         /**
@@ -312,8 +306,8 @@ namespace controlpp
             DiscreteTransferFunction<T, NumSize, DenSize> result;
             Eigen::Vector<T, NumSize + DenSize - 1> est = rls.estimate();
             result.num().vector() = est.head(NumSize);
-            result.den().vector().tail(DenSize-1) = est.tail(DenSize-1);
-            result.den().vector()(0) = T(1);
+            result.den().vector().head(DenSize-1) = est.tail(DenSize-1);
+            result.den().vector()(DenSize-1) = T(1);
             return result;
         }
 
