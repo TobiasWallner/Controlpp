@@ -1,0 +1,39 @@
+name: gcc-build-and-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+ #   strategy:
+ #     matrix:
+ #       compiler: [gcc, clang]
+
+    env:
+      BUILD_TYPE: Release
+
+    steps:
+    - uses: actions/checkout@main
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install ninja-build cmake
+        sudo apt install g++ # Just in case
+
+    - name: Set up compiler
+      run: |
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+
+    - name: Configure with CMake
+      run: cmake -S . -B build -G "Ninja Multi-Config" build -CONTROLPP_COMPILE_TEST=ON
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Run CTest
+      run: ctest --test-dir build -C Release -V
