@@ -246,8 +246,10 @@ namespace controlpp
     /**
      * \brief Estimates a discrete transfer function from online data points
      * 
+     * Estimates time discrete transfer functions represented with positive powers of \f$z\f$ in the form of:
+     * 
      * \f[
-     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{1} + b_2 z^{2} \cdots b_m z^{m} }{1 + a_1 z^{1} + a_2 z^{2} \cdots 1 z^{n}} u_k
+     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{1} + b_2 z^{2} \cdots b_m z^{m} }{a_0 + a_1 z^{1} + a_2 z^{2} \cdots 1 z^{n}} u_k
      * \f]
      *
      * > Note: That \f$a_n\f$ has been set to 1
