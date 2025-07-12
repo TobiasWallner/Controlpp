@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="66.8871mm"
+   height="57.661289mm"
+   viewBox="0 0 66.8871 57.661289"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="logo_240p.png"
+   inkscape:export-xdpi="105.72084"
+   inkscape:export-ydpi="105.72084"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#a1a1a1"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="true"
+     inkscape:deskcolor="#ffffff"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="1.4912879"
+     inkscape:cx="180.381"
+     inkscape:cy="71.750064"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <marker
+       style="overflow:visible"
+       id="Arrow2"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Arrow2"
+       markerWidth="7.6999998"
+       markerHeight="5.5999999"
+       viewBox="0 0 7.7 5.6"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="M -2,-4 9,0 -2,4 c 2,-2.33 2,-5.66 0,-8 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="arrow2L" />
+    </marker>
+    <linearGradient
+       id="linearGradient925">
+      <stop
+         style="stop-color:#f9e995;stop-opacity:1;"
+         offset="0"
+         id="stop929" />
+      <stop
+         style="stop-color:#e0b43e;stop-opacity:1;"
+         offset="0.29099679"
+         id="stop934" />
+      <stop
+         style="stop-color:#fcea6c;stop-opacity:1;"
+         offset="0.65353698"
+         id="stop936" />
+      <stop
+         style="stop-color:#ca975a;stop-opacity:1;"
+         offset="1"
+         id="stop931" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient925-1">
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="0"
+         id="stop921" />
+      <stop
+         style="stop-color:#000000;stop-opacity:0;"
+         offset="0.66881031"
+         id="stop923" />
+    </linearGradient>
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-4.6365891,-67.764875)">
+    <ellipse
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       id="path1582"
+       cx="38.080139"
+       cy="96.59552"
+       rx="33.44355"
+       ry="28.830645" />
+    <g
+       id="g1747">
+      <path
+         style="fill:none;fill-opacity:0.503049;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.964706;marker-end:url(#Arrow2)"
+         d="m 11.994525,96.418093 h 8.697284"
+         id="path903" />
+      <rect
+         style="fill:none;fill-opacity:0.503049;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.964706"
+         id="rect1174"
+         width="22.354839"
+         height="20.580645"
+         x="27.32258"
+         y="86.305199"
+         rx="0.96071935"
+         ry="0.99786103" />
+      <path
+         style="fill:none;fill-opacity:0.503049;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.964706;marker-end:url(#Arrow2)"
+         d="m 49.668471,96.418093 h 8.697284"
+         id="path1232" />
+      <text
+         xml:space="preserve"
+         style="font-size:16.9333px;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif';fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.7;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:1"
+         x="30.51613"
+         y="102.54839"
+         id="text1290"><tspan
+           sodipodi:role="line"
+           id="tspan1288"
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:16.9333px;font-family:'CMU Serif';-inkscape-font-specification:'CMU Serif Bold Italic';fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.7;stroke-opacity:1"
+           x="30.51613"
+           y="102.54839">C</tspan></text>
+    </g>
+  </g>
+</svg>
