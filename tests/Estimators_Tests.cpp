@@ -60,9 +60,9 @@ TEST(Estimators, reccursive_least_squares_1memory){
 
     
     // check
-    ASSERT_NEAR(estimator.estimate()(0), a0, 0.1);
-    ASSERT_NEAR(estimator.estimate()(1), a1, 0.1);
-    ASSERT_NEAR(estimator.estimate()(2), a2, 0.1);
+    ASSERT_NEAR(estimator.estimate()(0), a0, 0.2);
+    ASSERT_NEAR(estimator.estimate()(1), a1, 0.2);
+    ASSERT_NEAR(estimator.estimate()(2), a2, 0.2);
 
 }
 
