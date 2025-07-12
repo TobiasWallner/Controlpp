@@ -1,10 +1,9 @@
 
 TODO:
+- Check what is going wrong in the Clang Build
 
 State Space Arithmetic
----------------------
-
-
+----------------------
 
 Controllers
 -----------
