@@ -9,3 +9,4 @@
 #include <controlpp/DiscreteStateSpaceFilter.hpp>
 #include <controlpp/transformations.hpp>
 #include <controlpp/Estimators.hpp>
+#include <controlpp/KalmanFilter.hpp>
