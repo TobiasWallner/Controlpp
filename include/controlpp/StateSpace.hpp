@@ -8,7 +8,8 @@
 #include <Eigen/Core>
 
 // controlpp
-#include "RationalPolynom.hpp"
+#include <controlpp/math.hpp>
+#include <controlpp/RationalPolynom.hpp>
 
 namespace controlpp
 {
@@ -37,7 +38,7 @@ namespace controlpp
      * Note that this class only stores the A, B, C, and D matrices and **not** the state x.
      * 
      */
-    template<class T, size_t internal_states, size_t inputs, size_t outputs>
+    template<class T, int internal_states, int inputs, int outputs>
     class StateSpace{
         public:
             using value_type = T;
@@ -47,9 +48,9 @@ namespace controlpp
             using C_matrix_type = Eigen::Matrix<T, outputs, internal_states>;
             using D_matrix_type = Eigen::Matrix<T, outputs, inputs>;
 
-            constexpr static size_t number_of_states = internal_states;
-            constexpr static size_t number_of_inputs = inputs;
-            constexpr static size_t number_of_outputs = outputs;
+            //constexpr static size_t number_of_states = internal_states;
+            //constexpr static size_t number_of_inputs = inputs;
+            //constexpr static size_t number_of_outputs = outputs;
 
         private:
             A_matrix_type _A;
@@ -186,6 +187,28 @@ namespace controlpp
         result.D()(0, 0) = (b.size() > (number_of_states)) ? b[number_of_states] : T(0);
         return result;
     }
+
+
+    /**
+     * \brief transforms a continuous state space system representation to a transfer function representation
+     * 
+     * Uses the formular:
+     * 
+     * \f[
+     * G(s) = \mathbf{C} \left( s \mathbf{I} - \mathbf{A} \right)^{-1} \mathbf{B} + D
+     * \f]
+     */
+    template<class T, int states>
+    constexpr RationalPolynom<T, states+1, states+1> to_TransferFunction(const StateSpace<T, states, 1, 1>& css){
+        const FixedPolynom<T, states+1> s({0, 1});
+        const auto I = Eigen::Matrix<T, states, states>::Identity();
+        const Eigen::Matrix<FixedPolynom<T, states+1>, states, states> sI_min_A = s * I - css.A();
+        const Eigen::Matrix<FixedPolynom<T, states+1>, states, states> adj_sI_min_A = controlpp::adj(sI_min_A);
+        const FixedPolynom<T, states+1> num = (css.C() * adj_sI_min_A * css.B() + css.D())(0, 0);
+        const FixedPolynom<T, states+1> den = sI_min_A.determinant();
+        return RationalPolynom<T, states+1, states+1>(num.vector(), den.vector());
+    }
+
 /*
     template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
     StateSpace<...> operator+(const StateSpace<>& lhs, const StateSpace<>& rhs){
