@@ -123,4 +123,48 @@ namespace controlpp{
 		result.tail(RSize) = r;
 		return result;
 	}
+
+	/**
+	 * \brief returns the minor matrix excluding the provided column and row
+	 * \param A The source matrix
+	 * \param ex_row The row to be excluded
+	 * \param ex_col The column to be excluded
+	 */
+	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
+	Eigen::Matrix<T, Rows-1, Cols-1> minor(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& A, size_t ex_row, size_t ex_col){
+		Eigen::Matrix<T, Rows-1, Cols-1> result;
+		size_t A_row = 0;
+		size_t A_col = 0;
+		for(size_t result_row = 0; result_row < (Rows-1); ++result_row, (void)++A_row){
+			for(size_t result_col = 0; result_col < (Cols-1); ++result_col, (void)++A_col){
+				A_row += (A_row == ex_row) ? 1 : 0;
+				A_col += (A_col == ex_col) ? 1 : 0;
+				result(result_row, result_col) = A(A_row, A_col);
+			}
+		}
+		return result;
+	}
+
+	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
+	Eigen::Matrix<T, Rows, Cols> adj(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& A){
+		Eigen::Matrix<T, Rows, Cols> result;
+		for(int row = 0; row < Rows; ++row){
+			const bool row_sign = (row & 1 == 1); // even are positive, odd are negative
+			for(int col = 0; col < Cols; ++col){
+				const bool col_sign = (col & 1 == 1); // even are positive, odd are negative
+				const bool value_sign = row_sign != col_sign; // sign of the value (both positive/negative: value is positive) (different signs: value is negative)
+				const auto min = minor(A, row, col);
+				const T det = min.determinant();
+				if(value_sign){
+					// negative sign
+					result(col, row) = -det;
+				}else{
+					// positive sign
+					result(col, row) = det;
+				}
+			}
+		}
+		return result;
+	}
+
 }
