@@ -47,8 +47,14 @@ namespace controlpp
             constexpr num_type& num() {return this->_ratpoly.num();}
             constexpr const num_type& num() const {return this->_ratpoly.num();}
 
+            constexpr ValueType& num(size_t i) {return this->_ratpoly.num(i);}
+            constexpr const ValueType& num(size_t i) const {return this->_ratpoly.num(i);}
+
             constexpr den_type& den() {return this->_ratpoly.den();}
             constexpr const den_type& den() const {return this->_ratpoly.den();}
+
+            constexpr ValueType& den(size_t i) {return this->_ratpoly.den(i);}
+            constexpr const ValueType& den(size_t i) const {return this->_ratpoly.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
                 dtf.ratpoly().print(stream, "z");
@@ -135,149 +141,5 @@ namespace controlpp
 
 } // namespace controlpp
 
-namespace Eigen {
-    template<typename T, size_t N, size_t D>
-    struct NumTraits<controlpp::DiscreteTransferFunction<T, N, D>> {
-        using Self = controlpp::DiscreteTransferFunction<T, N, D>;
-        using Real = Self; // or T if you want to treat real parts differently
-        using NonInteger = Self;
-        using Literal = Self;
-        using Nested = Self;
 
-        enum {
-            IsComplex = 0,
-            IsInteger = 0,
-            IsSigned = 1,
-            RequireInitialization = 1,
-            ReadCost = 1,
-            AddCost = 5,
-            MulCost = 10
-        };
-
-        static inline Self epsilon() { return Self(); }
-        static inline Self dummy_precision() { return Self(); }
-        static inline Self highest() { return Self(); }
-        static inline Self lowest() { return Self(); }
-    };
-
-    // ResultType for operator +
-    // -------------------------
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        Tscalar,
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        internal::scalar_sum_op<Tscalar, controlpp::DiscreteTransferFunction<Tpoly, N, D>>> 
-    {
-        using ReturnType = decltype(std::declval<Tscalar>() + std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>());
-    };
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        Tscalar,
-        internal::scalar_sum_op<controlpp::DiscreteTransferFunction<Tpoly, N, D>, Tscalar>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>() + std::declval<Tscalar>());
-    };
-
-    template <class Tpoly, size_t Nl, size_t Dl, size_t Nr, size_t Dr>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>,
-        controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>,
-        internal::scalar_sum_op<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>, controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>>() + std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>());
-    };
-
-    // ResultType for operator -
-    // -------------------------
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        Tscalar,
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        internal::scalar_difference_op<Tscalar, controlpp::DiscreteTransferFunction<Tpoly, N, D>>> 
-    {
-        using ReturnType = decltype(std::declval<Tscalar>() - std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>());
-    };
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        Tscalar,
-        internal::scalar_difference_op<controlpp::DiscreteTransferFunction<Tpoly, N, D>, Tscalar>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>() - std::declval<Tscalar>());
-    };
-
-    template <class Tpoly, size_t Nl, size_t Dl, size_t Nr, size_t Dr>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>,
-        controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>,
-        internal::scalar_difference_op<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>, controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>>() - std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>());
-    };
-
-    // ResultType for operator *
-    // -------------------------
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        Tscalar,
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        internal::scalar_product_op<Tscalar, controlpp::DiscreteTransferFunction<Tpoly, N, D>>> 
-    {
-        using ReturnType = decltype(std::declval<Tscalar>() * std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>());
-    };
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        Tscalar,
-        internal::scalar_product_op<controlpp::DiscreteTransferFunction<Tpoly, N, D>, Tscalar>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>() * std::declval<Tscalar>());
-    };
-
-    template <class Tpoly, size_t Nl, size_t Dl, size_t Nr, size_t Dr>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>,
-        controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>,
-        internal::scalar_product_op<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>, controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>>() * std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>());
-    };
-
-    // ResultType for operator /
-    // -------------------------
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        Tscalar,
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        internal::scalar_quotient_op<Tscalar, controlpp::DiscreteTransferFunction<Tpoly, N, D>>> 
-    {
-        using ReturnType = decltype(std::declval<Tscalar>() / std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>());
-    };
-
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N, size_t D>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, N, D>,
-        Tscalar,
-        internal::scalar_quotient_op<controlpp::DiscreteTransferFunction<Tpoly, N, D>, Tscalar>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, N, D>>() / std::declval<Tscalar>());
-    };
-
-    template <class Tpoly, size_t Nl, size_t Dl, size_t Nr, size_t Dr>
-    struct ScalarBinaryOpTraits<
-        controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>,
-        controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>,
-        internal::scalar_quotient_op<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>, controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>> 
-    {
-        using ReturnType = decltype(std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nl, Dl>>() / std::declval<controlpp::DiscreteTransferFunction<Tpoly, Nr, Dr>>());
-    };
-}
 
