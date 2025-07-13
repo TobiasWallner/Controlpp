@@ -102,3 +102,28 @@ TEST(Transformation, continuous_ss_to_bilinear_ss){
     }
 
 }
+
+TEST(Transformation, state_space_to_transfer_function){
+    const Eigen::Matrix<double, 2, 2> A({
+        {0, 1},
+        {-1, -3}
+    });
+    const Eigen::Matrix<double, 2, 1> B(
+        0,
+        1
+    );
+    const Eigen::Matrix<double, 1, 2> C(1, 1);
+    const Eigen::Matrix<double, 1, 1> D(0);
+
+    const controlpp::StateSpace sys(A, B, C, D);
+
+    const auto G = controlpp::to_TransferFunction(sys);
+
+    ASSERT_NEAR(G.num(0), 1.0, 1e-6);
+    ASSERT_NEAR(G.num(1), 1.0, 1e-6);
+    ASSERT_NEAR(G.num(2), 0.0, 1e-6);
+    
+    ASSERT_NEAR(G.den(0), 1.0, 1e-6);
+    ASSERT_NEAR(G.den(1), 3.0, 1e-6);
+    ASSERT_NEAR(G.den(2), 1.0, 1e-6);
+}
