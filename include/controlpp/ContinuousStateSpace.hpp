@@ -1,7 +1,7 @@
 #pragma once
 
 #include "StateSpace.hpp"
-#include "RationalPolynom.hpp"
+#include "TransferFunction.hpp"
 #include "ContinuousTransferFunction.hpp"
 
 namespace controlpp
@@ -72,24 +72,34 @@ namespace controlpp
      * \brief constructs a continuous state space function from a rational polynom
      */
     template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const RationalPolynom<T, num_size, den_size>& rp){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(rp));
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_continuous_state_space(const TransferFunction<T, num_size, den_size>& rp){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(rp));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_ContinuousStateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(ctf.ratpoly()));
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_StateSpace(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_StateSpace(ctf.ratpoly()));
+    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_state_space(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
+        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+    }
+
+    /**
+     * \brief Transforms a discrete state space system to a discrete transfer function
+     * \returns a discrete transfer function `controlpp::DiscreteTransferFunction`
+     * \see controlpp::DiscreteTransferFunction
+     */
+    template<class T, size_t states>
+    constexpr ContinuousTransferFunction<T, states+1, states+1> to_transfer_function(const ContinuousStateSpace<T, states, 1, 1>& dss){
+        return ContinuousTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     }
     
 } // namespace controlpp

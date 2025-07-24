@@ -9,7 +9,7 @@
 
 // controlpp
 #include <controlpp/math.hpp>
-#include <controlpp/RationalPolynom.hpp>
+#include <controlpp/TransferFunction.hpp>
 
 namespace controlpp
 {
@@ -154,7 +154,7 @@ namespace controlpp
      * \brief calculates the state space representation from a rational polynomial
      */
     template<class T, size_t num_size, size_t den_size>
-    constexpr StateSpace<T, den_size-1, 1, 1> to_StateSpace(const RationalPolynom<T, num_size, den_size>& rp){
+    constexpr StateSpace<T, den_size-1, 1, 1> to_state_space(const TransferFunction<T, num_size, den_size>& rp){
         static constexpr size_t number_of_states = den_size-1;
         StateSpace<T, number_of_states, 1, 1> result;
         const T a_n = rp.den()[rp.den().order()];
@@ -199,14 +199,14 @@ namespace controlpp
      * \f]
      */
     template<class T, int states>
-    constexpr RationalPolynom<T, states+1, states+1> to_TransferFunction(const StateSpace<T, states, 1, 1>& css){
+    constexpr TransferFunction<T, states+1, states+1> to_transfer_function(const StateSpace<T, states, 1, 1>& css){
         const FixedPolynom<T, states+1> s({0, 1});
         const auto I = Eigen::Matrix<T, states, states>::Identity();
         const Eigen::Matrix<FixedPolynom<T, states+1>, states, states> sI_min_A = s * I - css.A();
         const Eigen::Matrix<FixedPolynom<T, states+1>, states, states> adj_sI_min_A = controlpp::adj(sI_min_A);
         const FixedPolynom<T, states+1> num = (css.C() * adj_sI_min_A * css.B() + css.D())(0, 0);
         const FixedPolynom<T, states+1> den = sI_min_A.determinant();
-        return RationalPolynom<T, states+1, states+1>(num.vector(), den.vector());
+        return TransferFunction<T, states+1, states+1>(num.vector(), den.vector());
     }
 
 /*

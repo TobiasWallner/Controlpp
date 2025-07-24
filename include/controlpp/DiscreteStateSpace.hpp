@@ -25,6 +25,10 @@ namespace controlpp
      * 
      * If you want a system with internal state have a look at: `DiscreteStateSpaceFilter`.
      * 
+     * This is a type wrapper around `controlpp::StateSpace`
+     * 
+     * \see controlpp::StateSpace
+     * \see controlpp::DiscreteTransferFunction
      * \see controlpp::DiscreteStateSpaceFilter
      * 
      * \tparam ValueType The value type of the matrix elements and arithmetic calculations (usually `double` or `float`)
@@ -118,24 +122,34 @@ namespace controlpp
      * \brief constructs a continuous state space function from a rational polynom
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(rp));
+    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_discrete_state_space(const TransferFunction<ValueType, num_size, den_size>& rp){
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_DiscreteStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
+    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_discrete_state_space(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_StateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
+    constexpr DiscreteStateSpace<ValueType, den_size-1, 1, 1> to_state_space(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
+        return DiscreteStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+    }
+
+    /**
+     * \brief Transforms a discrete state space system to a discrete transfer function
+     * \returns a discrete transfer function `controlpp::DiscreteTransferFunction`
+     * \see controlpp::DiscreteTransferFunction
+     */
+    template<class T, size_t states>
+    constexpr DiscreteTransferFunction<T, states+1, states+1> to_transfer_function(const DiscreteStateSpace<T, states, 1, 1>& dss){
+        return DiscreteTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     }
 
 } // namespace controlpp

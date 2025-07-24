@@ -1,6 +1,7 @@
 #pragma once
 
 #include "StateSpace.hpp"
+#include "BilinearTransferFunction.hpp"
 
 namespace controlpp
 {
@@ -73,21 +74,32 @@ namespace controlpp
      * \brief constructs a continuous state space function from a rational polynom
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const RationalPolynom<ValueType, num_size, den_size>& rp){
-        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(rp));
+    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_bilinear_state_space(const TransferFunction<ValueType, num_size, den_size>& rp){
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(rp));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, size_t num_size, size_t den_size>
-    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const DiscreteTransferFunction<ValueType, num_size, den_size>& dtf){
-        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
+    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_bilinear_state_space(const BilinearTransferFunction<ValueType, num_size, den_size>& dtf){
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
     }
 
-    // template<class ValueType, size_t num_size, size_t den_size>
-    // constexpr DiscreteTransferFunction<ValueType, den_size-1, 1, 1> to_BilinearStateSpace(const BilinearStateSpace<ValueType, num_size, den_size>& dtf){
-    //     return DiscreteTransferFunction<ValueType, den_size-1, 1, 1>(to_StateSpace(dtf.ratpoly()));
-    // }
+    template<class ValueType, size_t num_size, size_t den_size>
+    constexpr BilinearStateSpace<ValueType, den_size-1, 1, 1> to_state_space(const BilinearTransferFunction<ValueType, num_size, den_size>& dtf){
+        return BilinearStateSpace<ValueType, den_size-1, 1, 1>(to_state_space(dtf.ratpoly()));
+    }
+
+    /**
+     * \brief Transforms a discrete state space system to a discrete transfer function
+     * \returns a discrete transfer function `controlpp::DiscreteTransferFunction`
+     * \see controlpp::DiscreteTransferFunction
+     */
+    template<class T, size_t states>
+    constexpr BilinearTransferFunction<T, states+1, states+1> to_transfer_function(const BilinearStateSpace<T, states, 1, 1>& dss){
+        return BilinearTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
+    }
+
 
 } // namespace controlpp
