@@ -6,9 +6,12 @@
 #include <initializer_list>
 #include <iterator>
 #include <concepts>
+#include <complex>
 
 // eigen
 #include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues> 
 
 namespace controlpp
 {
@@ -239,6 +242,66 @@ namespace controlpp
                 return *this;
             }
     };
+
+    // -----------------------------------------------------------------------------------------------
+    //                                        Roots, Zeros
+    // -----------------------------------------------------------------------------------------------
+    
+    /**
+     * \brief calculates the zeros/roots of a polynomial
+     * 
+     * Specialisation for polynomials of degree 1.
+     * 
+     * Solves the following equation:
+     * 
+     * \f[
+     * 0 = a_0 + a_1 x
+     * \f]
+     * 
+     * \returns an eigen vector of complex numbers which are the roots of the polynomial
+     */
+    template<class T>
+    constexpr Eigen::Vector<std::complex<T>, 1> zeros(const Polynom<T, 2>& polynom){
+        const std::complex x0 = - polynom[0] / polynom[1];
+        Eigen::Vector<std::complex<T>, 1> result(x0);
+        return result;
+    }
+
+    /**
+     * \brief calculates the zeros/roots of a polynomial
+     * 
+     * Specialisation for polynomials of degree 1.
+     * 
+     * \f[
+     * 0 = a_0 + a_1 x + a_2 x^2
+     * \f]
+     * 
+     * \returns an eigen vector of complex numbers which are the roots of the polynomial
+     */
+    template<class T>
+    constexpr Eigen::Vector<std::complex<T>, 2> zeros(const Polynom<T, 3>& polynom){
+        const std::complex c = polynom[0];
+        const std::complex b = polynom[1];
+        const std::complex a = polynom[2];
+        const std::complex x1 = (-b - std::sqrt(b * b - static_cast<T>(4) * a * c)) / (static_cast<T>(2) * a);
+        const std::complex x2 = (-b + std::sqrt(b * b - static_cast<T>(4) * a * c)) / (static_cast<T>(2) * a);
+        const Eigen::Vector<std::complex<T>, 2> result(x1, x2);
+        return result;
+    }
+
+    /**
+     * \brief Calculates the zeros of a polynomial
+     * 
+     * Uses the companion matrix to solve for the zeros of the polynomial
+     * 
+     */
+    template<class T, size_t N>
+    requires(N > 1)
+    constexpr Eigen::Vector<std::complex<T>, N-1> zeros(const Polynom<T, N>& polynom){
+        const Eigen::Matrix<T, N-1, N-1> C = controlpp::companion(polynom.vector());
+        const Eigen::Vector<std::complex<T>, N-1> result = C.eigenvalues();
+        return result;
+    }
 
     // -----------------------------------------------------------------------------------------------
     //                                      Comparison Operators

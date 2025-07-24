@@ -167,4 +167,60 @@ namespace controlpp{
 		return result;
 	}
 
+	/**
+	 * \brief Creates a companion matrix from a vector
+	 * 
+	 * given the vector:
+	 * 
+	 * \f[
+	 * \vec{v} = \left[a_0, a_1, a_2, \hdots, a_n \right]
+	 * \f]
+	 * 
+	 * creates the companion matrix:
+	 * 
+	 * \f[
+	 * \mathbf{C} = \begin{bmatrix}
+	 * 		0 		& 1 		& 0 		& \cdots	& 0 		\\
+	 * 		0 		& 0 		& 1 		& \cdots 	& 0 		\\
+	 * 		\vdots 	& \vdots 	& \ddots 	& \ddots 	& \vdots 	\\
+	 * 		0 		& 0 		& \cdots 	& 0 		& 1 		\\
+	 * 		b_0 	& b_1 		& \cdots 	& b_{n-2} 	& b_{n-1}
+	 * \end{bmatrix}
+	 * \f]
+	 * 
+	 * where \f$b_i\f$ is:
+	 * 
+	 * \f[
+	 * b_i = \frac{a_i}{a_n}
+	 * \f]
+	 * 
+	 * \returns a companion matrix
+	 */
+	template<class T, int N>
+	Eigen::Matrix<T, N-1, N-1> companion(const Eigen::Vector<T, N>& v){
+		Eigen::Matrix<T, N-1, N-1> result;
+		result.template block<N-2, N-2>(0, 1) = Eigen::Matrix<T, N-2, N-2>::Identity();
+		result.col(0).setZero();
+		result.row(N-2) = -v.head(N-1) / v(N-1);
+		return result;
+	}
+
+	template<class T, int N>
+	Eigen::Vector<T, N> real(const Eigen::Vector<std::complex<T>, N>& v){
+		Eigen::Vector<T, N> result;
+		for(int i = 0; i < N; ++i){
+			result(i) = std::real(v(i));
+		}
+		return result;
+	}
+
+	template<class T, int N>
+	Eigen::Vector<T, N> imag(const Eigen::Vector<std::complex<T>, N>& v){
+		Eigen::Vector<T, N> result;
+		for(int i = 0; i < N; ++i){
+			result(i) = std::imag(v(i));
+		}
+		return result;
+	}
+
 }
