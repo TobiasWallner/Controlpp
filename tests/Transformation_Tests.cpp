@@ -10,7 +10,7 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     // preparation
     const auto s = controlpp::tf::s<double>;
     const auto G_s = 1 / (1 + s + s*s);
-    const auto Sys_s = controlpp::to_StateSpace(G_s);
+    const auto Sys_s = controlpp::to_state_space(G_s);
     const double sample_time = 0.01; // seconds
     
     // expected values
@@ -46,7 +46,7 @@ TEST(Transformation, discrete_ss_to_bilinear_ss){
     // preparation
     const auto z = controlpp::tf::z<double>;
     const auto G_z = (1 + z) / (1 + 3*z + z*z);
-    const auto Sys_z = controlpp::to_StateSpace(G_z);
+    const auto Sys_z = controlpp::to_state_space(G_z);
 
     // function under test
     const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
@@ -81,7 +81,7 @@ TEST(Transformation, continuous_ss_to_bilinear_ss){
     // preparation
     const auto z = controlpp::tf::z<double>;
     const auto G_z = (1 + z) / (1 + 3*z + z*z);
-    const auto Sys_z = controlpp::to_StateSpace(G_z);
+    const auto Sys_z = controlpp::to_state_space(G_z);
     const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
 
     // function under test
@@ -117,7 +117,7 @@ TEST(Transformation, state_space_to_transfer_function){
 
     const controlpp::StateSpace sys(A, B, C, D);
 
-    const auto G = controlpp::to_TransferFunction(sys);
+    const auto G = controlpp::to_transfer_function(sys);
 
     ASSERT_NEAR(G.num(0), 1.0, 1e-6);
     ASSERT_NEAR(G.num(1), 1.0, 1e-6);

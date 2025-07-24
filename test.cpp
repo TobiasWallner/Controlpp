@@ -21,11 +21,11 @@
 
 #include "Vector.hpp"
 #include "Polynom.hpp"
-#include "RationalPolynom.hpp"
+#include "TransferFunction.hpp"
 #include "ContinuousTransferFunction.hpp"
 #include "DiscreteTransferFunction.hpp"
 
-/* TODO:	* Put 'RationalPolynom' into its own header
+/* TODO:	* Put 'TransferFunction' into its own header
 			* add 'diff' / 'differentiate' and 'integ' / 'integrate' functions
 			
 			* (Optional: add a dynamic vector that is made per default, with 'N=-1')
@@ -69,7 +69,7 @@ struct StateSpace{
 };
 
 template<class T, size_t num_size, size_t den_size>
-constexpr StateSpace<T, den_size-1, 1, 1> state_space(const RationalPolynom<T, num_size, den_size>& rp){
+constexpr StateSpace<T, den_size-1, 1, 1> state_space(const TransferFunction<T, num_size, den_size>& rp){
 	StateSpace<T, den_size-1, 1, 1> result;
 	const T a_n = rp.den[rp.den.order()];
 	const Polynom<T, den_size> a = -(rp.den/a_n);
