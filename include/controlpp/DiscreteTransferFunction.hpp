@@ -6,7 +6,7 @@ namespace controlpp
     class DiscreteTransferFunction{
         public:
             using value_type = ValueType;
-            using ratpoly_type = RationalPolynom<ValueType, NumSize, DenSize>;
+            using ratpoly_type = TransferFunction<ValueType, NumSize, DenSize>;
             using num_type = typename ratpoly_type::num_type;
             using den_type = typename ratpoly_type::den_type;
             using num_vector_type = typename ratpoly_type::num_vector_type;
@@ -28,7 +28,7 @@ namespace controlpp
                 : _ratpoly(num, den){}
 
             constexpr DiscreteTransferFunction(
-                const RationalPolynom<ValueType, NumSize, DenSize>& ratpoly)
+                const TransferFunction<ValueType, NumSize, DenSize>& ratpoly)
                 : _ratpoly(ratpoly){}
 
             constexpr explicit DiscreteTransferFunction(

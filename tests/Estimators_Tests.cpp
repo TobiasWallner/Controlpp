@@ -71,7 +71,7 @@ TEST(Estimators, DTFEstimator){
 
     const auto Gs = (8) / (1 + 3*s);
 
-    const auto Sz = controlpp::s_to_z(controlpp::to_StateSpace(Gs), 0.1);
+    const auto Sz = controlpp::s_to_z(controlpp::to_state_space(Gs), 0.1);
 
     controlpp::DiscreteStateSpaceFilter dssf(Sz);
     controlpp::DTFEstimator<double, 1, 2> dtf_est;
@@ -84,7 +84,7 @@ TEST(Estimators, DTFEstimator){
 
     const auto Gz_est = dtf_est.estimate();
 
-    const auto Sz_est = to_StateSpace(Gz_est);
+    const auto Sz_est = to_state_space(Gz_est);
     controlpp::DiscreteStateSpaceFilter dssf_est(Sz_est);
     dssf.clear();
 

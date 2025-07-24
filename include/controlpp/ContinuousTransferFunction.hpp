@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Polynom.hpp"
-#include "RationalPolynom.hpp"
+#include "TransferFunction.hpp"
 
 namespace controlpp
 {
@@ -9,7 +9,7 @@ namespace controlpp
     class ContinuousTransferFunction{
         public:
             using value_type = ValueType;
-            using ratpoly_type = RationalPolynom<ValueType, NumSize, DenSize>;
+            using ratpoly_type = TransferFunction<ValueType, NumSize, DenSize>;
             using num_type = typename ratpoly_type::num_type;
             using den_type = typename ratpoly_type::den_type;
             using num_vector_type = typename ratpoly_type::num_vector_type;
@@ -27,7 +27,7 @@ namespace controlpp
             constexpr explicit ContinuousTransferFunction(const Polynom<ValueType, NumSize>& num, const Polynom<ValueType, DenSize>& den)
                 : _ratpoly(num, den){}
 
-            constexpr explicit ContinuousTransferFunction(const RationalPolynom<ValueType, NumSize, DenSize>& ratpoly)
+            constexpr explicit ContinuousTransferFunction(const TransferFunction<ValueType, NumSize, DenSize>& ratpoly)
                 : _ratpoly(ratpoly){}
 
             constexpr explicit ContinuousTransferFunction(const num_vector_type& num, const den_vector_type& den)
