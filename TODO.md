@@ -1,10 +1,11 @@
 
 TODO:
 - Check what is going wrong in the Clang Build
+- Test or Simulate the time-variant controllers
 
 Naming Style
 ------------
-- Functions and Methods in `snake_case`
+- All functions and Methods in `snake_case`
 
 Hybrid Storage
 --------------
