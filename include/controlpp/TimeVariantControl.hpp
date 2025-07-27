@@ -71,7 +71,8 @@ namespace controlpp
         constexpr T operator() (const T& u) const {return this->input(u);}
     };
 
-        namespace vartime{
+        /// @brief Namespace that contains sample-time variant controllers
+        namespace timevar{
         /**
          * \brief An I (Integrator) controller, with varying smaple-time
          * 
