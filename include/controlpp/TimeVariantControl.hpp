@@ -71,7 +71,7 @@ namespace controlpp
         constexpr T operator() (const T& u) const {return this->input(u);}
     };
 
-        /// @brief Namespace that contains sample-time variant controllers
+        /// @brief Namespace that contains sample-time variant controllers  
         namespace timevar{
         /**
          * \brief An I (Integrator) controller, with varying smaple-time
@@ -235,8 +235,8 @@ namespace controlpp
             using value_type = T;
             private:
             T ki_;
-            T nv_;
-            T pv_;
+            T vn_;
+            T vp_;
             T min_;
             T max_;
             
@@ -255,8 +255,8 @@ namespace controlpp
              */
             constexpr IAntiWindup(const T& ki, const T& vn, const T& vp, const T& min, const T& max) 
                 : ki_(ki)
-                , pv_(pv)
-                , nv_(nv)
+                , vp_(vp)
+                , vn_(vn)
                 , min_(min)
                 , max_(max)
                 {}
@@ -288,17 +288,17 @@ namespace controlpp
             
             /// @brief Sets the positive rate limit of the I controller
             /// @param pv The new positive rate limit
-            constexpr void prate_limit(const T& pv) {return this->pv_ = pv;}
+            constexpr void prate_limit(const T& pv) {return this->vp_ = pv;}
 
             /// @brief returns the positive rate limit
-            [[nodiscard]] constexpr const T& prate_limit() const {return this->pv_;}
+            [[nodiscard]] constexpr const T& prate_limit() const {return this->vp_;}
 
             /// @brief Sets the negative rate limit of the I controller
             /// @param nv The new negative rate limit
-            constexpr void nrate_limit(const T& nv) {return this->nv_ = nv;}
+            constexpr void nrate_limit(const T& nv) {return this->vn_ = nv;}
 
             /// @brief returns the negative rate limit
-            [[nodiscard]] constexpr const T& nrate_limit() const {return this->nv_;}
+            [[nodiscard]] constexpr const T& nrate_limit() const {return this->vn_;}
 
             /// @brief Sets the maximal value limit
             /// @param max The new maximal value limit
@@ -333,7 +333,7 @@ namespace controlpp
              * \returns The control output
              */
             constexpr T input(const T& u, const T& Ts){
-                const T v = std::clamp(this->ki_ / 2 * (u + this->u_k1_), this->nv_, this->pv_); 
+                const T v = std::clamp(this->ki_ / 2 * (u + this->u_k1_), this->vn_, this->vp_); 
                 const T dy = v * Ts;
                 const T y = std::clamp(dy + this->y_k1_, this->min_, this->max_);
                 
@@ -454,10 +454,9 @@ namespace controlpp
              */
             constexpr T input(const T& u, const T& Ts){
                 // calculate new output
-                const T w_Ts_half = this->omega_ * Ts / 2;
                 const T a = this->omega_ * this->k_d_;
-                const T b = (w_Ts_half-1);
-                const T c = (w_Ts_half + 1)
+                const T b = this->omega_ * Ts / 2 - 1;
+                const T c = this->omega_ * Ts / 2 + 1;
                 const T y = (a * (u - this->u_k1_) - b * this->y_k1_) / c;
 
                 // update internal states
@@ -532,12 +531,12 @@ namespace controlpp
              * \param K The gain of the filter
              * \param omega The -3dB bandwidth of the lowpass filter
              */
-            constexpr LowPassO1(const T& K, const T& omega)
+            constexpr PT1(const T& K, const T& omega)
                 : K_(K)
                 , omega_(omega){}
 
             /// @brief Default copy constructor 
-            constexpr LowPassO1(const LowPassO1&) = default;
+            constexpr PT1(const PT1&) = default;
 
             /// @brief Sets the gain of the filter
             /// @param K The new gain
@@ -579,9 +578,9 @@ namespace controlpp
             constexpr T input(const T& u, const T& Ts){
                 // calculate control output:
                 const T a = this->K_ * this->omega_ * Ts;
-                const T b = 2 - this->omega_ * Ts;
-                const T c = 2 + this->omega_ * Ts;
-                const T y = (a * (u - this->u_k1_) - b * this->y_k1_) / c;
+                const T b = this->omega_ * Ts - 2;
+                const T c = this->omega_ * Ts + 2;
+                const T y = (a * (u + this->u_k1_) - b * this->y_k1_) / c;
 
                 // update states
                 this->u_k1_ = u;
@@ -599,7 +598,8 @@ namespace controlpp
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
 
         };
-        typename PT1 LowPassO1;
+        template<class T>
+        using LowPassO1 = PT1<T>;
 
         /**
          * \brief A PT2 (proportional time second order) filter (=low-pass element of order 1), with varying smaple-time
@@ -787,7 +787,8 @@ namespace controlpp
                 this->y_k2_ = static_cast<T>(0);
             }
         };
-        typename PT2 LowPassO2;
+        template<class T>
+        using LowPassO2 = PT2<T>;
 
         /**
          * \brief A PI (Proportional Integral) controller with varying sample-times
@@ -831,17 +832,21 @@ namespace controlpp
         class PI{
             private:
 
-            T ki_;
             T kp_;
+            T ki_;
 
             T u_k1_ = static_cast<T>(0);
             T y_k1_ = static_cast<T>(0);
 
             public:
 
-            PI(const T& ki, const T& kp)
-                : ki_(ki)
-                , kp_(kp)
+            /**
+             * \param ki The integral gain
+             * \param kp The proportional gain
+             */
+            PI(const T& kp, const T& ki)
+                : kp_(kp)
+                , ki_(ki)
                 {}
 
             PI(const PI&) = default;
@@ -990,7 +995,7 @@ namespace controlpp
             T kp_;
             T ki_;
 
-            T np_;
+            T vn_;
             T vp_;
 
             T min_;
@@ -1080,7 +1085,7 @@ namespace controlpp
                 const T dy = (this->ki_ * Ts / 2 + this->kp_) * u + (this->ki_ * Ts / 2 - this->kp_) * this->u_k1_;
                 const T v = dy / Ts;
 
-                const T v_rate_clamped = std::clamp(v, this->vn_ this->vp_);
+                const T v_rate_clamped = std::clamp(v, this->vn_, this->vp_);
                 const T dy_rate_clamped = v_rate_clamped * Ts;
 
                 const T y = dy_rate_clamped + y_k1_;
@@ -1112,6 +1117,58 @@ namespace controlpp
         };
 
 
+        /**
+         * \brief A Thamed PI controller (PI controller with a low pass filter) with variable sample-times
+         * 
+         * The purely proportional component of a PI controller can amplify high-frequency noise.
+         * While this does not improve control performance, it may lead to increased power consumption due to rapid steering actions.
+         * To mitigate this, the proportional gain (P) can be replaced with a first-order low-pass filter (PT1), 
+         * effectively transforming the PI controller into a PT1I controller.
+         * 
+         * With the transfer function:
+         * 
+         * \f[
+         * \text{PI} = \frac{s k_p + k_i}{s + \frac{s^2}{\omega}}
+         * \f]
+         * 
+         * and the discretisation using the tustin transformation:
+         * 
+         * \f[
+         * s = \frac{2}{T_s} \frac{1 - z^{-1}}{1 + z^{-1}}
+         * \f]
+         * 
+         * resulting in the controlers time series:
+         * 
+         * \f[
+         * y_k = (K * (b_0 * u_k + b_1 * u_{k-1} + b_2 * u_{k-2}) - a_1 * y_{k-1} - a_2 * y_{k-2}) / a_0
+         * \f]
+         * 
+         * where:
+         * 
+         * \f[
+         * K = \omega * T_s
+         * a0 = 4 + 2 * \omega * T_s
+         * a1 = -8
+         * a2 = 4 - 2 * \omega * T_s
+         * b0 = 2 * k_p + k_i * T_s
+         * b1 = 2 * k_i * T_s
+         * b2 = k_i * T_s - 2 * k_p
+         * \f]
+         * 
+         * with:
+         * 
+         * - \f$T_s\f$ the sample-time in seconds 
+         * - \f$u_{k}\f$ and \f$u_{k-1}\f$ are current and previous control inputs
+         * - \f$y_{k}\f$ and \f$y_{k-1}\f$ are current and previous control outputs
+         * - \f$k_p\f$ the proportional gain
+         * - \f$k_i\f$ the integral gain
+         * - \f$\omega\f$ the characteristic frequency of the low pass filter aimed to thame the P control at high frequencies
+         * 
+         * 
+         * \see controlpp::vartime::PT1I
+         * 
+         * \tparam T Value type of the filter like `float` or `double`
+         */
         template<class T>
         class ThamedPI{
             private:
@@ -1127,13 +1184,15 @@ namespace controlpp
 
             public:
 
+            constexpr ThamedPI(const ThamedPI&) = default;
+
             /**
              * \brief Constructs a PT1I (proportional time delayed + integral) controller
              * \param kp The proportional gain of the controller
              * \param ki The integral gain of the controller
              * \param omega The lowpass filter bandwidth
              */
-            constexpr PT1I(const T& kp, const T& ki, const T& omega)
+            constexpr ThamedPI(const T& kp, const T& ki, const T& omega)
                 : kp_(kp)
                 , ki_(ki)
                 , omega_(omega){}
@@ -1190,10 +1249,92 @@ namespace controlpp
 
         class PT1IAntiWindup{
             //TODO
-        }
+        };
 
+        /**
+         * \brief A PID (proportional + integral + differential) controller with variable sample-times
+         * 
+         * with the transfer function:
+         * 
+         * \f[
+         * PID(s) = \left( k_p + \frac{k_i}{s} + k_d s \right)\frac{1}{1 + \frac{s}{\omega}}
+         * \f]
+         * 
+         * The therm:
+         * 
+         * \f[
+         * \frac{1}{1 + \frac{s}{\omega}}
+         * \f]
+         * 
+         * has been added to:
+         * 
+         * 1. make the D controller realisable
+         * 2. thame the D controller for high frequencies
+         * 
+         * 
+         */
+        template<class T>
         class PID{
-            //TODO
+            private:
+
+            T kp_;
+            T ki_;
+            T kd_;
+            T omega_;
+
+            T y_k1_ = static_cast<T>(0);
+            T y_k2_ = static_cast<T>(0);
+            T u_k1_ = static_cast<T>(0);
+            T u_k2_ = static_cast<T>(0);
+
+            public:
+
+            /**
+             * \brief Input a new sample to the controller
+             * \param u The control input
+             * \param Ts The sample-time
+             * \see operator()(const T& u, const T& Ts)
+             */
+            constexpr T input(const T& u, const T& Ts){
+                // parameters
+                const T a0 = 4 + 2 * omega_ * Ts;
+                const T a1 = -8;
+                const T a2 = 4 - 2 * omega_ * Ts;
+
+                const T b0 = 4 * kd_ * omega_ + 2 * kp_ + ki_ * Ts;
+                const T b1 = 2 * ki_ * Ts - 8 * kd_ * omega_;
+                const T b2 = 4 * kd_ * omega_ - 2 * kp_ + ki_ * Ts;
+
+                // control output
+                const T y = (b0 * u + b1 * u_k1_ + b2 * u_k2_ - a1 * y_k1_ - a2 * y_k2_) / a0;
+
+                // update states
+                y_k2_ = y_k1_;
+                y_k1_ = y;
+
+                u_k2_ = u_k1_;
+                u_k1_ = u;
+
+                return y;
+            }
+
+            /**
+             * \brief resets (clears) the internal states
+             * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
+             */
+            constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+
+            /**
+             * \brief resets (clears) the internal states
+             * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
+             */
+            constexpr void reset(){
+                this->u_k1_ = static_cast<T>(0);
+                this->u_k2_ = static_cast<T>(0);
+                this->y_k1_ = static_cast<T>(0);
+                this->y_k2_ = static_cast<T>(0);
+            }
+
         };
 
         class PIDAntiWindup{
