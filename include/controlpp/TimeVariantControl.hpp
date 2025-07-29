@@ -504,7 +504,10 @@ namespace controlpp
          * to the sample series:
          * 
          * \f[
-         * y_k = \frac{K \omega T_s \left( u_k - u_{k-1} \right) - \left( 2 - \omega T_s \right) y_{k-1}}{2 + \omega T_s}
+         * y_k = \frac{a  (u_k + u_{k-1}) - b  y_{k-1}}{c};
+         * a = K  \omega_ * T_s
+         * b = \omega * T_s - 2
+         * c = \omega * T_s + 2
          * \f]
          * 
          * with:
@@ -747,17 +750,18 @@ namespace controlpp
              */
             constexpr T input(const T& u, const T& Ts){
                 // calculate output
-                const T omega2 = this->omega_ * this->omega_;
-                const T Ts2 = Ts * Ts;
+                const T omega_sqr = omega_ * omega_;
+                const T Ts_sqr = Ts * Ts;
+                const T _4_D_omega_Ts = 4 * D_ * omega_ * Ts;
+                const T _omega_Ts_sqr = omega_sqr * Ts_sqr;
 
-                const T d = 4 / (omega2 * Ts2) + 1;
-                const T e = 4 * this->D_;
+                const T V = K_ * _omega_Ts_sqr;
 
-                const T a = d + e;
-                const T b = 2 * d;
-                const T c = d - e;
+                const T a0 = _omega_Ts_sqr + _4_D_omega_Ts + 4;
+                const T a1 = 2 * _omega_Ts_sqr - 8;
+                const T a2 = _omega_Ts_sqr - _4_D_omega_Ts + 4;
 
-                const T y = (this->K_ (u + 2 * this->u_k1_ + this->u_k2_) - b * this->y_k1_ - c * this->y_k2_) / a;
+                const T y = (K_ * _omega_Ts_sqr * (u + 2 * u_k1_ + u_k2_) - a1 * y_k1_ - a2 * y_k2_) / a0;
 
                 // update states
                 this->y_k2_ = this->y_k1_;
@@ -992,16 +996,9 @@ namespace controlpp
         template<class T>
         class PIAntiWindup{
             private:
-            T kp_;
-            T ki_;
+            P<T> P_;
+            IAntiWindup<T> I_;
 
-            T vn_;
-            T vp_;
-
-            T min_;
-            T max_;
-
-            T u_k1_ = static_cast<T>(0);
             T y_k1_ = static_cast<T>(0);
 
             public:
@@ -1014,12 +1011,8 @@ namespace controlpp
             /// @param min The minimal value of the control output. Assumes: \f$min < max\f$
             /// @param max The maximal value of the control output. Assumes: \f$min < max\f$
             PIAntiWindup(const T& kp, const T& ki, const T& vn, const T& vp, const T& min, const T& max)
-                : kp_(kp)
-                , ki_(ki)
-                , vn_(vn)
-                , vp_(vp)
-                , min_(min)
-                , max_(max)
+                : P_(kp)
+                , I_(ki, vn, vp, min, max)
                 {}
 
             PIAntiWindup(const PIAntiWindup&) = default;
@@ -1028,51 +1021,51 @@ namespace controlpp
              * \brief sets the proportional gain
              * \param kp the new proportional gain for the next sample value
              */
-            constexpr void kp(const T& kp){this->kp_ = kp;}
+            constexpr void kp(const T& kp){this->P_.kp(kp);}
 
             /**
              * \brief returns the current gain
              */
-            [[nodiscard]] constexpr const T& kp() const {return this->kp_;}
+            [[nodiscard]] constexpr const T& kp() const {return this->P_.kp();}
 
             /**
              * \brief sets the integral gain
              * \param ki the new proportional gain for the next sample value
              */
-            constexpr void ki(const T& ki){this->ki_ = ki;}
+            constexpr void ki(const T& ki){this->I_.ki(ki);}
 
             /**
              * \brief returns the current gain
              */
-            [[nodiscard]] constexpr const T& ki() const {return this->ki_;}
+            [[nodiscard]] constexpr const T& ki() const {return this->I_.ki_();}
 
-            /// @brief Sets the previous \f$[k-1]\f$ control input
-            /// @param u_k1 The previous \f$[k-1]\f$ control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
+            /// @brief Sets the positive rate limit of the I controller
+            /// @param pv The new positive rate limit
+            constexpr void prate_limit(const T& pv) {this->I_.prate_limit(pv);}
 
-            /// @brief Returns the previous \f$[k-1]\f$ control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
+            /// @brief returns the positive rate limit
+            [[nodiscard]] constexpr const T& prate_limit() const {return this->I_.prate_limit();}
 
-            /// @brief Sets the previous \f$[k-2]\f$ control input
-            /// @param u_k2 The previous \f$[k-2]\f$ control input
-            constexpr void u_k2(const T& u_k2) {return this->u_k2_ = u_k2;}
+            /// @brief Sets the negative rate limit of the I controller
+            /// @param nv The new negative rate limit
+            constexpr void nrate_limit(const T& nv) {this->I_.nrate_limit(nv);}
 
-            /// @brief Returns the previous \f$[k-2]\f$ control input
-            [[nodiscard]] constexpr const T& u_k2() const {return this->u_k2_;}
+            /// @brief returns the negative rate limit
+            [[nodiscard]] constexpr const T& nrate_limit() const {return this->I_.nrate_limit();}
 
-            /// @brief Sets the previous \f$[k-1]\f$ control output
-            /// @param y_k1 The previous \f$[k-1]\f$ control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
+            /// @brief Sets the maximal value limit
+            /// @param max The new maximal value limit
+            constexpr void max_limit(const T& max) {this->I_.max_limit(max);}
 
-            /// @brief returns the previous \f$[k-1]\f$ control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
+            /// @brief returns the maximal value limit
+            [[nodiscard]] constexpr const T& max_limit() const {return this->I_.max_limit();}
 
-            /// @brief Sets the previous \f$[k-2]\f$ control output
-            /// @param y_k2 The previous \f$[k-2]\f$ control output
-            constexpr void y_k2(const T& y_k2) {return this->y_k2_ = y_k2;}
+            /// @brief Sets the minimal value limit
+            /// @param min The new minimal value limit
+            constexpr void min_limit(const T& min) {this->I_.min_limit(min);}
 
-            /// @brief returns the previous \f$[k-2]\f$ control output
-            [[nodiscard]] constexpr const T& y_k2() const {return this->y_k2_;}
+            /// @brief returns the minimal value limit
+            [[nodiscard]] constexpr const T& min_limit() const {return this->I_.min_limit();}
 
             /**
              * \brief Input a new sample to the controller
@@ -1082,20 +1075,16 @@ namespace controlpp
              */
             constexpr T input(const T& u, const T& Ts){
                 // calculate new output
-                const T dy = (this->ki_ * Ts / 2 + this->kp_) * u + (this->ki_ * Ts / 2 - this->kp_) * this->u_k1_;
-                const T v = dy / Ts;
-
-                const T v_rate_clamped = std::clamp(v, this->vn_, this->vp_);
-                const T dy_rate_clamped = v_rate_clamped * Ts;
-
-                const T y = dy_rate_clamped + y_k1_;
-                const T y_clamped = std::clamp(y, this->min_, this->max_);
+                T y_raw = I_.input(u, Ts) + P_.input(u);
+                T rate_raw = (y_raw - y_k1_)/Ts;
+                T rate = std::clamp(rate_raw, nrate_limit(), prate_limit());
+                T y_rate_clamped = rate * Ts + y_k1_;
+                T y = std::clamp(y_rate_clamped, min_limit(), max_limit());
 
                 // update states
-                this->y_k1_ = y_clamped;
-                this->u_k1_ = u;
+                this->y_k1_ = y;
 
-                return y_clamped;
+                return y;
             }
 
             /**
@@ -1111,7 +1100,7 @@ namespace controlpp
              * resets the internal states (\f$u_{k-1}\f$, \f$y_{k-1}\f$) to zero
              */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
+                this->I_.reset();
                 this->y_k1_ = static_cast<T>(0);
             }
         };
@@ -1247,10 +1236,6 @@ namespace controlpp
             }
         };
 
-        class PT1IAntiWindup{
-            //TODO
-        };
-
         /**
          * \brief A PID (proportional + integral + differential) controller with variable sample-times
          * 
@@ -1282,12 +1267,51 @@ namespace controlpp
             T kd_;
             T omega_;
 
-            T y_k1_ = static_cast<T>(0);
-            T y_k2_ = static_cast<T>(0);
             T u_k1_ = static_cast<T>(0);
             T u_k2_ = static_cast<T>(0);
+            T y_k1_ = static_cast<T>(0);
+            T y_k2_ = static_cast<T>(0);
 
             public:
+
+            /**
+             * \brief constructs a PID controller form gain parameters
+             * \param kp The proportional gain
+             * \param ki The integral gain
+             * \param kd The differential gain
+             * \param omega The thaming frequency
+             */
+            PID(const T& kp, const T& ki, const T& kd, const T& omega)
+                : kp_(kp)
+                , ki_(ki)
+                , kd_(kd)
+                , omega_(omega){}
+
+            /**
+             * \brief Constructa a PID controller using the alpha tuning method
+             * 
+             * TODO: insert image with explanation of how the alpha tuning works
+             * 
+             * \param alpha Design parameter
+             *  - Large alpha: 
+             *      - increases phase margin but decreases gain at low frequencies
+             *      - more robust but less performance
+             *  - Small alpha:
+             *      - decreses phase margin but increses gain at low frequencies
+             *      - less robust but more performant
+             * 
+             * \param mag_G The magnitude of the plant that should be controlled at the desired cutoff frequency
+             * 
+             * \param omega_c The desired cutoff frequency
+             */
+            static PID from_alpha_tune(const T& alpha, const T& omega_c, const T& mag_G){
+                const T kp = 1 / (mag_G * alpha);
+                const T ki = omega_c / (mag_G * alpha * alpha * alpha);
+                const T kd = 1 / (omega_c * mag_G);
+                const T omega = omega_c * alpha;
+                PID result(kp, ki, ki, omega);
+                return result;
+            }
 
             /**
              * \brief Input a new sample to the controller
@@ -1296,17 +1320,21 @@ namespace controlpp
              * \see operator()(const T& u, const T& Ts)
              */
             constexpr T input(const T& u, const T& Ts){
-                // parameters
-                const T a0 = 4 + 2 * omega_ * Ts;
-                const T a1 = -8;
-                const T a2 = 4 - 2 * omega_ * Ts;
+                const T _2_omega_Ts = 2 * omega_ * Ts;
 
-                const T b0 = 4 * kd_ * omega_ + 2 * kp_ + ki_ * Ts;
-                const T b1 = 2 * ki_ * Ts - 8 * kd_ * omega_;
-                const T b2 = 4 * kd_ * omega_ - 2 * kp_ + ki_ * Ts;
+                // parameters
+                const T a0 = 4 + _2_omega_Ts;
+                const T a1 = -8;
+                const T a2 = 4 - _2_omega_Ts;
+
+                const T b0 = (4 * kd_ + 2 * kp_ * Ts + ki_ * Ts * Ts);
+                const T b1 = (ki_ * Ts * Ts - 4 * kd_) * 2;
+                const T b2 = (4 * kd_ - 2 * kp_ * Ts + ki_ * Ts * Ts);
+
+                const T V = omega_;
 
                 // control output
-                const T y = (b0 * u + b1 * u_k1_ + b2 * u_k2_ - a1 * y_k1_ - a2 * y_k2_) / a0;
+                const T y = (V * (b0 * u + b1 * u_k1_ + b2 * u_k2_) - a1 * y_k1_ - a2 * y_k2_) / a0;
 
                 // update states
                 y_k2_ = y_k1_;
@@ -1416,12 +1444,19 @@ namespace controlpp
             [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
 
             constexpr T input(const T& u, const T& Ts){
-                // calculate filter output
-                const T a = this->omega2_ * (Ts + 2 / this->omega1_);
-                const T b = this->omega2_ * (Ts - 2 / this->omega1_);
-                const T c = Ts * this->omega2_ - 2;
-                const T d = Ts * this->omega2_ + 2;
-                const T y = (a * u + b * this->u_k1_ - c * this->y_k1_) / d;
+                // calculate filter parameters
+                const T omega1_omega2_Ts = omega1_ * omega2_ * Ts;
+                const T _2_omega2 = 2 * omega2_;
+                const T _2_omega1 = 2 * omega1_;
+
+                const T b0 = omega1_omega2_Ts + _2_omega2;
+                const T b1 = omega1_omega2_Ts - _2_omega2;
+
+                const T a0 = omega1_omega2_Ts + _2_omega1;
+                const T a1 = omega1_omega2_Ts - _2_omega1;
+
+                // calculate filter outpuot
+                const T y = (b0 * u + b1 * this->u_k1_ - a1 * this->y_k1_) / a0;
 
                 // update state
                 this->y_k1_ = y;
