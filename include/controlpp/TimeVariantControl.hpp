@@ -61,14 +61,37 @@ namespace controlpp
          * \param u the new sample input
          * \returns the new output based on the input
          */
-        constexpr T input(const T& u) const {return u * this->kp_;}
+        constexpr T input(const T& u) {return u * this->kp_;}
+
+        /**
+         * \brief Adds a new sample
+         * \param u the new sample input
+         * \param Ts sample time (unused - there for compatibility)
+         * \returns the new output based on the input
+         */
+        constexpr T input(const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
 
         /**
          * \brief Adds a new sample
          * \param u the new sample input
          * \returns the new output based on the input
          */
-        constexpr T operator() (const T& u) const {return this->input(u);}
+        constexpr T operator() (const T& u) {return this->input(u);}
+
+        /**
+         * \brief Adds a new sample
+         * \param u the new sample input
+         * \param Ts sample time (unused - there for compatibility)
+         * \returns the new output based on the input
+         */
+        constexpr T operator() (const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
+
+        /**
+         * \brief resets the internal states of the filter
+         * 
+         * For P control elements this is a no-op.
+         */
+        constexpr void reset() {/*no operation*/}
     };
 
         /// @brief Namespace that contains sample-time variant controllers  
@@ -600,6 +623,14 @@ namespace controlpp
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
 
+            /**
+             * \brief resets the internal states of the controller
+             */
+            constexpr void reset(){
+                this->u_k1_ = static_cast<T>(0);
+                this->y_k1_ = static_cast<T>(0);
+            }
+
         };
         template<class T>
         using LowPassO1 = PT1<T>;
@@ -835,12 +866,8 @@ namespace controlpp
         template<class T>
         class PI{
             private:
-
-            T kp_;
-            T ki_;
-
-            T u_k1_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
+            P<T> P_;
+            I<T> I_;
 
             public:
 
@@ -849,8 +876,8 @@ namespace controlpp
              * \param kp The proportional gain
              */
             PI(const T& kp, const T& ki)
-                : kp_(kp)
-                , ki_(ki)
+                : P_(kp)
+                , I_(ki)
                 {}
 
             PI(const PI&) = default;
@@ -859,51 +886,23 @@ namespace controlpp
              * \brief sets the proportional gain
              * \param kp the new proportional gain for the next sample value
              */
-            constexpr void kp(const T& kp){this->kp_ = kp;}
+            constexpr void kp(const T& kp){this->P_.kp(kp);}
 
             /**
              * \brief returns the current gain
              */
-            [[nodiscard]] constexpr const T& kp() const {return this->kp_;}
+            [[nodiscard]] constexpr const T& kp() const {return this->P_.kp();}
 
             /**
              * \brief sets the integral gain
              * \param ki the new proportional gain for the next sample value
              */
-            constexpr void ki(const T& ki){this->ki_ = ki;}
+            constexpr void ki(const T& ki){this->I_.ki(ki);}
 
             /**
              * \brief returns the current gain
              */
-            [[nodiscard]] constexpr const T& ki() const {return this->ki_;}
-
-            /// @brief Sets the previous \f$[k-1]\f$ control input
-            /// @param u_k1 The previous \f$[k-1]\f$ control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous \f$[k-1]\f$ control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous \f$[k-2]\f$ control input
-            /// @param u_k2 The previous \f$[k-2]\f$ control input
-            constexpr void u_k2(const T& u_k2) {return this->u_k2_ = u_k2;}
-
-            /// @brief Returns the previous \f$[k-2]\f$ control input
-            [[nodiscard]] constexpr const T& u_k2() const {return this->u_k2_;}
-
-            /// @brief Sets the previous \f$[k-1]\f$ control output
-            /// @param y_k1 The previous \f$[k-1]\f$ control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous \f$[k-1]\f$ control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
-
-            /// @brief Sets the previous \f$[k-2]\f$ control output
-            /// @param y_k2 The previous \f$[k-2]\f$ control output
-            constexpr void y_k2(const T& y_k2) {return this->y_k2_ = y_k2;}
-
-            /// @brief returns the previous \f$[k-2]\f$ control output
-            [[nodiscard]] constexpr const T& y_k2() const {return this->y_k2_;}
+            [[nodiscard]] constexpr const T& ki() const {return this->I_.ki();}
 
             /**
              * \brief Input a new sample to the controller
@@ -912,19 +911,8 @@ namespace controlpp
              * \see operator()(const T& u, const T& Ts)
              */
             constexpr T input(const T& u, const T& Ts){
-                // calculate new output
-                const T p = ki_ * Ts / 2;
-
-                const T a = p + kp_;
-                const T b = p - kp_;
-
-                const T y = a * u + b * u_k1_ + y_k1_;
-
-                // update states
-                this->y_k1_ = y;
-                this->u_k1_ = u;
-
-                return y;
+                const T result = this->I_(u, Ts) + this->P_(u, Ts);
+                return result;
             }
 
             /**
@@ -940,8 +928,8 @@ namespace controlpp
              * resets the internal states (\f$u_{k-1}\f$ and \f$y_{k-1}\f$) to zero
              */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
+                this->I_.reset();
+                this->P_.reset();
             }
         };
 
@@ -1159,21 +1147,15 @@ namespace controlpp
          * \tparam T Value type of the filter like `float` or `double`
          */
         template<class T>
-        class ThamedPI{
+        class PT1I{
             private:
 
-            T kp_;
-            T ki_;
-            T omega_;
-
-            T u_k1_ = static_cast<T>(0);
-            T u_k2_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
-            T y_k2_ = static_cast<T>(0);
+            PT1<T> PT1_;
+            I<T> I_;
 
             public:
 
-            constexpr ThamedPI(const ThamedPI&) = default;
+            constexpr PT1I(const PT1I&) = default;
 
             /**
              * \brief Constructs a PT1I (proportional time delayed + integral) controller
@@ -1181,10 +1163,10 @@ namespace controlpp
              * \param ki The integral gain of the controller
              * \param omega The lowpass filter bandwidth
              */
-            constexpr ThamedPI(const T& kp, const T& ki, const T& omega)
-                : kp_(kp)
-                , ki_(ki)
-                , omega_(omega){}
+            constexpr PT1I(const T& kp, const T& ki, const T& omega)
+                : PT1_(kp, omega)
+                , I_(ki)
+                {}
 
             /**
              * \brief Input a new sample to the controller
@@ -1194,26 +1176,8 @@ namespace controlpp
              */
             constexpr T input(const T& u, const T& Ts){
                 // calculate filter parameters
-                const T K = omega_ * Ts;
-
-                const T a0 = 4 + 2 * omega_ * Ts;
-                const T a1 = -8;
-                const T a2 = 4 - 2 * omega_ * Ts;
-
-                const T b0 = 2 * kp_ + ki_ * Ts;
-                const T b1 = 2 * ki_ * Ts;
-                const T b2 = ki_ * Ts - 2 * kp_;
-
-                // calculate filter output
-                const T y = (K * (b0 * u + b1 * u_k1_ + b2 * u_k2_) - a1 * y_k1_ - a2 * y_k2_) / a0;
-
-                // update states
-                u_k2_ = u_k1_;
-                u_k1_ = u;
-                y_k2_ = y_k1_;
-                y_k1_ = y;
-
-                return y;
+                const T result = PT1_(u, Ts) + I_(u, Ts);
+                return result;
             }
 
             /**
@@ -1229,10 +1193,8 @@ namespace controlpp
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
              */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->u_k2_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
-                this->y_k2_ = static_cast<T>(0);
+                PT1_.result();
+                I_.result();
             }
         };
 
@@ -1261,16 +1223,9 @@ namespace controlpp
         template<class T>
         class PID{
             private:
-
-            T kp_;
-            T ki_;
-            T kd_;
-            T omega_;
-
-            T u_k1_ = static_cast<T>(0);
-            T u_k2_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
-            T y_k2_ = static_cast<T>(0);
+            P<T> P_;
+            I<T> I_;
+            D<T> D_;
 
             public:
 
@@ -1282,10 +1237,9 @@ namespace controlpp
              * \param omega The thaming frequency
              */
             PID(const T& kp, const T& ki, const T& kd, const T& omega)
-                : kp_(kp)
-                , ki_(ki)
-                , kd_(kd)
-                , omega_(omega){}
+                : P_(kp)
+                , I_(ki)
+                , D_(kd, omega){}
 
             /**
              * \brief Constructa a PID controller using the alpha tuning method
@@ -1320,30 +1274,8 @@ namespace controlpp
              * \see operator()(const T& u, const T& Ts)
              */
             constexpr T input(const T& u, const T& Ts){
-                const T _2_omega_Ts = 2 * omega_ * Ts;
-
-                // parameters
-                const T a0 = 4 + _2_omega_Ts;
-                const T a1 = -8;
-                const T a2 = 4 - _2_omega_Ts;
-
-                const T b0 = (4 * kd_ + 2 * kp_ * Ts + ki_ * Ts * Ts);
-                const T b1 = (ki_ * Ts * Ts - 4 * kd_) * 2;
-                const T b2 = (4 * kd_ - 2 * kp_ * Ts + ki_ * Ts * Ts);
-
-                const T V = omega_;
-
-                // control output
-                const T y = (V * (b0 * u + b1 * u_k1_ + b2 * u_k2_) - a1 * y_k1_ - a2 * y_k2_) / a0;
-
-                // update states
-                y_k2_ = y_k1_;
-                y_k1_ = y;
-
-                u_k2_ = u_k1_;
-                u_k1_ = u;
-
-                return y;
+                const T result = P_(u, Ts) + I_(u, Ts) + D_(u, Ts);
+                return result;
             }
 
             /**
@@ -1468,6 +1400,80 @@ namespace controlpp
             constexpr void reset(){
                 this->u_k1_ = static_cast<T>(0);
                 this->y_k1_ = static_cast<T>(0);
+            }
+        };
+
+        template<class T>
+        class Notch{
+            private:
+
+            T width_;
+            T damping_;
+            T omega_;
+
+            T u_k1_ = static_cast<T>(0);
+            T u_k2_ = static_cast<T>(0);
+            T y_k1_ = static_cast<T>(0);
+            T y_k2_ = static_cast<T>(0);
+
+            public:
+
+            /**
+             * \brief Creates a notch filter
+             * \param w The width of the noth. 
+             *      - \f$w > 0\f$: Larger value \f$\Rightarrow\f$ wider notch
+             *      - \f$w = 0\f$: Needle
+             * \param d The dampening of the notch. 
+             *      - \f$0 < d < 1\f$: 
+             *          - larger values \f$\Rightarrow\f$ wider
+             *          - smaller values \f$\Rightarrow\f$ narrower
+             *      - \f$d = 0\f$: Numerator and Denominator cancel --> theoretically a proportional gain but numerically instable
+             *      - \f$d > 0\f$: inverse notch / peak
+             */
+            constexpr Notch(const T& w, const T& d, const T& omega)
+                : width_(w)
+                , damping_(d)
+                , omega_(omega){}
+
+            constexpr void width(const T& w){this->width_ = w;}
+            constexpr const T& width() const {return this->width_;}
+
+            constexpr void damping(const T& d){this->damping_ = d;}
+            constexpr const T& damping() const {return this->damping_;}
+
+            constexpr void omega(const T& omega){this->omega_ = omega;}
+            constexpr const T& omega() const {return this->omega_;}
+
+            constexpr T input(const T& u, const T& Ts){
+                // calculate parameters
+                const T a0 = omega_ * omega_ * Ts * Ts + 4 * width_ * omega_ * Ts + 4;
+                const T a1 = 2 * omega_ * omega_ * Ts * Ts - 8;
+                const T a2 = omega_ * omega_ * Ts * Ts - 4 * width_ * omega_ * Ts + 4;
+
+
+                const T b0 = omega_ * omega_ * Ts * Ts + 4 * width_ * damping_* omega_ * Ts + 4;
+                const T b1 = a1;
+                const T b2 = omega_ * omega_ * Ts * Ts - 4 * width_ * damping_* omega_ * Ts + 4;
+
+                // calculate output
+                const T y = (b0 * u + b1 * u_k1_ + b2 * u_k2_ - a1 * y_k1_ - a2 * y_k2_) / a0;
+
+                // update state
+                u_k2_ = u_k1_;
+                u_k1_ = u;
+                y_k2_ = y_k1_;
+                y_k1_ = y;
+
+                return y;
+            }
+
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
+            constexpr void reset(){
+                u_k1_ = static_cast<T>(0);
+                u_k2_ = static_cast<T>(0);
+                y_k1_ = static_cast<T>(0);
+                y_k2_ = static_cast<T>(0);
             }
         };
 
