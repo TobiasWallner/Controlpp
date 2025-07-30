@@ -1403,6 +1403,36 @@ namespace controlpp
             }
         };
 
+        /**
+         * \brief A notch element with variable sample-time
+         * 
+         * Has the following continuous transfer function:
+         * 
+         * \f[
+         * N(s) = \frac{1 + \frac{2 W D s}{\omega} + \frac{s^2}{\omega^2}}{2 W s}{\omega} + \frac{s^2}{\omega^2}}
+         * \f]
+         * 
+         * transformed with the tustin transformation to the following time series:
+         * 
+         * \f[
+         * y_k = \frac{b_0  u_k + b_1  u_{k-1} + b_2  u_{k-2} - a_1  y_{k-1} - a_2  y_{k-2}}{a_0} \\
+         * a_0 = \omega^2 Ts^2 + 4 W \omega Ts + 4 \\
+         * a_1 = 2 \omega^2 T_s^2  - 8 \\
+         * a_2 = \omega^2 T_s^2 - 4 W \omega Ts + 4 \\
+         * b_0 = \omega^2 Ts^2 + 4 W D \omega Ts + 4 \\
+         * b_1 = a_1 \\
+         * b_2 = \omega^2 T_s^2 - 4 W D \omega Ts + 4 \\
+         * \f]
+         * 
+         * where:
+         * 
+         * - \f$T_s\f$ sample-time
+         * - \f$\omega\f$ the frequency of the notch
+         * - \f$W\f$ the width of the notch. (\f$W \geqslant 0\f$)
+         * - \f$D\f$ the dampening of the notch. (\f$0 \\leqslant D < 1\f$)
+         * - \f$y_k\f$ current and previous control outpouts
+         * - \f$u_k\f$ current and previous control inputs
+         */
         template<class T>
         class Notch{
             private:
@@ -1445,15 +1475,21 @@ namespace controlpp
             constexpr const T& omega() const {return this->omega_;}
 
             constexpr T input(const T& u, const T& Ts){
+                // helpers
+                const T omega_Ts = omega_ * Ts;
+                const T omega_Ts_sqr = omega_Ts * omega_Ts;
+                const T width_omega_Ts = width_ * omega_Ts;
+                const T width_omega_Ts_damping = width_omega_Ts * damping_;
+
                 // calculate parameters
-                const T a0 = omega_ * omega_ * Ts * Ts + 4 * width_ * omega_ * Ts + 4;
-                const T a1 = 2 * omega_ * omega_ * Ts * Ts - 8;
-                const T a2 = omega_ * omega_ * Ts * Ts - 4 * width_ * omega_ * Ts + 4;
+                const T a0 = omega_Ts_sqr + (width_omega_Ts + 1) * 4;
+                const T a1 = 2 * omega_Ts_sqr - 8;
+                const T a2 = omega_Ts_sqr - (width_omega_Ts - 1) * 4;
 
 
-                const T b0 = omega_ * omega_ * Ts * Ts + 4 * width_ * damping_* omega_ * Ts + 4;
+                const T b0 = omega_Ts_sqr + (width_omega_Ts_damping + 1) * 4;
                 const T b1 = a1;
-                const T b2 = omega_ * omega_ * Ts * Ts - 4 * width_ * damping_* omega_ * Ts + 4;
+                const T b2 = omega_Ts_sqr - (width_omega_Ts_damping - 1) * 4;
 
                 // calculate output
                 const T y = (b0 * u + b1 * u_k1_ + b2 * u_k2_ - a1 * y_k1_ - a2 * y_k2_) / a0;
