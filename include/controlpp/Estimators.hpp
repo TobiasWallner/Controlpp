@@ -308,7 +308,7 @@ namespace controlpp
          * 
          * \returns the 
          */
-        const void add(const T& y, const T& u){
+        void add(const T& y, const T& u){
             this->uk.head(this->uk.size()-1) = this->uk.tail(this->uk.size()-1);
             this->uk(this->uk.size()-1) = u;
 
