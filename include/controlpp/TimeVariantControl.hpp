@@ -786,8 +786,6 @@ namespace controlpp
                 const T _4_D_omega_Ts = 4 * D_ * omega_ * Ts;
                 const T _omega_Ts_sqr = omega_sqr * Ts_sqr;
 
-                const T V = K_ * _omega_Ts_sqr;
-
                 const T a0 = _omega_Ts_sqr + _4_D_omega_Ts + 4;
                 const T a1 = 2 * _omega_Ts_sqr - 8;
                 const T a2 = _omega_Ts_sqr - _4_D_omega_Ts + 4;
@@ -1193,8 +1191,8 @@ namespace controlpp
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
              */
             constexpr void reset(){
-                PT1_.result();
-                I_.result();
+                PT1_.reset();
+                I_.reset();
             }
         };
 
@@ -1289,10 +1287,8 @@ namespace controlpp
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
              */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->u_k2_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
-                this->y_k2_ = static_cast<T>(0);
+                this->I_.reset();
+                this->D_.reset();
             }
 
         };
