@@ -1,9 +1,41 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <Eigen/Eigenvalues> 
 
 namespace controlpp{
 	
+	/**
+	 * \brief Calculates the product of all numbers in the closed open range [from, to)
+	 * 
+	 * Example:
+	 * ```
+	 * product_over(2, )
+	 */
+	constexpr unsigned long product_over(unsigned long from, unsigned long to){
+		unsigned long product = 1;
+		for(; from < to; ++from){
+			product *= from;
+		}
+		return product;
+	}
+
+	template<class T>
+	constexpr pow(const T& base, const int& exp){
+		T result = static_cast<T>(1);
+		if(exp >= 0){
+			for(int i = 0; i < exp; ++i){
+				result *= base;
+			}
+		}else{
+			T& base_inv = 1/base;
+			for(int i = 0; i < -exp; ++i){
+				result *= base_inv;
+			}
+		}
+		return result;
+	}
+
 	/**
 	 * \brief Exponential function with a taylor approximation
 	 * 
@@ -149,9 +181,9 @@ namespace controlpp{
 	Eigen::Matrix<T, Rows, Cols> adj(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& A){
 		Eigen::Matrix<T, Rows, Cols> result;
 		for(int row = 0; row < Rows; ++row){
-			const bool row_sign = (row & 1 == 1); // even are positive, odd are negative
+			const bool row_sign = ((row & 1) == 1); // even are positive, odd are negative
 			for(int col = 0; col < Cols; ++col){
-				const bool col_sign = (col & 1 == 1); // even are positive, odd are negative
+				const bool col_sign = ((col & 1) == 1); // even are positive, odd are negative
 				const bool value_sign = row_sign != col_sign; // sign of the value (both positive/negative: value is positive) (different signs: value is negative)
 				const auto min = minor(A, row, col);
 				const T det = min.determinant();
@@ -205,22 +237,132 @@ namespace controlpp{
 		return result;
 	}
 
-	template<class T, int N>
-	Eigen::Vector<T, N> real(const Eigen::Vector<std::complex<T>, N>& v){
-		Eigen::Vector<T, N> result;
-		for(int i = 0; i < N; ++i){
-			result(i) = std::real(v(i));
-		}
-		return result;
+
+	/**
+	 * \brief Creates a hamilton matrix
+	 * 
+	 * Creates the hamilton matrix with the following shape:
+	 * 
+	 * \f[
+	 * H = \begin{pmatrix}
+	 * 		A & -B R^{-1} B^\top
+	 * 		-Q & -A^\top
+	 * \end{pmatrix}
+	 * \f]
+	 * 
+	 * \param A System dynamics matrix
+	 * \param B System input matrix
+	 * \param Q State const matrix
+	 * \param R Control cost matrix. Assumend to be strictly symetric positive definite!
+	 * 
+	 * \tparam T The data type of the matrix elements
+	 * \tparam N The number of states
+	 * \tparam M The number of imputs
+	 * 
+	 * \returns An Eigen matrix containing the hamilton matrix
+	 */
+	template<
+		class T, int N, int M,
+		int AOptions, int AMaxRows, int AMaxCols,
+		int BOptions, int BMaxRows, int BMaxCols,
+		int QOptions, int QMaxRows, int QMaxCols,
+		int ROptions, int RMaxRows, int RMaxCols
+	>
+	constexpr Eigen::Matrix<T, 2*N, 2*N> create_hamilton(
+		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
+		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
+		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q,
+		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R
+	){
+		Eigen::Matrix<T, 2*N, 2*N> H;
+		H.topLeftCorner(N, N) = A;
+		H.topRightCorner(N, N) =  - B * R.llt().solve(B.transpose());
+		H.bottomLeftCorner(N, N) = -Q;
+		H.bottomRightCorner(N, N) = -A.transpose();
+		return H;
 	}
 
-	template<class T, int N>
-	Eigen::Vector<T, N> imag(const Eigen::Vector<std::complex<T>, N>& v){
-		Eigen::Vector<T, N> result;
-		for(int i = 0; i < N; ++i){
-			result(i) = std::imag(v(i));
+	/**
+	 * \brief Solves the continuous Riccati equation
+	 * 
+	 * Solves the following Riccati equation for \f$X\f$:
+	 * 
+	 * \f[
+	 * A^\top X + X A - X B R^{-1} B^\top X + Q = 0
+	 * \f]
+	 * 
+	 * for the system:
+	 * 
+	 * \f[
+	 * \dot{x} = A x + B u\\
+	 * \f]
+	 * 
+	 * ----
+	 * 
+	 * Soves the Riccatiy equation by:
+	 * 
+	 * 1. Building the Hamilton matrix (`controlpp::create_hamilton()`)
+	 * 2. Compute its stable eigenvectors
+	 * 3. Re-Partitions the eigenvectors
+	 * 4. Recovers X from the partitions
+	 * 
+	 * \param A System dynamics matrix
+	 * \param B System input matrix
+	 * \param Q State const matrix
+	 * \param R Control cost matrix. Assumend to be strictly symetric positive definite!
+	 * 
+	 * \tparam T The data type of the matrix elements
+	 * \tparam N The number of states
+	 * \tparam M The number of imputs
+	 * 
+	 * \see controlpp::create_hamilton()
+	 */
+	template<
+		class T, int N, int M,
+		int AOptions, int AMaxRows, int AMaxCols,
+		int BOptions, int BMaxRows, int BMaxCols,
+		int QOptions, int QMaxRows, int QMaxCols,
+		int ROptions, int RMaxRows, int RMaxCols
+	>
+	constexpr Eigen::Matrix<T, N, N> solve_continuous_riccati(
+		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
+		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
+		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q,
+		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R
+	){
+		// 1. Build the hamilton matrix
+		const Eigen::Matrix<T, 2*N, 2*N> H = controlpp::create_hamilton(A, B, Q, R);
+
+		// 2. Compute stable eigenvectors
+		Eigen::ComplexEigenSolver<Eigen::Matrix<T, 2*N, 2*N>> ces;
+		ces.compute(H);
+		const auto& H_eigvals = ces.eigenvalues();
+		const auto& H_eigvecs = ces.eigenvectors();
+
+		// in a 2n hamilton matrix are exactly n stable ones
+		Eigen::Matrix<std::complex<T>, 2*N, N> StableEigenVecs;
+		int si = 0; // stable eigenvalue iterator
+		int ei = 0; // eigen value iterator
+		for(; (si < N) && (ei < 2*N); ++ei){
+			if(H_eigvals(ei).real() < 0){// only stable ones
+				StableEigenVecs.col(si) = H_eigvecs.col(ei);
+				++si;
+			}
 		}
-		return result;
+
+		// 3. Repartition
+		const auto TopPartition = StableEigenVecs.template block<N, N>(0, 0);
+		const auto BottomPartition = StableEigenVecs.template block<N, N>(N, 0);
+
+		// 4. Recover Solution (BottomPartition * TopPartition^-1)
+		const Eigen::Matrix<std::complex<T>, N, N> X = TopPartition.transpose().partialPivLu().solve(BottomPartition.transpose()).transpose();
+
+		// The result is real, make sure it is real because it should be
+		const Eigen::Matrix<T, N, N> realX = X.real();
+
+		return realX;
 	}
+
+	
 
 }
