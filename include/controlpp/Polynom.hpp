@@ -13,6 +13,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues> 
 
+#include "math.hpp"
+
 namespace controlpp
 {
 
