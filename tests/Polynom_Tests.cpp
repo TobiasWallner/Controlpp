@@ -92,8 +92,8 @@ TEST(Polynom, zeros_order_2){
     const Eigen::Vector<std::complex<double>, 2> zeros = controlpp::zeros(p);
 
     // sort and seperate
-    Eigen::Vector<double, 2> real_zeros = controlpp::real(zeros);
-    Eigen::Vector<double, 2> imag_zeros = controlpp::imag(zeros);
+    Eigen::Vector<double, 2> real_zeros = zeros.real();
+    Eigen::Vector<double, 2> imag_zeros = zeros.imag();
 
     std::sort(real_zeros.data(), real_zeros.data() + real_zeros.size());
     
@@ -119,8 +119,8 @@ TEST(Polynom, zeros_order_n){
     const auto zeros = controlpp::zeros(p);
 
     // sort and seperate
-    Eigen::Vector<double, 4> real_zeros = controlpp::real(zeros);
-    Eigen::Vector<double, 4> imag_zeros = controlpp::imag(zeros);
+    Eigen::Vector<double, 4> real_zeros = zeros.real();
+    Eigen::Vector<double, 4> imag_zeros = zeros.imag();
 
     std::sort(real_zeros.data(), real_zeros.data() + real_zeros.size());
     
