@@ -43,6 +43,15 @@ if (CONTROLPP_COMPILE_TEST)
         GTest::gtest_main
     )
 
+    if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+        target_compile_options(controlpp_tests PRIVATE
+            -Wall
+            -Wextra
+            -Werror
+            -Wno-array-bounds # Gets triggered by SIMD
+        )
+    endif()
+
     include(GoogleTest)
     add_test(NAME controlpp_tests COMMAND controlpp_tests)
 
