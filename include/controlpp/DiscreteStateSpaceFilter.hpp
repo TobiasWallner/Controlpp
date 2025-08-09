@@ -8,7 +8,7 @@ namespace controlpp{
     class DiscreteStateSpaceFilter{
         private:
         
-        Eigen::Vector<T, NStates_> states_;
+        Eigen::Vector<T, NStates_> states_ = Eigen::Vector<T, NStates_>::Zero();
         DiscreteStateSpace<T, NStates_, NInputs_, NOutputs_> dss_;
 
         public:
