@@ -39,8 +39,14 @@ namespace controlpp
             constexpr num_type& num() {return this->_ratpoly.num();}
             constexpr const num_type& num() const {return this->_ratpoly.num();}
 
+            constexpr ValueType& num(size_t i) {return this->_ratpoly.num(i);}
+            constexpr const ValueType& num(size_t i) const {return this->_ratpoly.num(i);}
+
             constexpr den_type& den() {return this->_ratpoly.den();}
             constexpr const den_type& den() const {return this->_ratpoly.den();}
+
+            constexpr ValueType& den(size_t i) {return this->_ratpoly.den(i);}
+            constexpr const ValueType& den(size_t i) const {return this->_ratpoly.den(i);}
 
             constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
             constexpr const ratpoly_type& ratpoly() const {return this->_ratpoly;}

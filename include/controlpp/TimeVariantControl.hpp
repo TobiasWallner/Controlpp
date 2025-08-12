@@ -1,3 +1,4 @@
+#pragma once
 /**
  * \file TimeVariantControl.hpp
  * 

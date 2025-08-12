@@ -1,3 +1,4 @@
+#pragma once
 #include <controlpp/math.hpp>
 #include <controlpp/Polynom.hpp>
 #include <controlpp/TransferFunction.hpp>

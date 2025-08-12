@@ -21,16 +21,15 @@ namespace controlpp{
 	}
 
 	template<class T>
-	constexpr pow(const T& base, const int& exp){
+	constexpr T pow(const T& base, const int& exp){
 		T result = static_cast<T>(1);
 		if(exp >= 0){
 			for(int i = 0; i < exp; ++i){
 				result *= base;
 			}
 		}else{
-			T& base_inv = 1/base;
 			for(int i = 0; i < -exp; ++i){
-				result *= base_inv;
+				result /= base;
 			}
 		}
 		return result;

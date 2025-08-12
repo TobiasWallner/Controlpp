@@ -49,7 +49,7 @@ namespace controlpp
             constexpr T& den(size_t i) {return this->_den.at(i);}
             constexpr const T& den(size_t i) const {return this->_den.at(i);}
 
-            void prsize_t(std::ostream& stream, std::string_view var="x") const {
+            void print(std::ostream& stream, std::string_view var="x") const {
                 stream << "num: "; this->num().prsize_t(stream, var);
                 stream << "\nden: "; this->den().prsize_t(stream, var); stream << '\n';
             }
@@ -160,7 +160,7 @@ namespace controlpp
 
     template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
     constexpr auto operator/(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize2, DenSize2>& rhs){
-        return TransferFunction(lhs.num() * rhs.den(), rhs.den() * rhs.num());
+        return TransferFunction(lhs.num() * rhs.den(), lhs.den() * rhs.num());
     }
 
     template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
@@ -170,7 +170,7 @@ namespace controlpp
 
     template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
     constexpr auto operator/(const TransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
-        return TransferFunction(lhs.num(), rhs.den() * static_cast<T>(rhs));
+        return TransferFunction(lhs.num(), lhs.den() * static_cast<T>(rhs));
     }
 
 

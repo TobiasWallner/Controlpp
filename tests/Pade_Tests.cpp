@@ -177,3 +177,67 @@ TEST(Pade, pade_coefficients_3_4){
     ASSERT_NEAR(b2/a4, 60, 1e-9);
     ASSERT_NEAR(b3/a4, 4, 1e-9);
 }
+
+TEST(Pade, pade_polynom_1_1){
+    const double Td = 0.001;
+    controlpp::ContinuousTransferFunction<double, 2, 2> ctf = controlpp::pade<double, 2, 2>(Td);
+    controlpp::ContinuousTransferFunction<double, 2, 2> expected({2, -Td}, {2, Td});
+
+    // norm
+    ctf.num() /= ctf.den(1);
+    ctf.den() /= ctf.den(1);
+
+    expected.num() /= expected.den(1);
+    expected.den() /= expected.den(1);
+
+    for(size_t i = 0; ctf.num().size() < i; ++i){
+        ASSERT_NEAR(ctf.num(i), expected.num(i), 1e-9);
+    }
+    
+    for(size_t i = 0; ctf.den().size() < i; ++i){
+        ASSERT_NEAR(ctf.den(i), expected.den(i), 1e-9);
+    }
+}
+
+TEST(Pade, pade_polynom_2_2){
+    const double Td = 0.001;
+    controlpp::ContinuousTransferFunction<double, 3, 3> ctf = controlpp::pade<double, 3, 3>(Td);
+    controlpp::ContinuousTransferFunction<double, 3, 3> expected({12, -6*Td, Td*Td}, {12, 6*Td, Td*Td});
+
+    // norm
+    ctf.num() /= ctf.den(2);
+    ctf.den() /= ctf.den(2);
+
+    expected.num() /= expected.den(2);
+    expected.den() /= expected.den(2);
+
+    for(size_t i = 0; ctf.num().size() < i; ++i){
+        ASSERT_NEAR(ctf.num(i), expected.num(i), 1e-9);
+    }
+    
+    for(size_t i = 0; ctf.den().size() < i; ++i){
+        ASSERT_NEAR(ctf.den(i), expected.den(i), 1e-9);
+    }
+}
+
+TEST(Pade, pade_polynom_3_4){
+
+    const double Td = 0.001;
+    controlpp::ContinuousTransferFunction<double, 4, 5> ctf = controlpp::pade<double, 4, 5>(Td);
+    controlpp::ContinuousTransferFunction<double, 4, 5> expected({840, -360*Td, 60*Td*Td, 4*Td*Td*Td}, {840, 480*Td, 120*Td*Td, 16*Td*Td*Td, Td*Td*Td*Td});
+
+    // norm
+    ctf.num() /= ctf.den(1);
+    ctf.den() /= ctf.den(1);
+
+    expected.num() /= expected.den(1);
+    expected.den() /= expected.den(1);
+
+    for(size_t i = 0; ctf.num().size() < i; ++i){
+        ASSERT_NEAR(ctf.num(i), expected.num(i), 1e-9);
+    }
+    
+    for(size_t i = 0; ctf.den().size() < i; ++i){
+        ASSERT_NEAR(ctf.den(i), expected.den(i), 1e-9);
+    }
+}

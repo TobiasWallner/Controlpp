@@ -243,6 +243,18 @@ namespace controlpp
                 }
                 return *this;
             }
+
+            template<std::convertible_to<T> U>
+            Polynom& operator*=(const U& num){
+                this->vector() *= num;
+                return *this;
+            }
+
+            template<std::convertible_to<T> U>
+            Polynom& operator/=(const U& num){
+                this->vector() /= num;
+                return *this;
+            }
     };
 
     // -----------------------------------------------------------------------------------------------
