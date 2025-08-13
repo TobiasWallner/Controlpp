@@ -30,15 +30,15 @@ namespace controlpp
      * , where indices correspond to the parameter number and the potence
      * 
      * \tparam T The datatype of the polynomial parameters (e.g: `float`, `double`, `complex`)
-     * \tparam N The size of the polynomial, aka. number of parameters, aka. max order plus one
+     * \tparam Order The Order of the polynomial
      * \tparam AutoGrow If true for at least one polynomial of an operation the resulting polynomial will 
      * grow automatically in size to contain all values. Usually set `false` if one needs to sum over polynomials in a loop.
      */
-    template<class T, size_t N>
+    template<class T, int Order>
     class Polynom{
         public:
             using value_type = T;
-            using vector_type = Eigen::Vector<T, N>;
+            using vector_type = Eigen::Vector<T, Order+1>;
 
         private:
             vector_type _vector;
@@ -51,14 +51,14 @@ namespace controlpp
             /// @brief Copy constructor
             constexpr Polynom(const Polynom&) = default;
 
-            template<size_t M>
-            requires(M < N)
-            constexpr Polynom(const Polynom<T, M>& other){
+            template<int OtherOrder>
+            requires(OtherOrder < Order)
+            constexpr Polynom(const Polynom<T, OtherOrder>& other){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < other.size(); ++i){
                     this->at(i) = other.at(i);
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->at(i) = static_cast<T>(0);
                 }
             }
@@ -66,14 +66,14 @@ namespace controlpp
             /// @brief Copy assignment operator
             constexpr Polynom& operator=(const Polynom&) = default;
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order)
             constexpr Polynom& operator=(const Polynom<T, M>& other){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < other.size(); ++i){
                     this->at(i) = other.at(i);
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->at(i) = static_cast<T>(0);
                 }
                 return *this;
@@ -81,20 +81,19 @@ namespace controlpp
 
             /// @brief Constructs a polynomial from an array
             /// @param values the values to be assigned to the polynomial
-            constexpr explicit Polynom(const T (&values)[N]){
-                for(size_t i = 0; i < N; ++i){
-                    this->_vector[i] = values[i];
-                }
-            }
+            constexpr explicit Polynom(const T (&values)[Order+1])
+                : _vector(values){}
 
-            template<size_t M>
-            requires(M < N)
+            /// @brief Constructs a polynomial from an array
+            /// @param values the values to be assigned to the polynomial
+            template<int M>
+            requires(M < Order+1)
             constexpr explicit Polynom(const T (&values)[M]){
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = values[i];
                 } 
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 } 
             }
@@ -102,33 +101,37 @@ namespace controlpp
 
             /// @brief Constructs a polynomial from a vector
             /// @param vector Eigen::Vector object
-            constexpr explicit Polynom(const Eigen::Vector<T, N>& vector) : _vector(vector){}
+            constexpr explicit Polynom(const Eigen::Vector<T, Order+1>& vector) : _vector(vector){}
 
-            template<size_t M>
-            requires(M < N)
+            template<class U>
+            requires(std::constructible_from<Eigen::Vector<T, Order+1>, U>)
+            constexpr explicit Polynom(const U& vector_expression) : _vector(vector_expression){}
+
+            template<int M>
+            requires(M < Order+1)
             constexpr explicit Polynom(const Eigen::Vector<T, M>& vector){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < vector.size(); ++i){
                     this->_vector[i] = vector(i);
                 } 
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 } 
             }
             
-            constexpr Polynom& operator=(const T (&values)[N]) {
+            constexpr Polynom& operator=(const T (&values)[Order+1]) {
                 this->_vector = values;
                 return *this;
             }
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order+1)
             constexpr Polynom& operator=(const T (&values)[M]){
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = values[i];
                 } 
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 } 
                 return *this;
@@ -136,18 +139,28 @@ namespace controlpp
             
             /// @brief Assigns the values of a vector to this polynomial
             /// @param vector An Eigen::Vector holding the values to be assigned to this polynomial
-            constexpr Polynom& operator=(const Eigen::Vector<T, N>& vector){
+            constexpr Polynom& operator=(const Eigen::Vector<T, Order+1>& vector){
                 this->_vector = vector;
                 return *this;
             }
 
-            template<size_t M>
+            /// @brief Assigns the values of a vector expression to this polynomial
+            /// @param vector An Eigen::Vector holding the values to be assigned to this polynomial
+            template<class U>
+            requires(std::constructible_from<Eigen::Vector<T, Order+1>, U>)
+            constexpr Polynom& operator=(const U& vector){
+                this->_vector = vector;
+                return *this;
+            }
+
+            template<int M>
+            requires(M < Order+1)
             constexpr Polynom& operator=(const Eigen::Vector<T, M>& vector){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < vector.size(); ++i){
                     this->_vector[i] = vector(i);
                 } 
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 } 
                 return *this;
@@ -184,16 +197,16 @@ namespace controlpp
             /// @brief returns the size of the polynomial
             /// @details Note that the size is one larger than the order of the polynomial (assuming non-zero entries)
             /// @return an size_teger value holding the size
-            constexpr size_t size() const {return N;}
+            constexpr size_t size() const {return this->_vector.size();}
 
             /// @brief returns the order of the polynomial
             /// @details the order can maxially be one smaller then the size of the polynomial. Takes zero data entries size_to account.
             /// @return an size_teger value holding the order of the polynomial
             constexpr size_t order() const {
-                size_t result = N-1;
+                size_t result = Order;
                 const T zero(0);
-                for(size_t i = 0; i < N; ++i){
-                    if(this->at(N-i-1) != zero){
+                for(size_t i = 0; i < this->size(); ++i){
+                    if(this->at(this->size()-1-i) != zero){
                         break;
                     }
                     --result;
@@ -226,19 +239,19 @@ namespace controlpp
                 return stream;
             }
 
-            template<size_t M>
-            requires(M <= N)
+            template<int M>
+            requires(M <= Order)
             Polynom& operator+=(const Polynom<T, M>& other){
-                for(size_t i = 0; i < M; ++i){
+                for(size_t i = 0; i < other.size(); ++i){
                     this->at(i) += other.at(i);
                 }
                 return *this;
             }
 
-            template<size_t M>
-            requires(M <= N)
+            template<int M>
+            requires(M <= Order)
             Polynom& operator-=(const Polynom<T, M>& other){
-                for(size_t i = 0; i < M; ++i){
+                for(size_t i = 0; i < other.size(); ++i){
                     this->at(i) -= other.at(i);
                 }
                 return *this;
@@ -275,7 +288,7 @@ namespace controlpp
      * \returns an eigen vector of complex numbers which are the roots of the polynomial
      */
     template<class T>
-    constexpr Eigen::Vector<std::complex<T>, 1> zeros(const Polynom<T, 2>& polynom){
+    constexpr Eigen::Vector<std::complex<T>, 1> zeros(const Polynom<T, 1>& polynom){
         const std::complex x0 = - polynom[0] / polynom[1];
         Eigen::Vector<std::complex<T>, 1> result(x0);
         return result;
@@ -293,7 +306,7 @@ namespace controlpp
      * \returns an eigen vector of complex numbers which are the roots of the polynomial
      */
     template<class T>
-    constexpr Eigen::Vector<std::complex<T>, 2> zeros(const Polynom<T, 3>& polynom){
+    constexpr Eigen::Vector<std::complex<T>, 2> zeros(const Polynom<T, 2>& polynom){
         const std::complex c = polynom[0];
         const std::complex b = polynom[1];
         const std::complex a = polynom[2];
@@ -309,11 +322,11 @@ namespace controlpp
      * Uses the companion matrix to solve for the zeros of the polynomial
      * 
      */
-    template<class T, size_t N>
+    template<class T, int N>
     requires(N > 1)
-    constexpr Eigen::Vector<std::complex<T>, N-1> zeros(const Polynom<T, N>& polynom){
-        const Eigen::Matrix<T, N-1, N-1> C = controlpp::companion(polynom.vector());
-        const Eigen::Vector<std::complex<T>, N-1> result = C.eigenvalues();
+    constexpr Eigen::Vector<std::complex<T>, N> zeros(const Polynom<T, N>& polynom){
+        const Eigen::Matrix<T, N, N> C = controlpp::companion(polynom.vector());
+        const Eigen::Vector<std::complex<T>, N> result = C.eigenvalues();
         return result;
     }
 
@@ -327,12 +340,12 @@ namespace controlpp
     /// @param lhs the left-hand-side polynomial of the comparison
     /// @param rhs the right-hand-sode polynomial of the comparison
     /// @return a boolean value that is true if both polynomials have the same parameters
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator==(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
         return lhs.vector() == rhs.vector();
     }
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator!=(const Polynom<T, N>& lhs, const Polynom<T, N>& rhs){
         return lhs.vector() != rhs.vector();
     }
@@ -344,33 +357,31 @@ namespace controlpp
     // operator +
     // ----------
 
-    template<class T, size_t Nl, size_t Nr>
+    template<class T, int Nl, int Nr>
     constexpr Polynom<T, (Nl > Nr) ? Nl : Nr> operator+(const Polynom<T, Nl>& lhs, const Polynom<T, Nr>& rhs){
         if constexpr (Nl > Nr){
             Polynom<T, Nl> result;
-            result.vector().head(Nr) = lhs.vector().head(Nr) + rhs.vector();
-            result.vector().tail(Nl - Nr) = lhs.vector().tail(Nl - Nr);
+            result.vector().head(rhs.size()) = lhs.vector().head(rhs.size()) + rhs.vector();
+            result.vector().tail(lhs.size() - rhs.size()) = lhs.vector().tail(lhs.size() - rhs.size());
             return result;
         }else if constexpr (Nl == Nr){
             return Polynom<T, Nl>(lhs.vector() + rhs.vector());
         }else{
             Polynom<T, Nr> result;
-            result.vector().head(Nl) = lhs.vector() + rhs.vector().head(Nl);
-            result.vector().tail(Nr - Nl) = rhs.vector().tail(Nr - Nl);
+            result.vector().head(lhs.size()) = lhs.vector() + rhs.vector().head(lhs.size());
+            result.vector().tail(rhs.size() - lhs.size()) = rhs.vector().tail(rhs.size() - lhs.size());
             return result;
         }
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    requires (N >= 1)
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr Polynom<Tpoly, N> operator+(const Tscalar& lhs, const Polynom<Tpoly, N>& rhs){
         Polynom<Tpoly, N> result(rhs);
         result[0] += static_cast<Tpoly>(lhs);
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    requires (N >= 1)
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr Polynom<Tpoly, N> operator+(const Polynom<Tpoly, N>& lhs, const Tscalar& rhs){
         return (static_cast<Tpoly>(rhs) + lhs);
     }
@@ -378,38 +389,36 @@ namespace controlpp
     // operator -
     // ----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr Polynom<T, N> operator-(const Polynom<T, N>& poly){
         return Polynom<T, N>(-poly.vector());
     }
 
-    template<class T, size_t Nl, size_t Nr>
+    template<class T, int Nl, int Nr>
     constexpr Polynom<T, (Nl > Nr) ? Nl : Nr> operator-(const Polynom<T, Nl>& lhs, const Polynom<T, Nr>& rhs){
         if constexpr (Nl > Nr){
             Polynom<T, Nl> result;
-            result.vector().head(Nr) = lhs.vector().head(Nr) - rhs.vector();
-            result.vector().tail(Nl - Nr) = lhs.vector().tail(Nl - Nr);
+            result.vector().head(rhs.size()) = lhs.vector().head(rhs.size()) - rhs.vector();
+            result.vector().tail(lhs.size() - rhs.size()) = lhs.vector().tail(lhs.size() - rhs.size());
             return result;
         }else if constexpr (Nl == Nr){
             return Polynom<T, Nl>(lhs.vector() - rhs.vector());
         }else{
             Polynom<T, Nr> result;
-            result.vector().head(Nl) = lhs.vector() + rhs.vector().head(Nl);
-            result.vector().tail(Nr - Nl) = -rhs.vector.tail(Nr - Nl);
+            result.vector().head(lhs.size()) = lhs.vector() + rhs.vector().head(lhs.size());
+            result.vector().tail(rhs.size() - lhs.size()) = -rhs.vector.tail(rhs.size() - lhs.size());
             return result;
         }
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    requires (N >= 1)
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr Polynom<Tpoly, N> operator-(const Tscalar& lhs, const Polynom<Tpoly, N>& rhs){
         Polynom<Tpoly, N> result(-rhs);
         result[0] += static_cast<Tpoly>(lhs);
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    requires (N >= 1)
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr Polynom<Tpoly, N> operator-(const Polynom<Tpoly, N>& lhs, const Tscalar& rhs){
         Polynom<Tpoly, N> result(lhs);
         result[0] -= static_cast<Tpoly>(rhs);
@@ -419,34 +428,34 @@ namespace controlpp
     // operator *
     // ----------
 
-    template<class T, size_t N1, size_t N2>
-    constexpr Polynom<T, N1+N2-1> operator*(const Polynom<T, N1>& lhs, const Polynom<T, N2>& rhs){
-        Polynom<T, N1+N2-1> result;
+    template<class T, int lOrder, int rOrder>
+    constexpr Polynom<T, lOrder + rOrder> operator*(const Polynom<T, lOrder>& lhs, const Polynom<T, rOrder>& rhs){
+        Polynom<T, lOrder + rOrder> result;
         result.setZero();
 
-        for(size_t i = 0; i < N2; ++i){
-            result.vector().segment(i, N1) += lhs.vector() * rhs[i];
+        for(size_t i = 0; i < rhs.size(); ++i){
+            result.vector().segment(i, lhs.size()) += lhs.vector() * rhs[i];
         }
 
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    constexpr Polynom<Tpoly, N> operator*(const Polynom<Tpoly, N>& lhs, const Tscalar& rhs){
-        return Polynom<Tpoly, N>(lhs.vector() * static_cast<Tpoly>(rhs));
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
+    constexpr Polynom<Tpoly, Order> operator*(const Polynom<Tpoly, Order>& lhs, const Tscalar& rhs){
+        return Polynom<Tpoly, Order>(lhs.vector() * static_cast<Tpoly>(rhs));
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    constexpr Polynom<Tpoly, N> operator*(const Tscalar& lhs, const Polynom<Tpoly, N>& rhs){
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
+    constexpr Polynom<Tpoly, Order> operator*(const Tscalar& lhs, const Polynom<Tpoly, Order>& rhs){
         return (rhs * static_cast<Tpoly>(lhs));
     }
 
     // operator /
     // ----------
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
-    constexpr Polynom<Tpoly, N> operator/(const Polynom<Tpoly, N>& lhs, const Tscalar& rhs){
-        return Polynom<Tpoly, N>(lhs.vector() / static_cast<Tscalar>(rhs));
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
+    constexpr Polynom<Tpoly, Order> operator/(const Polynom<Tpoly, Order>& lhs, const Tscalar& rhs){
+        return Polynom<Tpoly, Order>(lhs.vector() / static_cast<Tscalar>(rhs));
     }
 
     
@@ -472,11 +481,11 @@ namespace controlpp
      * \tparam AutoGrow If true for at least one polynomial of an operation the resulting polynomial will 
      * grow automatically in size to contain all values. Usually set `false` if one needs to sum over polynomials in a loop.
      */
-    template<class T, size_t N>
+    template<class T, int Order>
     class FixedPolynom{
         public:
             using value_type = T;
-            using vector_type = Eigen::Vector<T, N>;
+            using vector_type = Eigen::Vector<T, Order+1>;
 
         private:
             vector_type _vector;
@@ -490,18 +499,18 @@ namespace controlpp
             constexpr FixedPolynom(const FixedPolynom&) = default;
 
             template<std::convertible_to<T> U>
-            constexpr FixedPolynom(const U& value) : _vector(Eigen::Vector<T, N>::Zero()){
+            constexpr FixedPolynom(const U& value) : _vector(Eigen::Vector<T, Order+1>::Zero()){
                 _vector(0) = static_cast<T>(value);
             }
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order)
             constexpr FixedPolynom(const FixedPolynom<T, M>& other){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < other.size(); ++i){
                     this->at(i) = other.at(i);
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->at(i) = static_cast<T>(0);
                 }
             };
@@ -509,14 +518,14 @@ namespace controlpp
             /// @brief Copy assignment operator
             constexpr FixedPolynom& operator=(const FixedPolynom&) = default;
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order)
             constexpr FixedPolynom& operator=(const FixedPolynom<T, M>& other){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < other.size(); ++i){
                     this->at(i) = other.at(i);
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->at(i) = static_cast<T>(0);
                 }
                 return *this;
@@ -525,89 +534,89 @@ namespace controlpp
 
             /// @brief Constructs a polynomial from an array
             /// @param values the values to be assigned to the polynomial
-            constexpr explicit FixedPolynom(const T (&values)[N]){
-                for(size_t i = 0; i < N; ++i){
+            constexpr explicit FixedPolynom(const T (&values)[Order+1]){
+                for(size_t i = 0; i < this->size(); ++i){
                     this->_vector[i] = values[i];
                 }
             }
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order+1)
             constexpr explicit FixedPolynom(const T (&values)[M]){
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = values[i];
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 }
             }
 
             /// @brief Constructs a polynomial from a vector
             /// @param vector Eigen::Vector object
-            constexpr explicit FixedPolynom(const Eigen::Vector<T, N>& vector) : _vector(vector){}
+            constexpr explicit FixedPolynom(const Eigen::Vector<T, Order+1>& vector) : _vector(vector){}
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order+1)
             constexpr explicit FixedPolynom(const Eigen::Vector<T, M>& vector){
                 size_t i = 0;
-                for(; i < M; ++i){
+                for(; i < vector.size(); ++i){
                     this->_vector[i] = vector[i];
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 }
             }
             
-            constexpr FixedPolynom& operator=(const T (&values)[N]) {
+            constexpr FixedPolynom& operator=(const T (&values)[Order+1]) {
                 this->_vector = values;
                 return *this;
             }
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order+1)
             constexpr FixedPolynom& operator=(const T (&values)[M]) {
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = values[i];
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 }
                 return *this;
             }
             
-            constexpr explicit FixedPolynom(const Polynom<T, N>& poly) : FixedPolynom(poly.vector()){}
+            constexpr explicit FixedPolynom(const Polynom<T, Order>& poly) : FixedPolynom(poly.vector()){}
 
-            template<size_t M>
-            requires(M < N)
-            constexpr explicit FixedPolynom(const Polynom<T, N>& poly){
+            template<int M>
+            requires(M < Order)
+            constexpr explicit FixedPolynom(const Polynom<T, M>& poly){
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = poly[i];
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 }
             }
 
-            constexpr operator Polynom<T, N>() const {return Polynom<T, N>(this->_vector);}
+            constexpr operator Polynom<T, Order>() const {return Polynom<T, Order>(this->_vector);}
 
             /// @brief Assigns the values of a vector to this polynomial
-            /// @param vector An Eigen::Vector holding the values to be assigned to this polynomial
-            constexpr FixedPolynom& operator=(const Eigen::Vector<T, N>& vector){
+            /// @param vector An Eigen::Vector holding the values to be assigned to this polynomia
+            constexpr FixedPolynom& operator=(const Eigen::Vector<T, Order+1>& vector){
                 this->_vector = vector;
                 return *this;
             }
 
-            template<size_t M>
-            requires(M < N)
+            template<int M>
+            requires(M < Order+1)
             constexpr FixedPolynom& operator=(const Eigen::Vector<T, M>& vector){
                 size_t i = 0;
                 for(; i < M; ++i){
                     this->_vector[i] = vector[i];
                 }
-                for(; i < N; ++i){
+                for(; i < this->size(); ++i){
                     this->_vector[i] = static_cast<T>(0);
                 }
                 return *this;
@@ -644,16 +653,16 @@ namespace controlpp
             /// @brief returns the size of the polynomial
             /// @details Note that the size is one larger than the order of the polynomial (assuming non-zero entries)
             /// @return an size_teger value holding the size
-            constexpr size_t size() const {return N;}
+            constexpr size_t size() const {return Order+1;}
 
             /// @brief returns the order of the polynomial
             /// @details the order can maxially be one smaller then the size of the polynomial. Takes zero data entries size_to account.
             /// @return an size_teger value holding the order of the polynomial
             constexpr size_t order() const {
-                size_t result = N-1;
+                size_t result = Order;
                 const T zero(0);
-                for(size_t i = 0; i < N; ++i){
-                    if(this->at(N-i-1) != zero){
+                for(size_t i = 0; i < this->size(); ++i){
+                    if(this->at(this->size() - i - 1) != zero){
                         break;
                     }
                     --result;
@@ -686,19 +695,19 @@ namespace controlpp
                 return stream;
             }
 
-            template<size_t M>
-            requires(M <= N)
+            template<int M>
+            requires(M <= Order)
             FixedPolynom& operator+=(const FixedPolynom<T, M>& other){
-                for(size_t i = 0; i < M; ++i){
+                for(size_t i = 0; i < other->size(); ++i){
                     this->at(i) += other.at(i);
                 }
                 return *this;
             }
 
-            template<size_t M>
-            requires(M <= N)
+            template<int M>
+            requires(M <= Order)
             FixedPolynom& operator-=(const FixedPolynom<T, M>& other){
-                for(size_t i = 0; i < M; ++i){
+                for(size_t i = 0; i < other->size(); ++i){
                     this->at(i) -= other.at(i);
                 }
                 return *this;
@@ -715,12 +724,12 @@ namespace controlpp
     /// @param lhs the left-hand-side polynomial of the comparison
     /// @param rhs the right-hand-sode polynomial of the comparison
     /// @return a boolean value that is true if both polynomials have the same parameters
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator==(const FixedPolynom<T, N>& lhs, const FixedPolynom<T, N>& rhs){
         return lhs.vector() == rhs.vector();
     }
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator!=(const FixedPolynom<T, N>& lhs, const FixedPolynom<T, N>& rhs){
         return lhs.vector() != rhs.vector();
     }
@@ -732,12 +741,12 @@ namespace controlpp
     // operator +
     // ----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedPolynom<T, N> operator+(const FixedPolynom<T, N>& lhs, const FixedPolynom<T, N>& rhs){
         return FixedPolynom<T, N>(lhs.vector() + rhs.vector());
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     requires (N >= 1)
     constexpr FixedPolynom<Tpoly, N> operator+(const Tscalar& lhs, const FixedPolynom<Tpoly, N>& rhs){
         FixedPolynom<Tpoly, N> result(rhs);
@@ -745,7 +754,7 @@ namespace controlpp
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     requires (N >= 1)
     constexpr FixedPolynom<Tpoly, N> operator+(const FixedPolynom<Tpoly, N>& lhs, const Tscalar& rhs){
         return (static_cast<Tpoly>(rhs) + lhs);
@@ -754,12 +763,12 @@ namespace controlpp
     // operator -
     // ----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedPolynom<T, N> operator-(const FixedPolynom<T, N>& lhs, const FixedPolynom<T, N>& rhs){
         return FixedPolynom<T, N>(lhs.vector() - rhs.vector());
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     requires (N >= 1)
     constexpr FixedPolynom<Tpoly, N> operator-(const Tscalar& lhs, const FixedPolynom<Tpoly, N>& rhs){
         FixedPolynom<Tpoly, N> result(-rhs);
@@ -767,7 +776,7 @@ namespace controlpp
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     requires (N >= 1)
     constexpr FixedPolynom<Tpoly, N> operator-(const FixedPolynom<Tpoly, N>& lhs, const Tscalar& rhs){
         FixedPolynom<Tpoly, N> result(lhs);
@@ -775,7 +784,7 @@ namespace controlpp
         return result;
     }
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedPolynom<T, N> operator-(const FixedPolynom<T, N>& values){
         return FixedPolynom<T, N>(-values.vector());
     }
@@ -789,24 +798,24 @@ namespace controlpp
      * Note that this multiplication does not grow the result to fit all posible values.
      * The correct size has to be allocated beforehand by the user.
      */
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedPolynom<T, N> operator*(const FixedPolynom<T, N>& lhs, const FixedPolynom<T, N>& rhs){
         FixedPolynom<T, N> result;
         result.setZero();
 
-        for(size_t i = 0; i < N; ++i){
-            result.vector().tail(N-i) += lhs.vector().head(N-i) * rhs[i];
+        for(size_t i = 0; i < lhs.size(); ++i){
+            result.vector().tail(lhs.size()-i) += lhs.vector().head(lhs.size()-i) * rhs[i];
         }
 
         return result;
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr FixedPolynom<Tpoly, N> operator*(const FixedPolynom<Tpoly, N>& lhs, const Tscalar& rhs){
         return FixedPolynom<Tpoly, N>(lhs.vector() * static_cast<Tpoly>(rhs));
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr FixedPolynom<Tpoly, N> operator*(const Tscalar& lhs, const FixedPolynom<Tpoly, N>& rhs){
         return (rhs * static_cast<Tpoly>(lhs));
     }
@@ -814,14 +823,14 @@ namespace controlpp
     // operator /
     // ----------
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     constexpr FixedPolynom<Tpoly, N> operator/(const FixedPolynom<Tpoly, N>& lhs, const Tscalar& rhs){
         return FixedPolynom<Tpoly, N>(lhs.vector() / static_cast<Tscalar>(rhs));
     }
 } // namespace controlpp
 
 namespace Eigen {
-    template<typename T, size_t N>
+    template<typename T, int N>
     struct NumTraits<controlpp::FixedPolynom<T, N>> {
         using Self = controlpp::FixedPolynom<T, N>;
         using Real = Self; // or T if you want to treat real parts differently
@@ -848,7 +857,7 @@ namespace Eigen {
     // ResultType for operator +
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -857,7 +866,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() + std::declval<controlpp::FixedPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         Tscalar,
@@ -866,7 +875,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedPolynom<Tpoly, N>>() + std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -878,7 +887,7 @@ namespace Eigen {
     // ResultType for operator -
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -887,7 +896,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() - std::declval<controlpp::FixedPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         Tscalar,
@@ -896,7 +905,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedPolynom<Tpoly, N>>() - std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -908,7 +917,7 @@ namespace Eigen {
     // ResultType for operator *
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -917,7 +926,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() * std::declval<controlpp::FixedPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         Tscalar,
@@ -926,7 +935,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedPolynom<Tpoly, N>>() * std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -938,7 +947,7 @@ namespace Eigen {
     // ResultType for operator /
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedPolynom<Tpoly, N>,
@@ -947,7 +956,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() / std::declval<controlpp::FixedPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         Tscalar,
@@ -956,7 +965,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedPolynom<Tpoly, N>>() / std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedPolynom<Tpoly, N>,
         controlpp::FixedPolynom<Tpoly, N>,

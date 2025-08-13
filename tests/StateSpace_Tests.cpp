@@ -12,7 +12,7 @@
 
 TEST(StateSpace, construct_with_to_state_space){
     using namespace controlpp;
-    const TransferFunction<float, 2, 3> rp({2.f, 1.f}, {3.f, 2.f, 1.f});
+    const TransferFunction<float, 1, 2> rp({2.f, 1.f}, {3.f, 2.f, 1.f});
     
     const StateSpace ss = to_state_space(rp);
 

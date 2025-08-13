@@ -24,7 +24,7 @@ TEST(Polynom, array_construction){
 #include <iostream>
 TEST(Polynom, vector_construction){
     Eigen::Vector<float, 3> vector({1.0f,2.0f,3.0f});
-    controlpp::Polynom<float, 3> p(vector);
+    controlpp::Polynom<float, 2> p(vector);
 
     ASSERT_EQ(p.at(0), 1.0f);
     ASSERT_EQ(p.at(1), 2.0f);
@@ -35,8 +35,8 @@ TEST(Polynom, vector_construction){
 TEST(Polynom, addition){
     const int arr_a[] = {1, 2, 3};
     const int arr_b[] = {4, 5, 6};
-    controlpp::Polynom<int, 3> a(arr_a);
-    controlpp::Polynom<int, 3> b(arr_b);
+    controlpp::Polynom<int, 2> a(arr_a);
+    controlpp::Polynom<int, 2> b(arr_b);
 
     const auto result = a + b;
 
@@ -46,8 +46,8 @@ TEST(Polynom, addition){
 }
 
 TEST(Polynom, scalar_multiplication){
-    controlpp::Polynom<int, 3> a({1, 2, 3});
-    controlpp::Polynom<int, 3> expected({2, 4, 6});
+    controlpp::Polynom<int, 2> a({1, 2, 3});
+    controlpp::Polynom<int, 2> expected({2, 4, 6});
 
     const auto result1 = a * 2;
     const auto result2 = 2 * a;
@@ -59,14 +59,14 @@ TEST(Polynom, scalar_multiplication){
 }
 
 TEST(Polynom, multiplication){
-    const controlpp::Polynom<int, 3> a({1, 2, 3});
-    const controlpp::Polynom<int, 2> b({1, 2});
+    const controlpp::Polynom<int, 2> a({1, 2, 3});
+    const controlpp::Polynom<int, 1> b({1, 2});
 
     // 1, 2, 3
     //    2, 4, 6
     // --------------
     // 1, 4, 7, 6
-    const controlpp::Polynom<int, 4> expected({1, 4, 7, 6});
+    const controlpp::Polynom<int, 3> expected({1, 4, 7, 6});
 
     const auto result = a * b;
 
@@ -75,7 +75,7 @@ TEST(Polynom, multiplication){
 }
 
 TEST(Polynom, zeros_order_1){
-    const controlpp::Polynom<double, 2> three({3, -1});
+    const controlpp::Polynom<double, 1> three({3, -1});
     
     const Eigen::Vector<std::complex<double>, 1> zeros = controlpp::zeros(three);
 
@@ -84,10 +84,10 @@ TEST(Polynom, zeros_order_1){
 }
 
 TEST(Polynom, zeros_order_2){
-    const controlpp::Polynom<double, 2> one({1, -1});
-    const controlpp::Polynom<double, 2> three({3, -1});
+    const controlpp::Polynom<double, 1> one({1, -1});
+    const controlpp::Polynom<double, 1> three({3, -1});
 
-    const controlpp::Polynom<double, 3> p = one * three;
+    const controlpp::Polynom<double, 2> p = one * three;
 
     const Eigen::Vector<std::complex<double>, 2> zeros = controlpp::zeros(p);
 
@@ -107,13 +107,13 @@ TEST(Polynom, zeros_order_2){
 
 TEST(Polynom, zeros_order_n){
     // create polynomials with zeros at: 1, 2, 3 and 4
-    const controlpp::Polynom<double, 2> one({1, -1});
-    const controlpp::Polynom<double, 2> two({2, -1});
-    const controlpp::Polynom<double, 2> three({3, -1});
-    const controlpp::Polynom<double, 2> four({4, -1});
+    const controlpp::Polynom<double, 1> one({1, -1});
+    const controlpp::Polynom<double, 1> two({2, -1});
+    const controlpp::Polynom<double, 1> three({3, -1});
+    const controlpp::Polynom<double, 1> four({4, -1});
 
     // multiply them to get a polynomial that has all those zeros
-    const controlpp::Polynom<double, 5> p = one * two * three * four;
+    const controlpp::Polynom<double, 4> p = one * two * three * four;
     
     // function under test
     const auto zeros = controlpp::zeros(p);

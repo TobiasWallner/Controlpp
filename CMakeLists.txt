@@ -49,6 +49,7 @@ if (CONTROLPP_COMPILE_TEST)
             -Wextra
             -Werror
             -Wno-array-bounds # Gets triggered by SIMD
+            -fmax-errors=2
         )
     endif()
 

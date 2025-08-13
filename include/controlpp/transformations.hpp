@@ -57,7 +57,7 @@ namespace controlpp
      * 
      * \returns The discretised version of `sys`
      */
-    template<class ValueType, size_t states>
+    template<class ValueType, int states>
     constexpr DiscreteStateSpace<ValueType, states, 1, 1> continuous_to_discrete(const ContinuousStateSpace<ValueType, states, 1, 1>& sys, ValueType sample_time){
         // allocation
         DiscreteStateSpace<ValueType, states, 1, 1> result;
@@ -86,7 +86,7 @@ namespace controlpp
      * 
      * alias for the function: `controlpp::continuous_to_discrete()`.
      */
-    template<class ValueType, size_t states>
+    template<class ValueType, int states>
     constexpr DiscreteStateSpace<ValueType, states, 1, 1> s_to_z(const ContinuousStateSpace<ValueType, states, 1, 1>& sys, ValueType sample_time){
         return continuous_to_discrete<ValueType, states>(sys, sample_time);
     }
@@ -104,7 +104,7 @@ namespace controlpp
      * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
      * 4. bilinear_to_discrete (tustin) --> R(z)
      */
-    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    template<class ValueType, int internal_states, int inputs, int outputs>
     BilinearStateSpace<ValueType, internal_states, inputs, outputs> discrete_to_bilinear(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
         const auto I = identity_like(dss.A());
 
@@ -134,7 +134,7 @@ namespace controlpp
      * 
      * alias for the function `controlpp::discrete_to_bilinear()`.
      */
-    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    template<class ValueType, int internal_states, int inputs, int outputs>
     BilinearStateSpace<ValueType, internal_states, inputs, outputs> z_to_q(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
         return discrete_to_bilinear(dss);
     }
@@ -147,7 +147,7 @@ namespace controlpp
      * 1. a zero-order-hold to go from the s-domain into the z-domain
      * 2. a forward bilinear tustin to go from the z-domain into the q-domain
      */
-    template<class ValueType, size_t internal_states>
+    template<class ValueType, int internal_states>
     BilinearStateSpace<ValueType, internal_states, 1, 1> continuous_to_bilinear(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
         return discrete_to_bilinear(continuous_to_discrete(css));
     }
@@ -157,7 +157,7 @@ namespace controlpp
      * 
      * alias for the function `controlpp::continuous_to_bilinear()`.
      */
-    template<class ValueType, size_t internal_states>
+    template<class ValueType, int internal_states>
     BilinearStateSpace<ValueType, internal_states, 1, 1> s_to_q(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
         return z_to_q(s_to_z(css));
     }
@@ -184,7 +184,7 @@ namespace controlpp
      * one bilinear transformation to go from the q-domain to the z-domain. (They may also not write q but s in their equations).
      */
     //DiscreteStateSpace bilinear_to_discrete(const BilinearTransferFunction& css, float sample_time){//TODO}
-    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    template<class ValueType, int internal_states, int inputs, int outputs>
     DiscreteStateSpace<ValueType, internal_states, inputs, outputs> bilinear_to_discrete(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& bss){
         const auto I = identity_like(bss.A());
         const auto AmI = (bss.A() - I).eval();
@@ -214,7 +214,7 @@ namespace controlpp
      * 
      * alias for the function `controlpp::continuous_to_bilinear()`.
      */
-    template<class ValueType, size_t internal_states, size_t inputs, size_t outputs>
+    template<class ValueType, int internal_states, int inputs, int outputs>
     DiscreteStateSpace<ValueType, internal_states, inputs, outputs> q_to_z(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& qss){
         return bilinear_to_discrete(qss);
     }

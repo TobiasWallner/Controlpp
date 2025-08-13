@@ -6,7 +6,7 @@
 
 namespace controlpp
 {
-    template<class T, size_t internal_states, size_t inputs, size_t outputs>
+    template<class T, int internal_states, int inputs, int outputs>
     class ContinuousStateSpace{
         public:
             using value_type = T;
@@ -18,9 +18,9 @@ namespace controlpp
             using C_matrix_type = typename state_space_type::C_matrix_type;
             using D_matrix_type = typename state_space_type::D_matrix_type;
 
-            constexpr static size_t number_of_states = internal_states;
-            constexpr static size_t number_of_inputs = inputs;
-            constexpr static size_t number_of_outputs = outputs;
+            constexpr static int number_of_states = internal_states;
+            constexpr static int number_of_inputs = inputs;
+            constexpr static int number_of_outputs = outputs;
 
         private:
             state_space_type _state_space;
@@ -71,25 +71,25 @@ namespace controlpp
     /**
      * \brief constructs a continuous state space function from a rational polynom
      */
-    template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_continuous_state_space(const TransferFunction<T, num_size, den_size>& rp){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(rp));
+    template<class T, int NumOrder, int DenOrder>
+    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(rp));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
-    template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+    template<class T, int NumOrder, int DenOrder>
+    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
+        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.ratpoly()));
     }
 
     /**
      * \brief constructs a continuous state space function from a continuous transfer function
      */
-    template<class T, size_t num_size, size_t den_size>
-    constexpr ContinuousStateSpace<T, den_size-1, 1, 1> to_state_space(const ContinuousTransferFunction<T, num_size, den_size>& ctf){
-        return ContinuousStateSpace<T, den_size-1, 1, 1>(to_state_space(ctf.ratpoly()));
+    template<class T, int NumOrder, int DenOrder>
+    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
+        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.ratpoly()));
     }
 
     /**
@@ -97,7 +97,7 @@ namespace controlpp
      * \returns a discrete transfer function `controlpp::DiscreteTransferFunction`
      * \see controlpp::DiscreteTransferFunction
      */
-    template<class T, size_t states>
+    template<class T, int states>
     constexpr ContinuousTransferFunction<T, states+1, states+1> to_transfer_function(const ContinuousStateSpace<T, states, 1, 1>& dss){
         return ContinuousTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     }

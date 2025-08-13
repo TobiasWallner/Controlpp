@@ -4,7 +4,7 @@
 
 namespace controlpp{
 
-    template<class T, size_t NStates_, size_t NInputs_, size_t NOutputs_>
+    template<class T, int NStates_, int NInputs_, int NOutputs_>
     class DiscreteStateSpaceFilter{
         private:
         
@@ -13,9 +13,9 @@ namespace controlpp{
 
         public:
 
-        static constexpr size_t n_states = NStates_;
-        static constexpr size_t n_inputs = NInputs_;
-        static constexpr size_t n_outputs = NOutputs_;
+        static constexpr int n_states = NStates_;
+        static constexpr int n_inputs = NInputs_;
+        static constexpr int n_outputs = NOutputs_;
 
         /**
          * \brief construct a discrete filter from a state space

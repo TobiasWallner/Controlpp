@@ -8,8 +8,8 @@
 
 TEST(Transformation, continuous_ss_to_discrete_ss){
     // preparation
-    const auto s = controlpp::tf::s<double>;
-    const auto G_s = 1 / (1 + s + s*s);
+    const controlpp::ContinuousTransferFunction<double, 1, 0> s = controlpp::tf::s<double>;
+    const controlpp::ContinuousTransferFunction<double, 0, 2> G_s = 1 / (1 + s + s*s);
     const auto Sys_s = controlpp::to_state_space(G_s);
     const double sample_time = 0.01; // seconds
     

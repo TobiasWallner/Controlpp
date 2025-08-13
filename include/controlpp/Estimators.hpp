@@ -263,14 +263,14 @@ namespace controlpp
      * of an autoregressive signal process with zero-mean white noise corresponding to the transfer 
      * function being identified.
      */
-    template<class T, size_t NumSize, size_t DenSize, size_t Measurements=1>
+    template<class T, size_t NumOrder, size_t DenOrder, size_t Measurements=1>
     class DTFEstimator{
         private:
 
-        ReccursiveLeastSquares<T, NumSize + DenSize - 1> rls;
-
-        Eigen::Vector<T, DenSize> uk = Eigen::Vector<T, DenSize>::Zero();
-        Eigen::Vector<T, DenSize - 1> neg_yk = Eigen::Vector<T, DenSize - 1>::Zero();
+        ReccursiveLeastSquares<T, NumOrder+1 + DenOrder> rls;
+        
+        Eigen::Vector<T, DenOrder+1> uk = Eigen::Vector<T, DenOrder+1>::Zero();
+        Eigen::Vector<T, DenOrder> neg_yk = Eigen::Vector<T, DenOrder>::Zero();
         T _memory;
 
         public:
@@ -283,16 +283,16 @@ namespace controlpp
          * This also means, that the `DenominatorUncertainty` starts at \f$a_1\f$ wheras the `NumeratorUncertainty` starts at \f$b_0\f$
          */
         DTFEstimator(
-            const DiscreteTransferFunction<T, NumSize, DenSize>& hint = DiscreteTransferFunction<T, NumSize, DenSize>(Eigen::Vector<T, NumSize>().setZero(), Eigen::Vector<T, DenSize>().setZero()),
-            const Eigen::Vector<T, NumSize> NumeratorUncertainty = Eigen::Vector<T, NumSize>().setOnes()*T(1000),
-            const Eigen::Vector<T, DenSize - 1> DenominatorUncertainty = Eigen::Vector<T, DenSize-1>().setOnes()*T(1000),
+            const DiscreteTransferFunction<T, NumOrder, DenOrder>& hint = DiscreteTransferFunction<T, NumOrder, DenOrder>(Eigen::Vector<T, NumOrder+1>().setZero(), Eigen::Vector<T, DenOrder+1>().setZero()),
+            const Eigen::Vector<T, NumOrder+1> NumeratorUncertainty = Eigen::Vector<T, NumOrder+1>().setOnes()*T(1000),
+            const Eigen::Vector<T, DenOrder> DenominatorUncertainty = Eigen::Vector<T, DenOrder>().setOnes()*T(1000),
             const T& memory = 0.99)
             : rls(
-                controlpp::join_to_vector<T, NumSize, DenSize-1>(hint.num().vector(), hint.den().vector().tail(DenSize - 1).eval()), 
-                controlpp::join_to_diagonal<T, NumSize, DenSize-1>(NumeratorUncertainty, DenominatorUncertainty), 
+                controlpp::join_to_vector<T, NumOrder+1, DenOrder>(hint.num().vector(), hint.den().vector().tail(DenOrder).eval()), 
+                controlpp::join_to_diagonal<T, NumOrder+1, DenOrder>(NumeratorUncertainty, DenominatorUncertainty), 
                 memory)
         {
-            static_assert(NumSize <= DenSize, "The Discrete Transfer Function has to be propper. Meaning `NumSize <= DenSize` has to be true.");
+            static_assert(NumOrder <= DenOrder, "The Discrete Transfer Function has to be propper. Meaning `NumOrder <= DenOrder` has to be true.");
             if(memory <= T(0) || memory > T(1)){
                 throw std::invalid_argument("Error: DTFEstimator::DTFEstimator(): memory has to be in the open-closed range of: (0, 1]");
             }
@@ -312,7 +312,7 @@ namespace controlpp
             this->uk.head(this->uk.size()-1) = this->uk.tail(this->uk.size()-1);
             this->uk(this->uk.size()-1) = u;
 
-            const auto s = join_to_vector<T, NumSize, DenSize-1>(this->uk.head(NumSize), (this->neg_yk).eval());
+            const auto s = join_to_vector<T, NumOrder+1, DenOrder>(this->uk.head(NumOrder+1), (this->neg_yk).eval());
             this->rls.add(y, s);
 
             this->neg_yk.head(this->neg_yk.size()-1) = this->neg_yk.tail(this->neg_yk.size()-1);
@@ -323,12 +323,12 @@ namespace controlpp
          * \brief returns the current estimate
          * \returns a DiscreteTransferFunction that represents the current best estimate
          */
-        DiscreteTransferFunction<T, NumSize, DenSize> estimate(){
-            DiscreteTransferFunction<T, NumSize, DenSize> result;
-            Eigen::Vector<T, NumSize + DenSize - 1> est = rls.estimate();
-            result.num().vector() = est.head(NumSize);
-            result.den().vector().head(DenSize-1) = est.tail(DenSize-1);
-            result.den().vector()(DenSize-1) = T(1);
+        DiscreteTransferFunction<T, NumOrder, DenOrder> estimate(){
+            DiscreteTransferFunction<T, NumOrder, DenOrder> result;
+            Eigen::Vector<T, NumOrder+1 + DenOrder> est = rls.estimate();
+            result.num().vector() = est.head(NumOrder+1);
+            result.den().vector().head(DenOrder) = est.tail(DenOrder);
+            result.den().vector()(DenOrder) = T(1);
             return result;
         }
 

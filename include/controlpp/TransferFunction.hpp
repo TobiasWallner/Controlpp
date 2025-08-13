@@ -7,12 +7,12 @@
 
 namespace controlpp
 {
-    template<class T, size_t NumSize, size_t DenSize>
+    template<class T, int NumOrder, int DenOrder>
     class TransferFunction{
         public:
             using value_type = T;
-            using num_type = Polynom<T, NumSize>;
-            using den_type = Polynom<T, DenSize>;
+            using num_type = Polynom<T, NumOrder>;
+            using den_type = Polynom<T, DenOrder>;
             using num_vector_type = typename num_type::vector_type;
             using den_vector_type = typename den_type::vector_type;
 
@@ -25,7 +25,7 @@ namespace controlpp
             constexpr TransferFunction(const TransferFunction&) = default;
             constexpr TransferFunction& operator=(const TransferFunction&) = default;
 
-            constexpr TransferFunction(const Polynom<T, NumSize>& num, const Polynom<T, DenSize>& den)
+            constexpr TransferFunction(const Polynom<T, NumOrder>& num, const Polynom<T, DenOrder>& den)
                 : _num(num)
                 , _den(den){}
 
@@ -33,7 +33,7 @@ namespace controlpp
                 : _num(num)
                 , _den(den){}
 
-            constexpr TransferFunction(const T(&num)[NumSize], const T(&den)[DenSize])
+            constexpr TransferFunction(const T(&num)[NumOrder+1], const T(&den)[DenOrder+1])
                 : _num(num)
                 , _den(den){}
 
@@ -59,17 +59,18 @@ namespace controlpp
                 return stream;
             }
     };
+
     // -----------------------------------------------------------------------------------------------
     //                                      Comparison Operators
     // -----------------------------------------------------------------------------------------------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator==(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize1, DenSize1>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr auto operator==(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder1, DenOrder1>& rhs){
         return ((lhs.num() == rhs.num()) && (lhs.den() == rhs.den()));
     }
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr bool operator!=(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize1, DenSize1>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr bool operator!=(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder1, DenOrder1>& rhs){
         return ((lhs.num() != rhs.num()) || (lhs.den() != rhs.den()));
     }
     
@@ -89,87 +90,87 @@ namespace controlpp
      * \f]
      * 
      * \tparam T The value type of the polynomial parameters
-     * \tparam NumSize1 The size of the numerator of the left-hand-side addition argument
-     * \tparam DenSize1 The size of the denominator of the left-hand-side addition argument
-     * \tparam NumSize2 The size of the numberator of the right-hand-side addition argument
-     * \tparam DenSize1 The size of the denominator of the right-hand-side addition argument
+     * \tparam NumOrder1 The size of the numerator of the left-hand-side addition argument
+     * \tparam DenOrder1 The size of the denominator of the left-hand-side addition argument
+     * \tparam NumOrder2 The size of the numberator of the right-hand-side addition argument
+     * \tparam DenOrder1 The size of the denominator of the right-hand-side addition argument
      * 
      * \param lhs The left-hand-side additino argument as a rational polynom
      * \param rhs The right-hand-side addition argument as a rational polynom
      */
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator+(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize2, DenSize2>& rhs){
-        return TransferFunction(lhs.num() * rhs.den() + rhs.num() * lhs.den(), lhs.den() * rhs.den());
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr TransferFunction<T, std::max(NumOrder1 + DenOrder2, NumOrder2 + DenOrder1), DenOrder1 + DenOrder2> operator+(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder2, DenOrder2>& rhs){
+        return TransferFunction<T, std::max(NumOrder1 + DenOrder2, NumOrder2 + DenOrder1), DenOrder1 + DenOrder2>(lhs.num() * rhs.den() + rhs.num() * lhs.den(), lhs.den() * rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator+(const Tscalar& lhs, const TransferFunction<T, NumSize, DenSize>& rhs){
-        return TransferFunction(static_cast<T>(lhs) * rhs.den() + rhs.num(), rhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, std::max(NumOrder, DenOrder), DenOrder> operator+(const Tscalar& lhs, const TransferFunction<T, NumOrder, DenOrder>& rhs){
+        return TransferFunction<T, std::max(NumOrder, DenOrder), DenOrder>(static_cast<T>(lhs) * rhs.den() + rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator+(const TransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
-        return TransferFunction(lhs.num() + lhs.den() * static_cast<T>(rhs), lhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, std::max(NumOrder,  DenOrder), DenOrder> operator+(const TransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+        return TransferFunction<T, std::max(NumOrder,  DenOrder), DenOrder>(lhs.num() + lhs.den() * static_cast<T>(rhs), lhs.den());
     }
 
     // operator -
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1>
-    constexpr TransferFunction<T, NumSize1, DenSize1> operator-(const TransferFunction<T, NumSize1, DenSize1>& poly){
-        return TransferFunction<T, NumSize1, DenSize1>(-poly.num(), poly.den());
+    template<class T, int NumOrder1, int DenOrder1>
+    constexpr TransferFunction<T, NumOrder1, DenOrder1> operator-(const TransferFunction<T, NumOrder1, DenOrder1>& poly){
+        return TransferFunction<T, NumOrder1, DenOrder1>(-poly.num(), poly.den());
     }
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator-(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize2, DenSize2>& rhs){
-        return TransferFunction(lhs.num() * rhs.den() - rhs.num() * lhs.den(), lhs.den() * rhs.den());
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr TransferFunction<T, std::max(NumOrder1 + DenOrder2, NumOrder2 + DenOrder1), DenOrder1 + DenOrder2> operator-(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder2, DenOrder2>& rhs){
+        return TransferFunction<T, std::max(NumOrder1 + DenOrder2, NumOrder2 + DenOrder1), DenOrder1 + DenOrder2>(lhs.num() * rhs.den() - rhs.num() * lhs.den(), lhs.den() * rhs.den());
     }
 
     
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator-(const Tscalar& lhs, const TransferFunction<T, NumSize, DenSize>& rhs){
-        return TransferFunction(static_cast<T>(lhs) * rhs.den() - rhs.num(), rhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, std::max(NumOrder, DenOrder), DenOrder> operator-(const Tscalar& lhs, const TransferFunction<T, NumOrder, DenOrder>& rhs){
+        return TransferFunction<T, std::max(NumOrder, DenOrder), DenOrder>(static_cast<T>(lhs) * rhs.den() - rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator-(const TransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
-        return TransferFunction(lhs.num() - lhs.den() * static_cast<T>(rhs), lhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, std::max(NumOrder,  DenOrder), DenOrder> operator-(const TransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+        return TransferFunction<T, std::max(NumOrder,  DenOrder), DenOrder>(lhs.num() - lhs.den() * static_cast<T>(rhs), lhs.den());
     }
 
     // operator *
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator*(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize2, DenSize2>& rhs){
-        return TransferFunction(lhs.num() * rhs.num(), lhs.den() * rhs.den());
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr TransferFunction<T, NumOrder1 + NumOrder2, DenOrder1 + DenOrder2> operator*(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder2, DenOrder2>& rhs){
+        return TransferFunction<T, NumOrder1 + NumOrder2, DenOrder1 + DenOrder2>(lhs.num() * rhs.num(), lhs.den() * rhs.den());
     }
 
     
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator*(const Tscalar& lhs, const TransferFunction<T, NumSize, DenSize>& rhs){
-        return TransferFunction(static_cast<T>(lhs) * rhs.num(), rhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, NumOrder, DenOrder> operator*(const Tscalar& lhs, const TransferFunction<T, NumOrder, DenOrder>& rhs){
+        return TransferFunction<T, NumOrder, DenOrder>(static_cast<T>(lhs) * rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator*(const TransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
-        return TransferFunction(lhs.num() * static_cast<T>(rhs), lhs.den());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, NumOrder, DenOrder> operator*(const TransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+        return TransferFunction<T, NumOrder, DenOrder>(lhs.num() * static_cast<T>(rhs), lhs.den());
     }
 
     // operator /
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator/(const TransferFunction<T, NumSize1, DenSize1>& lhs, const TransferFunction<T, NumSize2, DenSize2>& rhs){
-        return TransferFunction(lhs.num() * rhs.den(), lhs.den() * rhs.num());
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr TransferFunction<T, NumOrder1 + DenOrder2, DenOrder1 + NumOrder2> operator/(const TransferFunction<T, NumOrder1, DenOrder1>& lhs, const TransferFunction<T, NumOrder2, DenOrder2>& rhs){
+        return TransferFunction<T, NumOrder1 + DenOrder2, DenOrder1 + NumOrder2>(lhs.num() * rhs.den(), lhs.den() * rhs.num());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator/(const Tscalar& lhs, const TransferFunction<T, NumSize, DenSize>& rhs){
-        return TransferFunction(static_cast<T>(lhs) * rhs.den(), rhs.num());
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, DenOrder, NumOrder> operator/(const Tscalar& lhs, const TransferFunction<T, NumOrder, DenOrder>& rhs){
+        return TransferFunction<T, DenOrder, NumOrder>(static_cast<T>(lhs) * rhs.den(), rhs.num());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator/(const TransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr TransferFunction<T, NumOrder, DenOrder> operator/(const TransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return TransferFunction(lhs.num(), lhs.den() * static_cast<T>(rhs));
     }
 
@@ -186,7 +187,7 @@ namespace controlpp
      * 
      * \see controlpp::TransferFunction
      */
-    template<class T, size_t N>
+    template<class T, int N>
     class FixedRationalPolynom{
         public:
             using value_type = T;
@@ -256,12 +257,12 @@ namespace controlpp
     //                                      Comparison Operators
     // -----------------------------------------------------------------------------------------------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator==(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return ((lhs.num() == rhs.num()) && (lhs.den() == rhs.den()));
     }
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr bool operator!=(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return ((lhs.num() != rhs.num()) || (lhs.den() != rhs.den()));
     }
@@ -282,25 +283,25 @@ namespace controlpp
      * \f]
      * 
      * \tparam T The value type of the polynomial parameters
-     * \tparam NumSize1 The size of the numerator of the left-hand-side addition argument
-     * \tparam DenSize1 The size of the denominator of the left-hand-side addition argument
-     * \tparam NumSize2 The size of the numberator of the right-hand-side addition argument
-     * \tparam DenSize1 The size of the denominator of the right-hand-side addition argument
+     * \tparam NumOrder1 The size of the numerator of the left-hand-side addition argument
+     * \tparam DenOrder1 The size of the denominator of the left-hand-side addition argument
+     * \tparam NumOrder2 The size of the numberator of the right-hand-side addition argument
+     * \tparam DenOrder1 The size of the denominator of the right-hand-side addition argument
      * 
      * \param lhs The left-hand-side additino argument as a rational polynom
      * \param rhs The right-hand-side addition argument as a rational polynom
      */
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr auto operator+(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(lhs.num() * rhs.den() + rhs.num() * lhs.den(), lhs.den() * rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator+(const Tscalar& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(static_cast<T>(lhs) * rhs.den() + rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator+(const FixedRationalPolynom<T, N>& lhs, const Tscalar& rhs){
         return FixedRationalPolynom(lhs.num() + lhs.den() * static_cast<T>(rhs), lhs.den());
     }
@@ -308,23 +309,23 @@ namespace controlpp
     // operator -
     // -----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedRationalPolynom<T, N> operator-(const FixedRationalPolynom<T, N>& poly){
         return FixedRationalPolynom<T, N>(-poly.num(), poly.den());
     }
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr auto operator-(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(lhs.num() * rhs.den() - rhs.num() * lhs.den(), lhs.den() * rhs.den());
     }
 
     
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator-(const Tscalar& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(static_cast<T>(lhs) * rhs.den() - rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator-(const FixedRationalPolynom<T, N>& lhs, const Tscalar& rhs){
         return FixedRationalPolynom(lhs.num() - lhs.den() * static_cast<T>(rhs), lhs.den());
     }
@@ -332,18 +333,18 @@ namespace controlpp
     // operator *
     // -----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr FixedRationalPolynom<T, N> operator*(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(lhs.num() * rhs.num(), lhs.den() * rhs.den());
     }
 
     
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr FixedRationalPolynom<T, N> operator*(const Tscalar& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(static_cast<T>(lhs) * rhs.num(), rhs.den());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr FixedRationalPolynom<T, N> operator*(const FixedRationalPolynom<T, N>& lhs, const Tscalar& rhs){
         return FixedRationalPolynom(lhs.num() * static_cast<T>(rhs), lhs.den());
     }
@@ -351,17 +352,17 @@ namespace controlpp
     // operator /
     // -----------
 
-    template<class T, size_t N>
+    template<class T, int N>
     constexpr auto operator/(const FixedRationalPolynom<T, N>& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(lhs.num() * rhs.den(), rhs.den() * rhs.num());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator/(const Tscalar& lhs, const FixedRationalPolynom<T, N>& rhs){
         return FixedRationalPolynom(static_cast<T>(lhs) * rhs.den(), rhs.num());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t N>
+    template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator/(const FixedRationalPolynom<T, N>& lhs, const Tscalar& rhs){
         return FixedRationalPolynom(lhs.num(), rhs.den() * static_cast<T>(rhs));
     }
@@ -370,7 +371,7 @@ namespace controlpp
 
 
 namespace Eigen {
-    template<typename T, size_t N>
+    template<typename T, int N>
     struct NumTraits<controlpp::FixedRationalPolynom<T, N>> {
         using Self = controlpp::FixedRationalPolynom<T, N>;
         using Real = Self; // or T if you want to treat real parts differently
@@ -397,7 +398,7 @@ namespace Eigen {
     // ResultType for operator +
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -406,7 +407,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() + std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         Tscalar,
@@ -415,7 +416,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>() + std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -427,7 +428,7 @@ namespace Eigen {
     // ResultType for operator -
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -436,7 +437,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() - std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         Tscalar,
@@ -445,7 +446,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>() - std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -457,7 +458,7 @@ namespace Eigen {
     // ResultType for operator *
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -466,7 +467,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() * std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         Tscalar,
@@ -475,7 +476,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>() * std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -487,7 +488,7 @@ namespace Eigen {
     // ResultType for operator /
     // -------------------------
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         Tscalar,
         controlpp::FixedRationalPolynom<Tpoly, N>,
@@ -496,7 +497,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<Tscalar>() / std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>());
     };
 
-    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t N>
+    template <class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         Tscalar,
@@ -505,7 +506,7 @@ namespace Eigen {
         using ReturnType = decltype(std::declval<controlpp::FixedRationalPolynom<Tpoly, N>>() / std::declval<Tscalar>());
     };
 
-    template <class Tpoly, size_t N>
+    template <class Tpoly, int N>
     struct ScalarBinaryOpTraits<
         controlpp::FixedRationalPolynom<Tpoly, N>,
         controlpp::FixedRationalPolynom<Tpoly, N>,

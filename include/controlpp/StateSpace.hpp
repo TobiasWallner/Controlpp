@@ -48,9 +48,9 @@ namespace controlpp
             using C_matrix_type = Eigen::Matrix<T, outputs, internal_states>;
             using D_matrix_type = Eigen::Matrix<T, outputs, inputs>;
 
-            //constexpr static size_t number_of_states = internal_states;
-            //constexpr static size_t number_of_inputs = inputs;
-            //constexpr static size_t number_of_outputs = outputs;
+            //constexpr static int number_of_states = internal_states;
+            //constexpr static int number_of_inputs = inputs;
+            //constexpr static int number_of_outputs = outputs;
 
         private:
             A_matrix_type _A;
@@ -153,15 +153,15 @@ namespace controlpp
     /**
      * \brief calculates the state space representation from a rational polynomial
      */
-    template<class T, size_t num_size, size_t den_size>
-    constexpr StateSpace<T, den_size-1, 1, 1> to_state_space(const TransferFunction<T, num_size, den_size>& rp){
-        static constexpr size_t number_of_states = den_size-1;
+    template<class T, int NumOrder, int DenOrder>
+    constexpr StateSpace<T, DenOrder, 1, 1> to_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        static constexpr int number_of_states = DenOrder;
         StateSpace<T, number_of_states, 1, 1> result;
         const T a_n = rp.den()[rp.den().order()];
 
         // normalise
-        const Polynom<T, den_size> a = -(rp.den()/a_n);
-        const Polynom<T, num_size> b = rp.num() / a_n;
+        const Polynom<T, DenOrder> a = -(rp.den()/a_n);
+        const Polynom<T, NumOrder> b = rp.num() / a_n;
         
         // write A matrix
         if constexpr (number_of_states > 0){
@@ -210,27 +210,27 @@ namespace controlpp
     }
 
 /*
-    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> operator+(const StateSpace<>& lhs, const StateSpace<>& rhs){
         // TODO:    
     }
 
-    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> operator-(const StateSpace<>& lhs, const StateSpace<>& rhs){
         // TODO:
     }
 
-    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> operator*(const StateSpace<>& lhs, const StateSpace<>& rhs){
         // TODO:
     }
 
-    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> operator/(const StateSpace<>& lhs, const StateSpace<>& rhs){
         // TODO:
     }
 
-    template<class T, size_t LStates, size_t Linputs, size_t Loutputs, size_t RStates, size_t Rinputs, size_t Routputs>
+    template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> inverse(const StateSpace<>& Sys){
         // TODO:
     }

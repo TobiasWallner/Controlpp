@@ -2,11 +2,11 @@
 
 namespace controlpp
 {
-    template<class ValueType, size_t NumSize, size_t DenSize>
+    template<class ValueType, int NumOrder, int DenOrder>
     class DiscreteTransferFunction{
         public:
             using value_type = ValueType;
-            using ratpoly_type = TransferFunction<ValueType, NumSize, DenSize>;
+            using ratpoly_type = TransferFunction<ValueType, NumOrder, DenOrder>;
             using num_type = typename ratpoly_type::num_type;
             using den_type = typename ratpoly_type::den_type;
             using num_vector_type = typename ratpoly_type::num_vector_type;
@@ -23,12 +23,12 @@ namespace controlpp
             constexpr DiscreteTransferFunction& operator=(const DiscreteTransferFunction&) = default;
 
             constexpr DiscreteTransferFunction(
-                const Polynom<ValueType, NumSize>& num, 
-                const Polynom<ValueType, DenSize>& den)
+                const Polynom<ValueType, NumOrder>& num, 
+                const Polynom<ValueType, DenOrder>& den)
                 : _ratpoly(num, den){}
 
             constexpr DiscreteTransferFunction(
-                const TransferFunction<ValueType, NumSize, DenSize>& ratpoly)
+                const TransferFunction<ValueType, NumOrder, DenOrder>& ratpoly)
                 : _ratpoly(ratpoly){}
 
             constexpr explicit DiscreteTransferFunction(
@@ -37,8 +37,8 @@ namespace controlpp
                 : _ratpoly(num, den){}
 
             constexpr explicit DiscreteTransferFunction(
-                const value_type(&num)[NumSize], 
-                const value_type(&den)[DenSize])
+                const value_type(&num)[NumOrder+1], 
+                const value_type(&den)[DenOrder+1])
                 : _ratpoly(num, den){}
 
             constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
@@ -47,14 +47,14 @@ namespace controlpp
             constexpr num_type& num() {return this->_ratpoly.num();}
             constexpr const num_type& num() const {return this->_ratpoly.num();}
 
-            constexpr ValueType& num(size_t i) {return this->_ratpoly.num(i);}
-            constexpr const ValueType& num(size_t i) const {return this->_ratpoly.num(i);}
+            constexpr ValueType& num(int i) {return this->_ratpoly.num(i);}
+            constexpr const ValueType& num(int i) const {return this->_ratpoly.num(i);}
 
             constexpr den_type& den() {return this->_ratpoly.den();}
             constexpr const den_type& den() const {return this->_ratpoly.den();}
 
-            constexpr ValueType& den(size_t i) {return this->_ratpoly.den(i);}
-            constexpr const ValueType& den(size_t i) const {return this->_ratpoly.den(i);}
+            constexpr ValueType& den(int i) {return this->_ratpoly.den(i);}
+            constexpr const ValueType& den(int i) const {return this->_ratpoly.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
                 dtf.ratpoly().print(stream, "z");
@@ -65,78 +65,78 @@ namespace controlpp
     // operator +
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator+(const DiscreteTransferFunction<T, NumSize1, DenSize1>& lhs, const DiscreteTransferFunction<T, NumSize2, DenSize2>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr auto operator+(const DiscreteTransferFunction<T, NumOrder1, DenOrder1>& lhs, const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() + rhs.ratpoly());
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator+(const Tscalar& lhs, const DiscreteTransferFunction<Tpoly, NumSize, DenSize>& rhs){
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator+(const Tscalar& lhs, const DiscreteTransferFunction<Tpoly, NumOrder, DenOrder>& rhs){
         return DiscreteTransferFunction(lhs + rhs.ratpoly());
     }
 
-    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator+(const DiscreteTransferFunction<Tpoly, NumSize, DenSize>& lhs, const Tscalar& rhs){
+    template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator+(const DiscreteTransferFunction<Tpoly, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() + rhs);
     }
 
     // operator -
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator-(const DiscreteTransferFunction<T, NumSize1, DenSize1>& lhs, const DiscreteTransferFunction<T, NumSize2, DenSize2>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr auto operator-(const DiscreteTransferFunction<T, NumOrder1, DenOrder1>& lhs, const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() - rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator-(const Tscalar& lhs, const DiscreteTransferFunction<T, NumSize, DenSize>& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator-(const Tscalar& lhs, const DiscreteTransferFunction<T, NumOrder, DenOrder>& rhs){
         return DiscreteTransferFunction(lhs + rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator-(const DiscreteTransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator-(const DiscreteTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() - rhs);
     }
 
     // operator *
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator*(const DiscreteTransferFunction<T, NumSize1, DenSize1>& lhs, const DiscreteTransferFunction<T, NumSize2, DenSize2>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr auto operator*(const DiscreteTransferFunction<T, NumOrder1, DenOrder1>& lhs, const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() * rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator*(const Tscalar& lhs, const DiscreteTransferFunction<T, NumSize, DenSize>& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator*(const Tscalar& lhs, const DiscreteTransferFunction<T, NumOrder, DenOrder>& rhs){
         return DiscreteTransferFunction(lhs * rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator*(const DiscreteTransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator*(const DiscreteTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() * rhs);
     }
 
     // operator /
     // -----------
 
-    template<class T, size_t NumSize1, size_t DenSize1, size_t NumSize2, size_t DenSize2>
-    constexpr auto operator/(const DiscreteTransferFunction<T, NumSize1, DenSize1>& lhs, const DiscreteTransferFunction<T, NumSize2, DenSize2>& rhs){
+    template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
+    constexpr auto operator/(const DiscreteTransferFunction<T, NumOrder1, DenOrder1>& lhs, const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() / rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator/(const Tscalar& lhs, const DiscreteTransferFunction<T, NumSize, DenSize>& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator/(const Tscalar& lhs, const DiscreteTransferFunction<T, NumOrder, DenOrder>& rhs){
         return DiscreteTransferFunction(lhs / rhs.ratpoly());
     }
 
-    template<class T, std::convertible_to<T> Tscalar, size_t NumSize, size_t DenSize>
-    constexpr auto operator/(const DiscreteTransferFunction<T, NumSize, DenSize>& lhs, const Tscalar& rhs){
+    template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
+    constexpr auto operator/(const DiscreteTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return DiscreteTransferFunction(lhs.ratpoly() / rhs);
     }
 
     namespace tf{
         template<class ValueType=double>
-        static inline const DiscreteTransferFunction<ValueType, 2, 1> z = DiscreteTransferFunction<ValueType, 2, 1>({ValueType(0), ValueType(1)}, {ValueType(1)});
+        static inline const DiscreteTransferFunction<ValueType, 1, 0> z({ValueType(0), ValueType(1)}, {ValueType(1)});
     }
 
 } // namespace controlpp
