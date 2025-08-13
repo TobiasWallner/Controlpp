@@ -5,7 +5,7 @@ namespace controlpp
     
 
     /**
-     * \brief 
+     * \brief   
      * 
      */
     template<class T>

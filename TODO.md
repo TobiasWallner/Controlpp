@@ -1,11 +1,12 @@
 
 TODO:
-- Check what is going wrong in the Clang Build
-- Test or Simulate the time-variant controllers
+- larger tests of controllers designed with `tf::s`
 
 Naming Style
 ------------
 - All functions and Methods in `snake_case`
+- Name controllers like: `PController`, `PControl` or `controller::P` instead of just `P`
+  >Looking at this I think I prefer `PControl`
 
 Hybrid Storage
 --------------
@@ -33,32 +34,10 @@ Controllers
 -----------
 - LQR (Linear Quadratic Regulator)
 - LQG (LQR + Kalman)
+- H_2 (in progress) <----------------------------------
+- H_inf
 
 Filters
 -------
 - Saturation
 - SoftSaturation
-
-Time Variable Controllers:
---------------------------
-- P
-- I 
-  - Saturated
-  - RateLimited
-- D
-  - Tamed O1
-  - Tamed O2
-- PT1
-- PT2
-- PID
-  - Saturated I
-  - RateLimited I
-  - Tamed D O1
-  - Tamed D O2
-- PTID
-  - Saturated I
-  - RateLimited I
-  - Tamed D O1
-  - Tamed D O2
-- LeadLag
-- Notch
