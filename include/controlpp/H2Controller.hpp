@@ -1,5 +1,7 @@
 #pragma once
 
+#include <controlpp/math.hpp>
+
 namespace controlpp
 {
     
@@ -105,37 +107,38 @@ namespace controlpp
      * 
      */
     template<class T>
-    class H2Controller{
-        private:
+    ContinuousStateSpace<T, > continous_H2_controller(
+                const Eigen::Matrix<T>& A,
+                const Eigen::Matrix<T>& B1, 
+                const Eigen::Matrix<T>& B2,
+                const Eigen::Matrix<T>& C1, 
+                const Eigen::Matrix<T>& C2,
+                const Eigen::Matrix<T>& D1, 
+                const Eigen::Matrix<T>& D2)
+        {
+            // Weighting Matrices 
+            const auto Q = C1.transpose() * C1;
+            const auto R = D1.transpose() * D1;
+            const auto W = B1 * B1.transpose();
+            const auto S = D2 * D2.transpose();
+            
+            // Solve the Riccati Equations:
 
-        public:
+            // State feedback
+            // A^\top X + X A - X B_2 R^{-1} B_2^\top X + Q = 0
+            const auto X = controlpp::solve_continuous_riccati(A, B2, R, Q);
 
-        /**
-         * \brief Constructs a H2 controller
-         * 
-         * \param A System/Plant dynamics matrix, with size \f$n \times n\f$ where n is the number of states.
-         * It describes how the system states evolves based on the systems state.
-         * \param B2 Control input matrix with size \f$n \times m\f$, where m is the size of the input/measurement vector.
-         * It describes how the the control input alters the systems state.
-         * \param C2 Measurement output matrix with size \f$p \times n\f$.
-         * It describes how the systems states map to the outputs that can be measured and used by the estimator.
-         * \param R Control cost matrix, with size \f$m \times m\f$.
-         * It penalizes the magnitude of control effort.
-         * \param Q State cost matrix, with size \f$n \times n\f$.
-         * It penalizes the deviation of the state.
-         * \param W Process noise covariance matrix, with size \f$n \times n\f$. Has to be symetric positive semidefinite!
-         * It models the process disturbances affecting the state.
-         */
-        H2Controller(
-            const Eigen::Matrix<T>& A, 
-            const Eigen::Matrix<T>&B2, 
-            const Eigen::Matrix<T>&C2, 
-            const Eigen::Matrix<T>&R, 
-            const Eigen::Matrix<T>&Q, 
-            const Eigen::Matrix<T>&V, 
-            const Eigen::Matrix<T>&W){
+            // Estimator Feedback
+            // A^\top Y + Y A - Y C_2 S^{-1} C_2^\top Y + W = 0
+            const auto Y = controlpp::solve_continuous_riccati(A, C2, S, W);
 
+            // State gain
+            // F = -R^{-1} \left( B_2^\top X + D_1^\top C_1 \right)
+            const auto F = -R.inverse() * (B2.transpose() * X + D1.transpose() * C1);
+
+            // Estimator gain
+            // L = - \left( Y C_2^\top + B_1 D_2^\top \right) S^{-1}
+            const auto L = - (Y * C2.transpose() + B1 * D2.transpose()) * S.inverse();
         }
-    }
 
 } // namespace controlpp

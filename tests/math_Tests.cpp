@@ -27,7 +27,8 @@ TEST(math, solve_riccati){
         {1}
     });
 
-    Eigen::Matrix<double, 2, 2> X = controlpp::solve_continuous_riccati(A, B, Q, R);
+    Eigen::Matrix<double, 2, 2> X = controlpp::solve_continuous_riccati(
+        A, B, R, Q);
     Eigen::Matrix<double, 2, 2> care = A.transpose() * X + X * A - X * B * R.inverse() * B.transpose() * X + Q;
 
     ASSERT_NEAR(care(0, 0), 0, 1e-10);

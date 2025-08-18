@@ -307,8 +307,8 @@ namespace controlpp{
 	 * 
 	 * \param A System dynamics matrix
 	 * \param B System input matrix
-	 * \param Q State const matrix
 	 * \param R Control cost matrix. Assumend to be strictly symetric positive definite!
+	 * \param Q State const matrix
 	 * 
 	 * \tparam T The data type of the matrix elements
 	 * \tparam N The number of states
@@ -326,8 +326,8 @@ namespace controlpp{
 	constexpr Eigen::Matrix<T, N, N> solve_continuous_riccati(
 		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
 		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
-		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q,
-		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R
+		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R,
+		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q
 	){
 		// 1. Build the hamilton matrix
 		const Eigen::Matrix<T, 2*N, 2*N> H = controlpp::create_hamilton(A, B, Q, R);
