@@ -34,7 +34,7 @@ namespace controlpp
                 const Eigen::Matrix<T, internal_states, internal_states>& A,
                 const Eigen::Matrix<T, internal_states, inputs>& B,
                 const Eigen::Matrix<T, outputs, internal_states>& C,
-                const Eigen::Matrix<T, outputs, inputs>& D
+                const Eigen::Matrix<T, outputs, inputs>& D = Eigen::Matrix<T, outputs, inputs>::Zero()
             ) : _state_space(A, B, C, D){}
 
             constexpr ContinuousStateSpace(const StateSpace<T, internal_states, inputs, outputs>& state_space) : _state_space(state_space){}

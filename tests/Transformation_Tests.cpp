@@ -34,16 +34,16 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     const auto Sys_z = controlpp::continuous_to_discrete(Sys_s, sample_time);
    
     // check
-    ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.01));
-    ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.01));
-    ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.01));
-    ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.01));
+    ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.001));
+    ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.001));
+    ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.001));
+    ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.001));
 }
 
 TEST(Transformation, discrete_ss_to_bilinear_ss){
     // preparation
-    const auto z = controlpp::tf::z<double>;
-    const auto G_z = (1 + z) / (1 + 3*z + z*z);
+    const auto z_1 = controlpp::tf::z_1<double>;
+    const auto G_z = (1 + z_1) / (1 + 3*z_1 + z_1*z_1);
     const auto Sys_z = controlpp::to_state_space(G_z);
 
     // function under test
@@ -51,13 +51,13 @@ TEST(Transformation, discrete_ss_to_bilinear_ss){
 
     // expected values
     const Eigen::Matrix<double, 2, 2> expected_A({
-        {-3, -2},
-        {2, 3}
+        {3, 2},
+        {-2, -3}
     });
 
     const Eigen::Matrix<double, 2, 1> expected_B({
-        {std::sqrt(2.0)},
-        {-std::sqrt(2.0)}
+        {-std::sqrt(2.0)},
+        {std::sqrt(2.0)}
     });
 
     const Eigen::Matrix<double, 1, 2> expected_C({
@@ -77,8 +77,8 @@ TEST(Transformation, discrete_ss_to_bilinear_ss){
 
 TEST(Transformation, continuous_ss_to_bilinear_ss){
     // preparation
-    const auto z = controlpp::tf::z<double>;
-    const auto G_z = (1 + z) / (1 + 3*z + z*z);
+    const auto z_1 = controlpp::tf::z_1<double>;
+    const auto G_z = (1 + z_1) / (1 + 3*z_1 + z_1*z_1);
     const auto Sys_z = controlpp::to_state_space(G_z);
     const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
 

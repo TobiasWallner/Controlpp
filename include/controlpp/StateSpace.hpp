@@ -160,7 +160,7 @@ namespace controlpp
         const T a_n = rp.den()[rp.den().order()];
 
         // normalise
-        const Polynom<T, DenOrder> a = -(rp.den()/a_n);
+        const Polynom<T, DenOrder> a = -(rp.den() / a_n);
         const Polynom<T, NumOrder> b = rp.num() / a_n;
         
         // write A matrix

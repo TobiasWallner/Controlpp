@@ -1,5 +1,7 @@
 
 TODO:
+- use 'z^{-1}' instead of 'z' for discrete transfer functions.
+
 - larger tests of controllers designed with `tf::s`
 
 Naming Style

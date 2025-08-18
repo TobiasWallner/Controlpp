@@ -1,11 +1,15 @@
 #pragma once
 
+#include "DiscreteTransferFunction.hpp"
 #include "DiscreteStateSpace.hpp"
 
 namespace controlpp{
 
+    /**
+     * \brief Controller from a discrete state space
+     */
     template<class T, int NStates_, int NInputs_, int NOutputs_>
-    class DiscreteStateSpaceFilter{
+    class DssController{
         private:
         
         Eigen::Vector<T, NStates_> states_ = Eigen::Vector<T, NStates_>::Zero();
@@ -22,7 +26,7 @@ namespace controlpp{
          * 
          * A filter will also internally track 
          */
-        DiscreteStateSpaceFilter(const DiscreteStateSpace<T, NStates_, NInputs_, NOutputs_>& dss)
+        DssController(const DiscreteStateSpace<T, NStates_, NInputs_, NOutputs_>& dss)
             : dss_(dss)
         {}
 
@@ -77,6 +81,61 @@ namespace controlpp{
          */
         DiscreteStateSpace<T, NStates_, NInputs_, NOutputs_>& dss() {
             return this->dss_;
+        }
+
+    };
+
+
+    /**
+     * \brief Controller from a discrete transfer function
+     */
+    template<class T, int NumOrder, int DenOrder>
+    class DtfController{
+        private:
+        
+        Eigen::Vector<T, NumOrder> uk_ = Eigen::Vector<T, NumOrder>::Zero();
+        Eigen::Vector<T, DenOrder> yk_ = Eigen::Vector<T, DenOrder>::Zero();
+        DiscreteTransferFunction<T, NumOrder, DenOrder> dtf_;
+        public:
+
+        /**
+         * \brief construct a discrete filter from a Transfer Function
+         * 
+         * A filter will also internally track 
+         */
+        DtfController(const DiscreteTransferFunction<T, NumOrder, DenOrder>& dtf)
+            : dtf_(dtf)
+        {}
+
+        T input(const T& u){
+            const Eigen::Vector<T, NumOrder+1> uk;
+            uk(0) = u;
+            uk.tail(NumOrder) = this->uk_;
+
+            const auto y = this->dtf_.eval(uk, this->yk_);
+
+            std::reverse_copy(this->uk_.data(), this->uk_.data()+this->uk_.size(), this->uk_.data()+1);
+            this->uk_(0) = u;
+
+            std::reverse_copy(this->yk_.data(), this->yk_.data()+this->yk_.size(), this->yk_.data()+1);
+            this->yk_(0) = y;
+            return y;
+        }
+
+        /**
+         * \brief sets the interanal state vector to zero
+         */
+        void clear(){
+            this->uk_.setZero();
+            this->yk_.setZero();
+        }
+
+        const DiscreteTransferFunction<T, NumOrder, DenOrder>& dft() const {
+            return this->dft_;
+        }
+
+        DiscreteTransferFunction<T, NumOrder, DenOrder>& dft() {
+            return this->dft_;
         }
 
     };

@@ -5,6 +5,20 @@
 
 namespace controlpp
 {
+
+    /**
+     * \brief Continuous transfer functions in the s lapace plain
+     * 
+     * Transfer functions of the shape:
+     * 
+     * \f[
+     * G(s) = \frac{b_0 + b_1 s \cdots b_m s^m}{a_0 + a_1 s \cdots a_n s^n}
+     * \f]
+     * 
+     * \tparam ValueType The value type that the transfer function should use
+     * \tparam NumberOrder The order of the numerator. m in the equation.
+     * \tparam DenOrder The order of the denominator. n in the equation.
+     */
     template<class ValueType, int NumOrder, int DenOrder>
     class ContinuousTransferFunction{
         public:

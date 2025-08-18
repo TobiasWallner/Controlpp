@@ -23,13 +23,13 @@ namespace controlpp
      * This does **not** contain an internal state. 
      * You may use the `.eval()` method, but have to provide the state manually.
      * 
-     * If you want a system with internal state have a look at: `DiscreteStateSpaceFilter`.
+     * If you want a system with internal state have a look at: `DssController`.
      * 
      * This is a type wrapper around `controlpp::StateSpace`
      * 
      * \see controlpp::StateSpace
      * \see controlpp::DiscreteTransferFunction
-     * \see controlpp::DiscreteStateSpaceFilter
+     * \see controlpp::DssController
      * 
      * \tparam ValueType The value type of the matrix elements and arithmetic calculations (usually `double` or `float`)
      * \tparam internal_states The number of internal states, this influences the size of the A, B and C matrices
@@ -119,11 +119,46 @@ namespace controlpp
     };
 
     /**
-     * \brief constructs a continuous state space function from a rational polynom
+     * \brief constructs a discrete state space function from a rational polynom
      */
-    template<class ValueType, int NumOrder, int DenOrder>
-    constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_discrete_state_space(const TransferFunction<ValueType, NumOrder, DenOrder>& rp){
-        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(rp));
+    template<class T, int NumOrder, int DenOrder>
+    requires(NumOrder <= DenOrder)
+    constexpr DiscreteStateSpace<T, DenOrder, 1, 1> to_discrete_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        static constexpr int number_of_states = DenOrder;
+        StateSpace<T, number_of_states, 1, 1> result;
+        const T a_0 = rp.den(0);
+        const T b_0 = rp.num(0);
+
+        // normalise
+        const Polynom<T, DenOrder> a = -(rp.den() / a_0);
+        const Polynom<T, NumOrder> b = rp.num() / a_0;
+        
+        // write A matrix
+        if constexpr (number_of_states > 0){
+            const auto I = Eigen::Matrix<T, number_of_states-1, number_of_states-1>::Identity();
+            result.A().setOnes();
+            result.A().template block<number_of_states-1, number_of_states-1>(1, 0) = I; 
+            result.A().col(number_of_states-1).tail(number_of_states-1).setZero(); 
+            result.A().row(0) = a.vector().tail(a.vector().size()-1);
+        }
+
+        // write B matrix
+        if constexpr (number_of_states > 0){
+            result.B()(0, 0) = T(1);
+            result.B().col(0).tail(number_of_states-1).setZero();
+        }
+        
+        // write C matrix
+        if constexpr (number_of_states > 0){
+            Eigen::Vector<double, DenOrder> aa = a.vector().tail(DenOrder) * b_0;
+            Eigen::Vector<double, DenOrder> bb = Eigen::Vector<double, DenOrder>::Zero();
+            bb.head(NumOrder) = b.vector().tail(b.size()-1);
+            result.C().row(0) = bb + aa;
+        }
+        
+        // write D matrix
+        result.D()(0, 0) = b_0;
+        return result;
     }
 
     /**
@@ -131,7 +166,7 @@ namespace controlpp
      */
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_discrete_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.ratpoly()));
     }
 
     /**
@@ -139,7 +174,7 @@ namespace controlpp
      */
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.ratpoly()));
     }
 
     /**
@@ -147,9 +182,10 @@ namespace controlpp
      * \returns a discrete transfer function `controlpp::DiscreteTransferFunction`
      * \see controlpp::DiscreteTransferFunction
      */
-    template<class T, int states>
-    constexpr DiscreteTransferFunction<T, states+1, states+1> to_transfer_function(const DiscreteStateSpace<T, states, 1, 1>& dss){
-        return DiscreteTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
-    }
+    // redo:
+    //template<class T, int states>
+    //constexpr DiscreteTransferFunction<T, states+1, states+1> to_transfer_function(const DiscreteStateSpace<T, states, 1, 1>& dss){
+    //    return DiscreteTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
+    //}
 
 } // namespace controlpp

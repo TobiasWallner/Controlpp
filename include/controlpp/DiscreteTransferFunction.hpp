@@ -2,6 +2,21 @@
 
 namespace controlpp
 {
+    /**
+     * \brief Continuous transfer functions in the s lapace plain
+     * 
+     * Transfer functions of the shape:
+     * 
+     * \f[
+     * G(s) = \frac{b_0 + b_1 d \cdots b_m d^m}{a_0 + a_1 d \cdots a_n d^n}
+     * \f]
+     * 
+     * Note that the transfer function uses the delay operator: \f$d = z^{-1}\f$.
+     * 
+     * \tparam ValueType The value type that the transfer function should use. Like `double` or `float`.
+     * \tparam NumberOrder The order of the numerator. m in the equation.
+     * \tparam DenOrder The order of the denominator. n in the equation.
+     */
     template<class ValueType, int NumOrder, int DenOrder>
     class DiscreteTransferFunction{
         public:
@@ -40,7 +55,15 @@ namespace controlpp
                 const value_type(&num)[NumOrder+1], 
                 const value_type(&den)[DenOrder+1])
                 : _ratpoly(num, den){}
+            
 
+            constexpr ValueType eval(const Eigen::Vector<ValueType, NumOrder+1>& input_series, const Eigen::Vector<ValueType, DenOrder>& output_series){
+                const ValueType B = this->num().vector().dot(input_series);
+                const ValueType A = this->den().vector().tail(DenOrder).dot(output_series);
+                const ValueType y = (B - A) / this->den(0);
+                return y;
+            }
+            
             constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
             constexpr const ratpoly_type& ratpoly() const {return this->_ratpoly;}
 
@@ -57,7 +80,8 @@ namespace controlpp
             constexpr const ValueType& den(int i) const {return this->_ratpoly.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
-                dtf.ratpoly().print(stream, "z");
+                dtf.ratpoly().print(stream, "d");
+                std::cout << "d = z^{-1}" << std::endl;
                 return stream;
             }
     };
@@ -135,8 +159,14 @@ namespace controlpp
     }
 
     namespace tf{
+
+        /**
+         * \brief The delay operator \f$z^{-1}\f$
+         * 
+         * \tparam ValueType The value type of the delay operator. Usually `double`, `float` or a custom fixpoint.
+         */
         template<class ValueType=double>
-        static inline const DiscreteTransferFunction<ValueType, 1, 0> z({ValueType(0), ValueType(1)}, {ValueType(1)});
+        static inline const DiscreteTransferFunction<ValueType, 1, 0> z_1({ValueType(0), ValueType(1)}, {ValueType(1)});
     }
 
 } // namespace controlpp

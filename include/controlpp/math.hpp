@@ -236,55 +236,10 @@ namespace controlpp{
 		return result;
 	}
 
-
 	/**
-	 * \brief Creates a hamilton matrix
+	 * \brief Solves the continuous Riccati equation for the LQR (Linear Quadratic Regulator) problem
 	 * 
-	 * Creates the hamilton matrix with the following shape:
-	 * 
-	 * \f[
-	 * H = \begin{pmatrix}
-	 * 		A & -B R^{-1} B^\top
-	 * 		-Q & -A^\top
-	 * \end{pmatrix}
-	 * \f]
-	 * 
-	 * \param A System dynamics matrix
-	 * \param B System input matrix
-	 * \param Q State const matrix
-	 * \param R Control cost matrix. Assumend to be strictly symetric positive definite!
-	 * 
-	 * \tparam T The data type of the matrix elements
-	 * \tparam N The number of states
-	 * \tparam M The number of imputs
-	 * 
-	 * \returns An Eigen matrix containing the hamilton matrix
-	 */
-	template<
-		class T, int N, int M,
-		int AOptions, int AMaxRows, int AMaxCols,
-		int BOptions, int BMaxRows, int BMaxCols,
-		int QOptions, int QMaxRows, int QMaxCols,
-		int ROptions, int RMaxRows, int RMaxCols
-	>
-	constexpr Eigen::Matrix<T, 2*N, 2*N> create_hamilton(
-		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
-		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
-		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q,
-		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R
-	){
-		Eigen::Matrix<T, 2*N, 2*N> H;
-		H.topLeftCorner(N, N) = A;
-		H.topRightCorner(N, N) =  - B * R.llt().solve(B.transpose());
-		H.bottomLeftCorner(N, N) = -Q;
-		H.bottomRightCorner(N, N) = -A.transpose();
-		return H;
-	}
-
-	/**
-	 * \brief Solves the continuous Riccati equation
-	 * 
-	 * Solves the following Riccati equation for \f$X\f$:
+	 * Solves the following LQR Riccati equation for \f$X\f$:
 	 * 
 	 * \f[
 	 * A^\top X + X A - X B R^{-1} B^\top X + Q = 0
@@ -314,7 +269,6 @@ namespace controlpp{
 	 * \tparam N The number of states
 	 * \tparam M The number of imputs
 	 * 
-	 * \see controlpp::create_hamilton()
 	 */
 	template<
 		class T, int N, int M,
@@ -323,14 +277,18 @@ namespace controlpp{
 		int QOptions, int QMaxRows, int QMaxCols,
 		int ROptions, int RMaxRows, int RMaxCols
 	>
-	constexpr Eigen::Matrix<T, N, N> solve_continuous_riccati(
+	constexpr Eigen::Matrix<T, N, N> solve_continuous_lqr_riccati(
 		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
 		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
 		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R,
 		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q
 	){
 		// 1. Build the hamilton matrix
-		const Eigen::Matrix<T, 2*N, 2*N> H = controlpp::create_hamilton(A, B, Q, R);
+		Eigen::Matrix<T, 2*N, 2*N> H;
+		H.topLeftCorner(N, N) = A;
+		H.topRightCorner(N, N) =  - B * R.llt().solve(B.transpose());
+		H.bottomLeftCorner(N, N) = -Q;
+		H.bottomRightCorner(N, N) = -A.transpose();
 
 		// 2. Compute stable eigenvectors
 		Eigen::ComplexEigenSolver<Eigen::Matrix<T, 2*N, 2*N>> ces;

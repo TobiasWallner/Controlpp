@@ -64,15 +64,15 @@ TEST(Estimators, reccursive_least_squares_1memory){
 
 }
 
-TEST(Estimators, DTFEstimator){
+TEST(Estimators, DtfEstimator){
     const auto s = controlpp::tf::s<double>;
 
     const auto Gs = (8) / (1 + 3*s);
 
     const auto Sz = controlpp::s_to_z(controlpp::to_state_space(Gs), 0.1);
 
-    controlpp::DiscreteStateSpaceFilter dssf(Sz);
-    controlpp::DTFEstimator<double, 1, 2> dtf_est;
+    controlpp::DssController dssf(Sz);
+    controlpp::DtfEstimator<double, 1, 1> dtf_est;
 
     for(int i = 0; i < 100; ++i){
         const double u = (i == 0) ? 0.0 : 1.0;
@@ -83,7 +83,7 @@ TEST(Estimators, DTFEstimator){
     const auto Gz_est = dtf_est.estimate();
 
     const auto Sz_est = to_state_space(Gz_est);
-    controlpp::DiscreteStateSpaceFilter dssf_est(Sz_est);
+    controlpp::DssController dssf_est(Sz_est);
     dssf.clear();
 
     // check by comparing step responses

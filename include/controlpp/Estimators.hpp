@@ -249,7 +249,7 @@ namespace controlpp
      * Estimates time discrete transfer functions represented with positive powers of \f$z\f$ in the form of:
      * 
      * \f[
-     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{1} + b_2 z^{2} \cdots b_m z^{m} }{a_0 + a_1 z^{1} + a_2 z^{2} \cdots 1 z^{n}} u_k
+     * ARX = \frac{B(z)}{A(z)} u_k = \frac{b_0 + b_1 z^{-1} + b_2 z^{-2} \cdots b_m z^{-m} }{a_0 + a_1 z^{-1} + a_2 z^{-2} \cdots 1 z^{-n}} u_k
      * \f]
      *
      * > Note: That \f$a_n\f$ has been set to 1
@@ -264,12 +264,12 @@ namespace controlpp
      * function being identified.
      */
     template<class T, size_t NumOrder, size_t DenOrder, size_t Measurements=1>
-    class DTFEstimator{
+    class DtfEstimator{
         private:
 
         ReccursiveLeastSquares<T, NumOrder+1 + DenOrder> rls;
         
-        Eigen::Vector<T, DenOrder+1> uk = Eigen::Vector<T, DenOrder+1>::Zero();
+        Eigen::Vector<T, NumOrder> uk = Eigen::Vector<T, NumOrder>::Zero();
         Eigen::Vector<T, DenOrder> neg_yk = Eigen::Vector<T, DenOrder>::Zero();
         T _memory;
 
@@ -282,7 +282,7 @@ namespace controlpp
          * 
          * This also means, that the `DenominatorUncertainty` starts at \f$a_1\f$ wheras the `NumeratorUncertainty` starts at \f$b_0\f$
          */
-        DTFEstimator(
+        DtfEstimator(
             const DiscreteTransferFunction<T, NumOrder, DenOrder>& hint = DiscreteTransferFunction<T, NumOrder, DenOrder>(Eigen::Vector<T, NumOrder+1>().setZero(), Eigen::Vector<T, DenOrder+1>().setZero()),
             const Eigen::Vector<T, NumOrder+1> NumeratorUncertainty = Eigen::Vector<T, NumOrder+1>().setOnes()*T(1000),
             const Eigen::Vector<T, DenOrder> DenominatorUncertainty = Eigen::Vector<T, DenOrder>().setOnes()*T(1000),
@@ -294,7 +294,7 @@ namespace controlpp
         {
             static_assert(NumOrder <= DenOrder, "The Discrete Transfer Function has to be propper. Meaning `NumOrder <= DenOrder` has to be true.");
             if(memory <= T(0) || memory > T(1)){
-                throw std::invalid_argument("Error: DTFEstimator::DTFEstimator(): memory has to be in the open-closed range of: (0, 1]");
+                throw std::invalid_argument("Error: DtfEstimator::DtfEstimator(): memory has to be in the open-closed range of: (0, 1]");
             }
         }
 
@@ -309,14 +309,20 @@ namespace controlpp
          * \returns the 
          */
         void add(const T& y, const T& u){
-            this->uk.head(this->uk.size()-1) = this->uk.tail(this->uk.size()-1);
-            this->uk(this->uk.size()-1) = u;
-
-            const auto s = join_to_vector<T, NumOrder+1, DenOrder>(this->uk.head(NumOrder+1), (this->neg_yk).eval());
+            // add to the recursive least squares solver
+            Eigen::Vector<T, 1 + NumOrder + DenOrder> s;
+            s(0) = u;
+            s.segment(1, NumOrder) = this->uk;
+            s.tail(DenOrder) = this->neg_yk;
             this->rls.add(y, s);
-
-            this->neg_yk.head(this->neg_yk.size()-1) = this->neg_yk.tail(this->neg_yk.size()-1);
-            this->neg_yk(this->neg_yk.size()-1) = -y;
+            
+            // update uk
+            std::reverse_copy(this->uk.data(), this->uk.data()+this->uk.size(), this->uk.data()+1);
+            this->uk(0) = u;
+            
+            // update yk
+            std::reverse_copy(this->neg_yk.data(), this->neg_yk.data()+this->neg_yk.size(), this->neg_yk.data()+1);
+            this->neg_yk(0) = -y;
         }
 
         /**
@@ -327,8 +333,8 @@ namespace controlpp
             DiscreteTransferFunction<T, NumOrder, DenOrder> result;
             Eigen::Vector<T, NumOrder+1 + DenOrder> est = rls.estimate();
             result.num().vector() = est.head(NumOrder+1);
-            result.den().vector().head(DenOrder) = est.tail(DenOrder);
-            result.den().vector()(DenOrder) = T(1);
+            result.den().vector()(0) = T(1);
+            result.den().vector().tail(DenOrder) = est.tail(DenOrder);
             return result;
         }
 

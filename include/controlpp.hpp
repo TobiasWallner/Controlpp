@@ -7,7 +7,7 @@
 #include <controlpp/ContinuousStateSpace.hpp>
 #include <controlpp/DiscreteTransferFunction.hpp>
 #include <controlpp/DiscreteStateSpace.hpp>
-#include <controlpp/DiscreteStateSpaceFilter.hpp>
+#include <controlpp/DiscreteController.hpp>
 #include <controlpp/transformations.hpp>
 #include <controlpp/Estimators.hpp>
 #include <controlpp/KalmanFilter.hpp>
