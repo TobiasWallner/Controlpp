@@ -442,7 +442,8 @@ namespace controlpp
 
     template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
     constexpr Polynom<Tpoly, Order> operator*(const Polynom<Tpoly, Order>& lhs, const Tscalar& rhs){
-        return Polynom<Tpoly, Order>(lhs.vector() * static_cast<Tpoly>(rhs));
+        Polynom<Tpoly, Order> result(lhs.vector() * static_cast<Tpoly>(rhs));
+        return result;
     }
 
     template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>

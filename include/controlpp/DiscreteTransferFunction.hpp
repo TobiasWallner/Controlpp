@@ -1,5 +1,7 @@
 #pragma once
 
+#include <controlpp/TransferFunction.hpp>
+
 namespace controlpp
 {
     /**

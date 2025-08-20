@@ -1,7 +1,12 @@
 // google test
 #include <gtest/gtest.h>
 
-#include <controlpp/StateSpace.hpp>
+#include <iostream>
+#include <exception>
+#include <stdexcept>
+#include <new>
+
+#include <controlpp.hpp>
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

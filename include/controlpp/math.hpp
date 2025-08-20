@@ -320,6 +320,97 @@ namespace controlpp{
 		return realX;
 	}
 
-	
+	/**
+	 * \brief Solves the continuous time riccati equation (CARE)
+	 * 
+	 * This function computes the stabilizing symmetric solution of the CARE:
+     * 
+	 * \f[
+	 * A^\top X + X A - (X B + N) R^{-1} (B^\top X + N) + Q = 0
+	 * \f]
+	 * 
+	 * where \f$A, B, C, D\f$ are system matrices: 
+	 * 
+	 * \f[
+	 * \dot{x} = A x + B u
+	 * y = C x + D u
+	 * \f]
+	 * 
+	 * with the system states \f$x\f$, inputs \f$u\f$ and outputs \f$y\f$,
+	 * 
+	 * as well as \f$Q\f$, \f$R\f$ the state and input weighting matrices.
+	 * 
+	 * ----
+	 * 
+	 * Soves the Riccatiy equation by:
+	 * 
+	 * 1. Building the Hamilton matrix (`controlpp::create_hamilton()`)
+	 * 2. Compute its stable eigenvectors
+	 * 3. Re-Partitions the eigenvectors
+	 * 4. Recovers X from the partitions
+	 * 
+	 * \param A State matrix (\f$n \times n\f$).
+	 * \param B Input matrix (\f$n \times m\f$).
+	 * \param R Input weighting matrix (\f$m \times m\f$, symmetric positive definite).
+	 * \param Q State weighting matrix (\f$n \times n\f$, symmetric positive semidefinite).
+	 * \param N N Cross-term weighting matrix (\f$n × m\f$).
+	 *
+	 * \tparam T Scalar type (e.g., `double`, `float`).
+	 * \tparam NStates Number of states.
+	 * \tparam NInputs Number of control inputs.
+	 * \tparam NOutputs Number of outputs.
+	 * 
+	 * @see Zhou, Doyle, and Glover (1996), *Robust and Optimal Control*.
+	 */
+	template<class T, int NStates, int NInputs, int NOutputs>
+	constexpr Eigen::Matrix<T, NStates, NStates> care_solver(
+		const Eigen::Matrix<T, NStates, NStates>& A,
+		const Eigen::Matrix<T, NStates, NInputs>& B,
+        const Eigen::Matrix<T, NInputs, NInputs>& R,
+        const Eigen::Matrix<T, NStates, NStates> Q,
+		const Eigen::Matrix<T, NOutputs, NInputs>& N
+	){
+		// 1. Build the hamilton matrix
+        const Eigen::Matrix<T, NInputs, NStates> R_inv_DT_C = R.llt().solve((N.transpose()));
+		const Eigen::Matrix<T, NStates, NStates> A_ = A - B * R_inv_DT_C;
+
+		Eigen::Matrix<T, 2*NStates, 2*NStates> H;
+		H.topLeftCorner(NStates, NStates) = A_;
+		H.topRightCorner(NStates, NStates) =  - B * R.llt().solve(B.transpose());
+		H.bottomLeftCorner(NStates, NStates) = - (Q - N * R_inv_DT_C);
+		H.bottomRightCorner(NStates, NStates) = -A_.transpose();
+
+
+		// 2. Compute stable eigenvectors
+		Eigen::ComplexEigenSolver<Eigen::Matrix<T, 2*NStates, 2*NStates>> ces;
+		ces.compute(H);
+		const auto& H_eigvals = ces.eigenvalues();
+		const auto& H_eigvecs = ces.eigenvectors();
+
+		// in a 2n hamilton matrix are exactly n stable ones
+		Eigen::Matrix<std::complex<T>, 2*NStates, NStates> StableEigenVecs;
+		int si = 0; // stable eigenvalue iterator
+		int ei = 0; // eigen value iterator
+		for(; (si < NStates) && (ei < 2*NStates); ++ei){
+			if(H_eigvals(ei).real() <= 0){// only stable ones
+				StableEigenVecs.col(si) = H_eigvecs.col(ei);
+				++si;
+			}
+		}
+
+		// 3. Repartition
+		const auto TopPartition = StableEigenVecs.template block<NStates, NStates>(0, 0);
+		const auto BottomPartition = StableEigenVecs.template block<NStates, NStates>(NStates, 0);
+
+		// 4. Recover Solution (BottomPartition * TopPartition^-1)
+		const Eigen::Matrix<std::complex<T>, NStates, NStates> X = TopPartition.transpose().partialPivLu().solve(BottomPartition.transpose()).transpose();
+
+		// The result is real, make sure it is real because it should be
+		const Eigen::Matrix<T, NStates, NStates> realX = X.real();
+
+        // force the result X to be symetric to combat small numerical errors
+        const Eigen::Matrix<T, NStates, NStates> result = static_cast<T>(0.5) * (realX + realX.transpose());
+		return result;
+	}
 
 }

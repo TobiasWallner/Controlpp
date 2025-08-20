@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 // controlpp
-#include <controlpp.hpp>
+#include <controlpp/KalmanFilter.hpp>
 
 TEST(KalmanFilter, noisy_speed_estimate_pos_acc){
     const double Ts = 0.01;

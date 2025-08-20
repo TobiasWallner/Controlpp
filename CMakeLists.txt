@@ -25,6 +25,11 @@ target_link_libraries(controlpp INTERFACE
     Eigen3::Eigen
 )
 
+target_compile_features(controlpp INTERFACE cxx_std_23)
+
+##################################################################################
+#                               TESTING
+##################################################################################
 
 if (CONTROLPP_COMPILE_TEST)
 
@@ -32,11 +37,20 @@ if (CONTROLPP_COMPILE_TEST)
 
     enable_testing()
 
-    add_executable(controlpp_tests)
+    add_executable(controlpp_tests
+        tests/main.cpp
+        tests/H2Controller_Tests.cpp
+        tests/Pade_Tests.cpp
+        tests/TimeVariantControl_Test.cpp
+        tests/KalmanFilter_Tests.cpp
+        tests/Estimators_Tests.cpp
+        tests/Transformation_Tests.cpp
+        tests/StateSpace_Tests.cpp
+        tests/Polynom_Tests.cpp
+        tests/math_Tests.cpp
+    )
 
-    include(tests/sources.cmake)
-
-    target_compile_features(controlpp_tests PRIVATE cxx_std_23)
+    set_target_properties(controlpp_tests PROPERTIES LINKER_LANGUAGE CXX)
 
     target_link_libraries(controlpp_tests
         controlpp
@@ -44,12 +58,12 @@ if (CONTROLPP_COMPILE_TEST)
     )
 
     if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
-        target_compile_options(controlpp_tests PRIVATE
+        target_compile_options(controlpp_tests PUBLIC
             -Wall
             -Wextra
             -Werror
             -Wno-array-bounds # Gets triggered by SIMD
-            -fmax-errors=2
+            #-fmax-errors=2
         )
     endif()
 

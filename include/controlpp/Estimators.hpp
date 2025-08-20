@@ -3,6 +3,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <controlpp/DiscreteTransferFunction.hpp>
+
 namespace controlpp
 {
     

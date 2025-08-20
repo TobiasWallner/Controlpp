@@ -171,7 +171,8 @@ namespace controlpp
 
     template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
     constexpr TransferFunction<T, NumOrder, DenOrder> operator/(const TransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
-        return TransferFunction(lhs.num(), lhs.den() * static_cast<T>(rhs));
+        TransferFunction result(lhs.num() / static_cast<T>(rhs), lhs.den());
+        return result;
     }
 
 
@@ -364,7 +365,7 @@ namespace controlpp
 
     template<class T, std::convertible_to<T> Tscalar, int N>
     constexpr auto operator/(const FixedRationalPolynom<T, N>& lhs, const Tscalar& rhs){
-        return FixedRationalPolynom(lhs.num(), rhs.den() * static_cast<T>(rhs));
+        return FixedRationalPolynom(lhs.num() / static_cast<T>(rhs), rhs.den());
     }
 
 } // namespace controlpp

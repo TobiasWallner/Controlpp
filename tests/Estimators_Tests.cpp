@@ -2,7 +2,12 @@
 #include <gtest/gtest.h>
 
 // controlpp
-#include <controlpp.hpp>
+#include <controlpp/ContinuousTransferFunction.hpp>
+#include <controlpp/DiscreteTransferFunction.hpp>
+#include <controlpp/DiscreteStateSpace.hpp>
+#include <controlpp/DiscreteFilter.hpp>
+#include <controlpp/transformations.hpp>
+#include <controlpp/Estimators.hpp>
 
 TEST(Estimators, least_squares){
     const double a0 = 1;
@@ -71,7 +76,7 @@ TEST(Estimators, DtfEstimator){
 
     const auto Sz = controlpp::s_to_z(controlpp::to_state_space(Gs), 0.1);
 
-    controlpp::DssController dssf(Sz);
+    controlpp::DssFilter dssf(Sz);
     controlpp::DtfEstimator<double, 1, 1> dtf_est;
 
     for(int i = 0; i < 100; ++i){
@@ -83,7 +88,7 @@ TEST(Estimators, DtfEstimator){
     const auto Gz_est = dtf_est.estimate();
 
     const auto Sz_est = to_state_space(Gz_est);
-    controlpp::DssController dssf_est(Sz_est);
+    controlpp::DssFilter dssf_est(Sz_est);
     dssf.clear();
 
     // check by comparing step responses

@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 
 // controlpp
-#include <controlpp.hpp>
+#include <controlpp/transformations.hpp>
 
 TEST(Transformation, continuous_ss_to_discrete_ss){
     // preparation

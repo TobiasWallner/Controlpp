@@ -1,6 +1,7 @@
 #pragma once
 
-#include "StateSpace.hpp"
+#include <controlpp/StateSpace.hpp>
+#include <controlpp/DiscreteTransferFunction.hpp>
 
 namespace controlpp
 {
@@ -23,13 +24,13 @@ namespace controlpp
      * This does **not** contain an internal state. 
      * You may use the `.eval()` method, but have to provide the state manually.
      * 
-     * If you want a system with internal state have a look at: `DssController`.
+     * If you want a system with internal state have a look at: `DssFilter`.
      * 
      * This is a type wrapper around `controlpp::StateSpace`
      * 
      * \see controlpp::StateSpace
      * \see controlpp::DiscreteTransferFunction
-     * \see controlpp::DssController
+     * \see controlpp::DssFilter
      * 
      * \tparam ValueType The value type of the matrix elements and arithmetic calculations (usually `double` or `float`)
      * \tparam internal_states The number of internal states, this influences the size of the A, B and C matrices
@@ -188,4 +189,4 @@ namespace controlpp
     //    return DiscreteTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     //}
 
-} // namespace controlpp
+} // namespace control
