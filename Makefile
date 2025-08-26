@@ -10,7 +10,7 @@ config:
 
 .PHONY: build
 build: config
-	cmake --build build/$(config)/ --config $(config) --verbose
+	cmake --build build/$(config)/ --config $(config)
 
 .PHONY: test
 test: build

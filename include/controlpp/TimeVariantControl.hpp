@@ -8,6 +8,9 @@
  *
  */
 
+#include <algorithm>
+#include <limits>
+
 namespace controlpp
 {
     /**
@@ -259,10 +262,10 @@ namespace controlpp
             using value_type = T;
             private:
             T ki_;
-            T vn_;
-            T vp_;
             T min_;
             T max_;
+            T vn_;
+            T vp_;
             
             T u_k1_ = static_cast<T>(0);
             T y_k1_ = static_cast<T>(0);
@@ -277,12 +280,12 @@ namespace controlpp
              * \param max The maximal output value. Assumes: \f$min < max\f$
              * \param min The minimal output value. Assumes: \f$min < max\f$
              */
-            constexpr IAntiWindup(const T& ki, const T& vn, const T& vp, const T& min, const T& max) 
+            constexpr IAntiWindup(const T& ki, const T& min, const T& max, const T& vn = std::numeric_limits<T>::lowest(), const T& vp = std::numeric_limits<T>::max()) 
                 : ki_(ki)
-                , vp_(vp)
-                , vn_(vn)
                 , min_(min)
                 , max_(max)
+                , vp_(vp)
+                , vn_(vn)
                 {}
 
             /// @brief Default copy constructor 
@@ -808,7 +811,7 @@ namespace controlpp
              * \param Ts The sample-time
              * \see input(const T& u, const T& Ts)
              */
-            constexpr T operator()(const T& u, const T& Ts){return this->intput(u, Ts);}
+            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
             /**
              * \brief resets (clears) the internal states
@@ -920,7 +923,7 @@ namespace controlpp
              * \param Ts The sample-time
              * \see input(const T& u, const T& Ts)
              */
-            constexpr T operator()(const T& u, const T& Ts){return this->intput(u, Ts);}
+            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
             /**
              * \brief resets (clears) the internal states
@@ -997,9 +1000,9 @@ namespace controlpp
             /// @param vp The maximal positive velocity of the control output. Assumes: \f$v_n < 0 < v_p\f$
             /// @param min The minimal value of the control output. Assumes: \f$min < max\f$
             /// @param max The maximal value of the control output. Assumes: \f$min < max\f$
-            PIAntiWindup(const T& kp, const T& ki, const T& vn, const T& vp, const T& min, const T& max)
+            PIAntiWindup(const T& kp, const T& ki, const T& min, const T& max, const T& vn = std::numeric_limits<T>::lowest(), const T& vp = std::numeric_limits<T>::max())
                 : P_(kp)
-                , I_(ki, vn, vp, min, max)
+                , I_(ki, min, max, vn, vp)
                 {}
 
             PIAntiWindup(const PIAntiWindup&) = default;
@@ -1080,7 +1083,7 @@ namespace controlpp
              * \param Ts The sample-time
              * \see input(const T& u, const T& Ts)
              */
-            constexpr T operator()(const T& u, const T& Ts){return this->intput(u, Ts);}
+            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
             /**
              * \brief resets (clears) the internal states
@@ -1185,7 +1188,7 @@ namespace controlpp
              * \param Ts The sample-time
              * \see input(const T& u, const T& Ts)
              */
-            constexpr T operator()(const T& u, const T& Ts){return this->intput(u, Ts);}
+            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
             /**
              * \brief resets (clears) the internal states

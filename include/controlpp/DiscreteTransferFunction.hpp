@@ -30,7 +30,7 @@ namespace controlpp
             using den_vector_type = typename ratpoly_type::den_vector_type;
 
         private:
-            ratpoly_type _ratpoly;
+            ratpoly_type tf_;
             value_type _sample_time;
 
         public:
@@ -42,21 +42,21 @@ namespace controlpp
             constexpr DiscreteTransferFunction(
                 const Polynom<ValueType, NumOrder>& num, 
                 const Polynom<ValueType, DenOrder>& den)
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
 
             constexpr DiscreteTransferFunction(
                 const TransferFunction<ValueType, NumOrder, DenOrder>& ratpoly)
-                : _ratpoly(ratpoly){}
+                : tf_(ratpoly){}
 
             constexpr explicit DiscreteTransferFunction(
                 const num_vector_type& num, 
                 const den_vector_type& den)
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
 
             constexpr explicit DiscreteTransferFunction(
                 const value_type(&num)[NumOrder+1], 
                 const value_type(&den)[DenOrder+1])
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
             
 
             constexpr ValueType eval(const Eigen::Vector<ValueType, NumOrder+1>& input_series, const Eigen::Vector<ValueType, DenOrder>& output_series){
@@ -66,20 +66,20 @@ namespace controlpp
                 return y;
             }
             
-            constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
-            constexpr const ratpoly_type& ratpoly() const {return this->_ratpoly;}
+            constexpr ratpoly_type& ratpoly() {return this->tf_;}
+            constexpr const ratpoly_type& ratpoly() const {return this->tf_;}
 
-            constexpr num_type& num() {return this->_ratpoly.num();}
-            constexpr const num_type& num() const {return this->_ratpoly.num();}
+            constexpr num_type& num() {return this->tf_.num();}
+            constexpr const num_type& num() const {return this->tf_.num();}
 
-            constexpr ValueType& num(int i) {return this->_ratpoly.num(i);}
-            constexpr const ValueType& num(int i) const {return this->_ratpoly.num(i);}
+            constexpr ValueType& num(int i) {return this->tf_.num(i);}
+            constexpr const ValueType& num(int i) const {return this->tf_.num(i);}
 
-            constexpr den_type& den() {return this->_ratpoly.den();}
-            constexpr const den_type& den() const {return this->_ratpoly.den();}
+            constexpr den_type& den() {return this->tf_.den();}
+            constexpr const den_type& den() const {return this->tf_.den();}
 
-            constexpr ValueType& den(int i) {return this->_ratpoly.den(i);}
-            constexpr const ValueType& den(int i) const {return this->_ratpoly.den(i);}
+            constexpr ValueType& den(int i) {return this->tf_.den(i);}
+            constexpr const ValueType& den(int i) const {return this->tf_.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
                 dtf.ratpoly().print(stream, "d");

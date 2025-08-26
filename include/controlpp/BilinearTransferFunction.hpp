@@ -16,7 +16,7 @@ namespace controlpp
             using den_vector_type = typename ratpoly_type::den_vector_type;
 
         private:
-            ratpoly_type _ratpoly;
+            ratpoly_type tf_;
 
         public:
 
@@ -25,25 +25,25 @@ namespace controlpp
             constexpr BilinearTransferFunction& operator=(const BilinearTransferFunction&) = default;
 
             constexpr explicit BilinearTransferFunction(const Polynom<ValueType, NumOrder>& num, const Polynom<ValueType, DenOrder>& den)
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
 
             constexpr explicit BilinearTransferFunction(const TransferFunction<ValueType, NumOrder, DenOrder>& ratpoly)
-                : _ratpoly(ratpoly){}
+                : tf_(ratpoly){}
 
             constexpr explicit BilinearTransferFunction(const num_vector_type& num, const den_vector_type& den)
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
 
             constexpr explicit BilinearTransferFunction(const ValueType(&num)[NumOrder+1], const ValueType(&den)[DenOrder+1])
-                : _ratpoly(num, den){}
+                : tf_(num, den){}
 
-            constexpr num_type& num() {return this->_ratpoly.num();}
-            constexpr const num_type& num() const {return this->_ratpoly.num();}
+            constexpr num_type& num() {return this->tf_.num();}
+            constexpr const num_type& num() const {return this->tf_.num();}
 
-            constexpr den_type& den() {return this->_ratpoly.den();}
-            constexpr const den_type& den() const {return this->_ratpoly.den();}
+            constexpr den_type& den() {return this->tf_.den();}
+            constexpr const den_type& den() const {return this->tf_.den();}
 
-            constexpr ratpoly_type& ratpoly() {return this->_ratpoly;}
-            constexpr const ratpoly_type& ratpoly() const {return this->_ratpoly;}
+            constexpr ratpoly_type& ratpoly() {return this->tf_;}
+            constexpr const ratpoly_type& ratpoly() const {return this->tf_;}
 
             friend std::ostream& operator<<(std::ostream& stream, const BilinearTransferFunction& ctf){
                 ctf.ratpoly().print(stream, "s");

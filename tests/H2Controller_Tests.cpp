@@ -51,14 +51,11 @@ TEST(H2Controller, for_PT1){
             Gss.Cy, Gss.Dwy,
             3000,1e-3
         );
-    std::cout << "H2:\n" << H2 << "\n" << std::endl;
 
     const double Ts = 1./2800.;
     const auto Pz = s_to_z(P, Ts);
     const auto Mz = s_to_z(M, Ts);
     const auto H2z = s_to_z(H2, Ts);
-
-    std::cout << "H2z:\n" << H2z << "\n" << std::endl;
 
     DssFilter Pf(Pz);
     DssFilter Mf(Mz);

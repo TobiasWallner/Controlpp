@@ -37,25 +37,143 @@ namespace controlpp
                 : _num(num)
                 , _den(den){}
 
-            constexpr num_type& num() {return this->_num;}
-            constexpr const num_type& num() const {return this->_num;}
+            /**
+             * \brief returns a reference to the numerator
+             * \return a reference to a polynomial
+             */
+            constexpr Polynom<T, NumOrder>& num() {return this->_num;}
 
+            /**
+             * \brief returns a reference to the numerator
+             * \return a const-reference to a polynomial
+             */
+            constexpr const Polynom<T, NumOrder>& num() const {return this->_num;}
+
+            /**
+             * \brief Returns the parameter of the numerator polynomial at the index/position i
+             * \param i The index at which to return the corresponding parameter
+             * \returns A reference to the returned parameter
+             */
             constexpr T& num(size_t i) {return this->_num.at(i);}
+
+            /**
+             * \brief Returns the parameter of the numerator polynomial at the index/position i
+             * \param i The index at which to return the corresponding parameter
+             * \returns A const-reference to the returned parameter
+             */
             constexpr const T& num(size_t i) const {return this->_num.at(i);}
 
-            constexpr den_type& den() {return this->_den;}
-            constexpr const den_type& den() const {return this->_den;}
+            /**
+             * \brief returns a reference to the denominator
+             * \return a reference to a polynomial
+             */
+            constexpr Polynom<T, DenOrder>& den() {return this->_den;}
 
+            /**
+             * \brief returns a reference to the denominator
+             * \return a reference to a polynomial
+             */
+            constexpr const Polynom<T, DenOrder>& den() const {return this->_den;}
+
+            /**
+             * \brief Returns the parameter of the denominator polynomial at the index/position i
+             * \param i The index at which to return the corresponding parameter
+             * \returns A reference to the returned parameter
+             */
             constexpr T& den(size_t i) {return this->_den.at(i);}
+
+            /**
+             * \brief Returns the parameter of the denominator polynomial at the index/position i
+             * \param i The index at which to return the corresponding parameter
+             * \returns A const-reference to the returned parameter
+             */
             constexpr const T& den(size_t i) const {return this->_den.at(i);}
 
+            /**
+             * \brief Evaluates the rational polynomial at `x`
+             * \param x The variable used to evaluate the polynomial
+             * \returns The result of the polynomial
+             */
+            constexpr T eval(const T& x) const {
+                const T n = this->num().eval(x);
+                const T d = this->den().eval(x);
+                const T result = n/d;
+                return result;
+            }
+
+            /**
+             * \brief Evaluates the rational polynomial elementwise at every element of the input vector
+             * \param x_vec The parameter vector at which the rational polynomial is being evaluated at
+             * \returns An eigen vector with the results of the rational polynomial
+             */
+            template<int M>
+            constexpr Eigen::Vector<T, M> eval(const Eigen::Vector<T, M>& x_vec) const {
+                const Eigen::Vector<T, M> n = this->num().eval(x_vec);
+                const Eigen::Vector<T, M> d = this->den().eval(x_vec);
+                const T result = n.array()/d.array(); // element wise division
+                return result;
+            }
+
+            /**
+             * \brief Evaluates the rational polynomial at a complex `x`
+             * \param x The complex variable used to evaluate the polynomial
+             * \returns The result of the polynomial as a complex value
+             */
+            constexpr std::complex<T> eval(const std::complex<T>& x) const {
+                const std::complex<T> n = this->num().eval(x);
+                const std::complex<T> d = this->den().eval(x);
+                const std::complex<T> result = n/d;
+                return result;
+            }
+
+            /**
+             * \brief Evaluates the rational polynomial elementwise at every complex element of the input vector
+             * \param x_vec The complex parameter vector at which the rational polynomial is being evaluated at
+             * \returns An eigen vector with the complex results of the rational polynomial
+             */
+            template<int M>
+            constexpr Eigen::Vector<std::complex<T>, M> eval(const Eigen::Vector<std::complex<T>, M>& x_vec) const {
+                const Eigen::Vector<std::complex<T>, M> n = this->num().eval(x_vec);
+                const Eigen::Vector<std::complex<T>, M> d = this->den().eval(x_vec);
+                const std::complex<T> result = n.array()/d.array(); // element wise division
+                return result;
+            }
+
+            /**
+             * \brief Evaluates the transfer function at the given frequency
+             * 
+             * equivalent to calling `.eval(std::complex<T>(0, f))`.
+             * 
+             * \param frequency The frequency (in radiants per second) at which to evaluate the transfer function at
+             * \returns The complex result of the frequency evaluation/analysis.
+             */
+            constexpr std::complex<T> eval_frequency(const T& frequency){
+                const std::complex<T> jw(0, frequency);
+                const std::complex<T> result = this->eval(jw);
+                return this->result;
+            }
+
+            /**
+             * \brief Evaluates the transfer function at the given frequencies
+             * 
+             * \param frequencies The frequencies (in radiants per second) at which to evaluate the transfer function at
+             * \returns The complex result of the frequency evaluation/analysis.
+             */
+            template<int M>
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies){
+                const std::complex<T> j(0, 1);
+                const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j;
+                const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);
+                return this->result;
+            }
+
             void print(std::ostream& stream, std::string_view var="x") const {
-                stream << "num: "; this->num().prsize_t(stream, var);
-                stream << "\nden: "; this->den().prsize_t(stream, var); stream << '\n';
+                stream << "num: "; this->num().print(stream, var);
+                stream << "\nden: "; this->den().print(stream, var); stream << '\n';
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const TransferFunction& rpoly){
-                rpoly.prsize_t(stream);
+                rpoly.print(stream);
                 return stream;
             }
     };
@@ -244,13 +362,13 @@ namespace controlpp
             constexpr den_type& den() {return this->_den;}
             constexpr const den_type& den() const {return this->_den;}
 
-            void prsize_t(std::ostream& stream, std::string_view var="x") const {
-                stream << "num: "; this->num().prsize_t(stream, var);
-                stream << "\nden: "; this->den().prsize_t(stream, var); stream << '\n';
+            void print(std::ostream& stream, std::string_view var="x") const {
+                stream << "num: "; this->num().print(stream, var);
+                stream << "\nden: "; this->den().print(stream, var); stream << '\n';
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const FixedRationalPolynom& rpoly){
-                rpoly.prsize_t(stream);
+                rpoly.print(stream);
                 return stream;
             }
     };

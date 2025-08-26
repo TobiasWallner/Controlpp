@@ -134,3 +134,70 @@ TEST(Polynom, zeros_order_n){
     ASSERT_NEAR(imag_zeros(2), 0, 1e-6);
     ASSERT_NEAR(imag_zeros(3), 0, 1e-6);
 }
+
+TEST(Polynom, scalar_evaluation){
+    const auto x = controlpp::polynom::x<double>;
+
+    const auto p = (1 - 5 * x + 2 * x * x);
+    auto f = [](const double x){return 1 - 5 * x + 2 * x * x;};
+
+    for(double x=-152.548; x < 152.548; x += 5.37){
+        const double xf = f(x);
+        const double xp = p(x);
+        ASSERT_NEAR(xf, xp, 1e-9);
+    }
+}
+
+TEST(Polynom, vector_evaluation){
+    const auto x = controlpp::polynom::x<double>;
+
+    const auto p = (1 - 5 * x + 2 * x * x);
+    auto f = [](const double x){return 1 - 5 * x + 2 * x * x;};
+
+    const Eigen::Vector<double, 1000> X = Eigen::Vector<double, 1000>::LinSpaced(-15.548, 15.548);
+    const Eigen::Vector<double, 1000> Xp = p(X);
+
+    for(int i = 0; i < 1000; ++i){
+        const double xf = f(X(i));
+        ASSERT_NEAR(xf, Xp(i), 1e-9);
+    }
+}
+
+TEST(Polynom, complex_scalar_eval){
+    using namespace std::complex_literals;
+    const auto x = controlpp::polynom::x<double>;
+
+    const auto p = (1 - 5 * x + 2 * x * x);
+    auto f = [](const std::complex<double> x){return 1. - 5. * x + 2. * x * x;};
+
+    Eigen::Vector<std::complex<double>, 4> X;
+    X(0) = -3.0 - 1.0i;
+    X(1) = +3.0 - 1.0i;
+    X(2) = +1.0 - 3.0i;
+    X(3) = +1.0 + 3.0i;
+
+    for(int i = 0; i < 4; ++i){
+        const auto xp = p(X(i));
+        const auto xf = f(X(i));
+        ASSERT_NEAR(xp.real(), xf.real(), 1e-9);
+        ASSERT_NEAR(xp.imag(), xf.imag(), 1e-9);
+    }
+}
+
+TEST(Polynom, complex_vector_eval){
+    using namespace std::complex_literals;
+    const auto x = controlpp::polynom::x<double>;
+
+    const auto p = (1 - 5 * x + 2 * x * x);
+    auto f = [](const std::complex<double> x){return 1. - 5. * x + 2. * x * x;};
+
+    Eigen::Vector<std::complex<double>, 4> X;
+    const auto Xp = p(X);
+
+    for(int i = 0; i < 4; ++i){
+        const auto xp = Xp(i);
+        const auto xf = f(X(i));
+        ASSERT_NEAR(xp.real(), xf.real(), 1e-9);
+        ASSERT_NEAR(xp.imag(), xf.imag(), 1e-9);
+    }
+}
