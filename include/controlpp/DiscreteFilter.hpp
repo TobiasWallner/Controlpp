@@ -145,11 +145,11 @@ namespace controlpp{
         }
 
         const DiscreteTransferFunction<T, NumOrder, DenOrder>& dft() const {
-            return this->dft_;
+            return this->dtf_;
         }
 
         DiscreteTransferFunction<T, NumOrder, DenOrder>& dft() {
-            return this->dft_;
+            return this->dtf_;
         }
 
     };

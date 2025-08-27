@@ -79,7 +79,7 @@ namespace controlpp
 
     template<class ValueType, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator-(const Tscalar& lhs, const BilinearTransferFunction<ValueType, NumOrder, DenOrder>& rhs){
-        return BilinearTransferFunction(lhs + rhs.ratpoly());
+        return BilinearTransferFunction(lhs - rhs.ratpoly());
     }
 
     template<class ValueType, class Tscalar, int NumOrder, int DenOrder>

@@ -159,7 +159,7 @@ namespace controlpp
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator-(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
-        return ContinuousTransferFunction(lhs + rhs.ratpoly());
+        return ContinuousTransferFunction(lhs - rhs.ratpoly());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>

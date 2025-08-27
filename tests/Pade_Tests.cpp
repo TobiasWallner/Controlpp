@@ -6,6 +6,8 @@
 
 // controlpp
 #include <controlpp/Pade.hpp>
+#include <controlpp/transformations.hpp>
+#include <controlpp/analysis.hpp>
 
 TEST(Pade, pade_coefficients_1_1){
     const double NumOrder = 1;
@@ -179,8 +181,8 @@ TEST(Pade, pade_coefficients_3_4){
 
 TEST(Pade, pade_polynom_1_1){
     const double Td = 0.001;
-    controlpp::ContinuousTransferFunction<double, 2, 2> ctf = controlpp::pade<double, 2, 2>(Td);
-    controlpp::ContinuousTransferFunction<double, 2, 2> expected({2, -Td}, {2, Td});
+    controlpp::ContinuousTransferFunction<double, 1, 1> ctf = controlpp::pade<double, 1, 1>(Td);
+    controlpp::ContinuousTransferFunction<double, 1, 1> expected({2, -Td}, {2, Td});
 
     // norm
     ctf.num() /= ctf.den(1);
@@ -199,7 +201,7 @@ TEST(Pade, pade_polynom_1_1){
 }
 
 TEST(Pade, pade_polynom_2_2){
-    const double Td = 0.001;
+    const double Td = 1;
     controlpp::ContinuousTransferFunction<double, 3, 3> ctf = controlpp::pade<double, 3, 3>(Td);
     controlpp::ContinuousTransferFunction<double, 3, 3> expected({12, -6*Td, Td*Td}, {12, 6*Td, Td*Td});
 
@@ -221,7 +223,7 @@ TEST(Pade, pade_polynom_2_2){
 
 TEST(Pade, pade_polynom_3_4){
 
-    const double Td = 0.001;
+    const double Td = 1;
     controlpp::ContinuousTransferFunction<double, 4, 5> ctf = controlpp::pade<double, 4, 5>(Td);
     controlpp::ContinuousTransferFunction<double, 4, 5> expected({840, -360*Td, 60*Td*Td, 4*Td*Td*Td}, {840, 480*Td, 120*Td*Td, 16*Td*Td*Td, Td*Td*Td*Td});
 
@@ -240,3 +242,25 @@ TEST(Pade, pade_polynom_3_4){
         ASSERT_NEAR(ctf.den(i), expected.den(i), 1e-9);
     }
 }
+
+
+// TEST(Pade, pade_polynom_3_4_step){
+//     const double Ts = 1.0/3000.0;
+//     
+//     const auto p = controlpp::pade<double, 3, 4>(100e-3);
+//     //std::cout << p << std::endl << std::endl;
+// 
+//     const auto pss = controlpp::to_state_space(p);
+// 
+//     //std::cout << pss << std::endl << std::endl;
+// 
+//     const auto pz = controlpp::s_to_z(pss, Ts);
+//     //std::cout << pz << std::endl << std::endl;
+// 
+//     const auto [times, values] = controlpp::step(pz, Ts, 1.0);
+// 
+//     // std::cout << "times, values" << std::endl;
+//     // for(size_t i = 0; i < times.size(); ++i){
+//     //     std::cout << times[i] << ", " << values[i] << std::endl;
+//     // }
+// }

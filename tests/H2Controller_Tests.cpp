@@ -45,11 +45,11 @@ TEST(H2Controller, for_PT1){
     Gss.Duz.setZero();
     Gss.Dwy.setZero();
     
-    const auto H2 = continous_H2_controller(
+    const auto H2 = continous_h2_controller(
             Gss.A, Gss.Bw, Gss.Bu,
             Gss.Cz, Gss.Duz,
             Gss.Cy, Gss.Dwy,
-            3000,1e-3
+            3000.,1e-3
         );
 
     const double Ts = 1./2800.;

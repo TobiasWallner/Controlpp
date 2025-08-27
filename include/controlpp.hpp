@@ -13,3 +13,4 @@
 #include <controlpp/KalmanFilter.hpp>
 #include <controlpp/TimeVariantControl.hpp>
 #include <controlpp/H2Controller.hpp>
+#include <controlpp/Pade.hpp>

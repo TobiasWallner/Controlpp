@@ -509,7 +509,7 @@ namespace controlpp
         }else{
             Polynom<T, Nr> result;
             result.vector().head(lhs.size()) = lhs.vector() + rhs.vector().head(lhs.size());
-            result.vector().tail(rhs.size() - lhs.size()) = -rhs.vector.tail(rhs.size() - lhs.size());
+            result.vector().tail(rhs.size() - lhs.size()) = -rhs.vector().tail(rhs.size() - lhs.size());
             return result;
         }
     }

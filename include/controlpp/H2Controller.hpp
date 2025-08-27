@@ -13,7 +13,7 @@
 namespace controlpp
 {
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_H2_controller(
+    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2_controller(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -42,12 +42,12 @@ namespace controlpp
 
         // State gain
         // F = -R^{-1} \left( B_u^\top X + D_{1u}^\top C_z \right)
-        const Eigen::Matrix<T, NInputs, NStates> F = -R.llt().solve(Bu.transpose() * X + Duz.transpose() * Cz);
+        const Eigen::Matrix<T, NInputs, NStates> F = -R.ldlt().solve(Bu.transpose() * X + Duz.transpose() * Cz);
 
         // Estimator gain
         // L = - \left( Y C_y^\top + B_w D_{2w}^\top \right) S^{-1}
         const Eigen::Matrix<T, NStates, NMeasOutputs> M = Y * Cy.transpose() + Bw * Dwy.transpose();
-        const Eigen::Matrix<T, NStates, NMeasOutputs> L = -S.llt().solve(M.transpose()).transpose();
+        const Eigen::Matrix<T, NStates, NMeasOutputs> L = -S.ldlt().solve(M.transpose()).transpose();
 
         // Construct the H2 Controller
         const Eigen::Matrix<T, NStates, NStates> A_K = A + Bu * F + L * Cy;
@@ -175,7 +175,7 @@ namespace controlpp
      * \param Cy state to measurement output
      * \param Duz throughput from control input to performance output 
      * \param Dwy throughput from disturbance to measurement output
-     * \param r  Input weightin. penalizes control effort u. 
+     * \param r  Input weighting. penalizes control effort u. 
      *  - Large r: controller is gentle (low gain)
      *  - Small r: controller is aggressive (high gain)
      * \param s Measurement noise / estimator weighting. penalizes measurement trust:
@@ -184,7 +184,7 @@ namespace controlpp
      */
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
     requires(NInputs>1 && NMeasOutputs>1)
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_H2_controller(
+    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2_controller(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -200,15 +200,15 @@ namespace controlpp
         const Eigen::Matrix<T, NInputs, NInputs> R = (Duz.transpose() * Duz + Eigen::DiagonalMatrix<T, NInputs>(r).toDenseMatrix()).eval();
         const Eigen::Matrix<T, NMeasOutputs, NMeasOutputs> S = (Dwy * Dwy.transpose() + Eigen::DiagonalMatrix<T, NMeasOutputs>(s).toDenseMatrix()).eval();
 
-        return continous_H2_controller(A, Bw, Bu, Cz, Duz, Cy, Dwy, R, S);
+        return continous_h2_controller(A, Bw, Bu, Cz, Duz, Cy, Dwy, R, S);
     }
 
     /**
      * 
      * 
      */
-    template<class T, std::convertible_to<T> U1, std::convertible_to<T> U2, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_H2_controller(
+    template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
+    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2_controller(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -216,15 +216,15 @@ namespace controlpp
             const Eigen::Matrix<T, NPerfOutputs, NInputs>& Duz,
             const Eigen::Matrix<T, NMeasOutputs, NStates>& Cy,
             const Eigen::Matrix<T, NMeasOutputs, NDisturbances>& Dwy,
-            const U1& r_scalar = 1,
-            const U2& s_scalar = 1e-3
+            const T& r_scalar = 0,
+            const T& s_scalar = 0
     ){
 
         // Weighting Vectors
         const Eigen::Vector<T, NInputs> r = Eigen::Vector<T, NInputs>::Constant(static_cast<T>(r_scalar));
         const Eigen::Vector<T, NMeasOutputs> s = Eigen::Vector<T, NMeasOutputs>::Constant(static_cast<T>(s_scalar));
 
-        return continous_H2_controller(A, Bw, Bu, Cz, Duz, Cy, Dwy, r, s);
+        return continous_h2_controller(A, Bw, Bu, Cz, Duz, Cy, Dwy, r, s);
     }
 
     /**
@@ -262,16 +262,128 @@ namespace controlpp
      * \tparam NPlantOutputs The number of states of the plant. Also the number of states of the controller if no extra weighting functions are applied.
      * \tparam NPlantInputs The number of inputs of the plant.
      * 
-     * \see controlpp::continous_H2_controller()
+     * \see controlpp::continous_h2_controller()
      * \see controlpp::ContinuousGeneralisedPlant
      */
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>   
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> H2_controller(const ContinuousGeneralisedPlant<T, NStates, NInputs, NPerfOutputs, NMeasOutputs, NDisturbances> & Gss){
-        return continous_H2_controller(
+    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> h2_controller(const ContinuousGeneralisedPlant<T, NStates, NInputs, NPerfOutputs, NMeasOutputs, NDisturbances> & Gss){
+        return continous_h2_controller(
             Gss.A, Gss.Bw, Gss.Bu, 
             Gss.Cz, Gss.Duz, 
             Gss.Cy, Gss.Dwy
         );
+    }
+
+    /**
+     * \brief Synthesizes an H2 controller from transfer functions
+     * 
+     * ```
+     *                                        d .. disturbance
+     *                                        |
+     *                                     +----+
+     *                                     | Wd |
+     *                                     +----+
+     *            e   +----+  u   +---+       |      +----+
+     * r ----> + ---->| H2 |----->| P |-----> + ---->| Wz |----> z .. performance output 
+     *         ^      +----+      +---+           |  +----+
+     *         |                                  |
+     *         | y .. measurement +---+           |
+     *         +---------- + -----| M | ----------+
+     *                     ^      +---+       
+     *                     |
+     *                   +----+
+     *                   | Wn |
+     *                   +----+
+     *                     |
+     *                     n .. measurement noise
+     * 
+     * ```
+     * 
+     * \param P Transfer function of the plan
+     * \param M Transfer function of the measurement
+     * \param Wd Transfer function (weight) shaping the disturbance
+     * \param Wn Transfer function (weight) shaping the measurement noise
+     * \param Wz Transfer function (weight) shaping the performance output
+     * 
+     * \see ContinuousGeneralisedPlant
+     * \see h2_controller
+     * \see ContinuousStateSpace
+     * \see ContinuousTransferFunction
+     */
+    template<class T,
+        int PNumOrder, int PDenOrder,
+        int MNumOrder, int MDenOrder,
+        int WdNumOrder, int WdDenOrder,
+        int WnNumOrder, int WnDenOrder,
+        int WzNumOrder, int WzDenOrder>
+    constexpr ContinuousStateSpace<T, PDenOrder + MDenOrder + WdDenOrder + WnDenOrder + WzDenOrder, 1, 1> h2_from_tf(
+        const ContinuousTransferFunction<T, PNumOrder, PDenOrder>& P,
+        const ContinuousTransferFunction<T, MNumOrder, MDenOrder>& M,
+        const ContinuousTransferFunction<T, WdNumOrder, WdDenOrder>& Wd,
+        const ContinuousTransferFunction<T, WnNumOrder, WnDenOrder>& Wn,
+        const ContinuousTransferFunction<T, WzNumOrder, WzDenOrder>& Wz,
+        const T& control_penalty
+    ){
+        constexpr int NStates = PDenOrder + MDenOrder + WdDenOrder + WnDenOrder + WzDenOrder;
+        constexpr int NInputs = 1;
+        constexpr int NPerfOutputs = 1;
+        constexpr int NMeasOutputs = 1;
+        constexpr int NDisturbances = 2;
+
+        const auto P_ss = to_state_space(P);
+        const auto M_ss = to_state_space(M);
+        const auto Wd_ss = to_state_space(Wd);
+        const auto Wn_ss = to_state_space(Wn);
+        const auto Wz_ss = to_state_space(Wz);
+
+        ContinuousGeneralisedPlant<T, NStates, NInputs, NPerfOutputs, NMeasOutputs, NDisturbances> Gp;
+
+        Gp.A.setZero();
+
+        // A: digonal elements
+        Gp.A.template block<PDenOrder, PDenOrder>(0, 0) = P_ss.A();
+        Gp.A.template block<WdDenOrder, WdDenOrder>(PDenOrder, PDenOrder) = Wd_ss.A();
+        Gp.A.template block<WzDenOrder, WzDenOrder>(PDenOrder + WdDenOrder, PDenOrder + WdDenOrder) = Wz_ss.A();
+        Gp.A.template block<MDenOrder, MDenOrder>(PDenOrder + WdDenOrder + WzDenOrder, PDenOrder + WdDenOrder + WzDenOrder) = M_ss.A();
+        Gp.A.template block<WnDenOrder, WnDenOrder>(PDenOrder + WdDenOrder + WzDenOrder + MDenOrder, PDenOrder + WdDenOrder + WzDenOrder + MDenOrder) = Wn_ss.A();
+
+        // A: Off diagonal elements
+        const Eigen::Matrix<T, WzDenOrder, PDenOrder> BzCp = Wz_ss.B() * P_ss.C();
+        Gp.A.template block<WzDenOrder, PDenOrder>(PDenOrder + WdDenOrder, 0) = BzCp;
+        
+        const Eigen::Matrix<T, WzDenOrder, WdDenOrder> BzCd = Wz_ss.B() * Wd_ss.C();
+        Gp.A.template block<WzDenOrder, WdDenOrder>(PDenOrder + WdDenOrder, PDenOrder) = BzCd;
+        
+        const Eigen::Matrix<T, WzDenOrder, PDenOrder> BmCp = M_ss.B() * P_ss.C();
+        Gp.A.template block<MDenOrder, PDenOrder>(PDenOrder + WdDenOrder, 0) = BmCp;
+        
+        const Eigen::Matrix<T, WzDenOrder, WdDenOrder> BmCd = M_ss.B() * Wd_ss.C();
+        Gp.A.template block<MDenOrder, WdDenOrder>(PDenOrder + WdDenOrder, PDenOrder) = BmCd;
+
+        // Bw: disturbance input
+        Gp.Bw.setZero();
+        Gp.Bw.template block<WdDenOrder, 1>(PDenOrder, 0) = Wd_ss.B();
+        Gp.Bw.template block<WnDenOrder, 1>(PDenOrder + WdDenOrder + WzDenOrder + MDenOrder, 1) = Wn_ss.B();
+
+        // Bu: control input
+        Gp.Bu.setZero();
+        Gp.Bu.template block<PDenOrder, 1>(0, 0) = P_ss.B();
+
+        // Cz: performance output
+        Gp.Cz.setZero();
+        Gp.Cz.template block<1, WzDenOrder>(0, PDenOrder + WdDenOrder) = Wz_ss.C();
+
+        // Cy: measurement output
+        Gp.Cy.setZero();
+        Gp.Cy.template block<1, MDenOrder>(0, PDenOrder + WdDenOrder + WzDenOrder) = M_ss.C();
+        Gp.Cy.template block<1, MDenOrder>(0, PDenOrder + WdDenOrder + WzDenOrder + MDenOrder) = Wn_ss.C();
+
+        // Direct pass throughs
+        Gp.Duz = control_penalty;
+        Gp.Dwy = Wn_ss.D();
+
+        const ContinuousStateSpace<T, NStates, NInputs, NMeasOutputs> h2 = h2_controller(Gp);
+        return h2;
     }
 
 } // namespace controlpp

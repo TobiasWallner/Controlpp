@@ -286,7 +286,7 @@ namespace controlpp{
 		// 1. Build the hamilton matrix
 		Eigen::Matrix<T, 2*N, 2*N> H;
 		H.topLeftCorner(N, N) = A;
-		H.topRightCorner(N, N) =  - B * R.llt().solve(B.transpose());
+		H.topRightCorner(N, N) =  - B * R.ldlt().solve(B.transpose());
 		H.bottomLeftCorner(N, N) = -Q;
 		H.bottomRightCorner(N, N) = -A.transpose();
 
@@ -371,12 +371,12 @@ namespace controlpp{
 		const Eigen::Matrix<T, NOutputs, NInputs>& N
 	){
 		// 1. Build the hamilton matrix
-        const Eigen::Matrix<T, NInputs, NStates> R_inv_DT_C = R.llt().solve((N.transpose()));
+        const Eigen::Matrix<T, NInputs, NStates> R_inv_DT_C = R.ldlt().solve((N.transpose()));
 		const Eigen::Matrix<T, NStates, NStates> A_ = A - B * R_inv_DT_C;
 
 		Eigen::Matrix<T, 2*NStates, 2*NStates> H;
 		H.topLeftCorner(NStates, NStates) = A_;
-		H.topRightCorner(NStates, NStates) =  - B * R.llt().solve(B.transpose());
+		H.topRightCorner(NStates, NStates) =  - B * R.ldlt().solve(B.transpose());
 		H.bottomLeftCorner(NStates, NStates) = - (Q - N * R_inv_DT_C);
 		H.bottomRightCorner(NStates, NStates) = -A_.transpose();
 

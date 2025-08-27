@@ -116,7 +116,7 @@ namespace controlpp
 
     template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator-(const Tscalar& lhs, const DiscreteTransferFunction<T, NumOrder, DenOrder>& rhs){
-        return DiscreteTransferFunction(lhs + rhs.ratpoly());
+        return DiscreteTransferFunction(lhs - rhs.ratpoly());
     }
 
     template<class T, std::convertible_to<T> Tscalar, int NumOrder, int DenOrder>

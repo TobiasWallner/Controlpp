@@ -150,7 +150,7 @@ namespace controlpp
             constexpr std::complex<T> eval_frequency(const T& frequency){
                 const std::complex<T> jw(0, frequency);
                 const std::complex<T> result = this->eval(jw);
-                return this->result;
+                return result;
             }
 
             /**
@@ -164,7 +164,7 @@ namespace controlpp
                 const std::complex<T> j(0, 1);
                 const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j;
                 const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);
-                return this->result;
+                return result;
             }
 
             void print(std::ostream& stream, std::string_view var="x") const {
