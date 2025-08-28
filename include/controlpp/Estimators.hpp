@@ -58,7 +58,7 @@ namespace controlpp
 
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        double _memory;
+        double _memory = 0.98;
 
         public:
 
@@ -177,7 +177,7 @@ namespace controlpp
 
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        double _memory;
+        double _memory = 0.98;
 
         public:
 
@@ -273,7 +273,7 @@ namespace controlpp
         
         Eigen::Vector<T, NumOrder> uk = Eigen::Vector<T, NumOrder>::Zero();
         Eigen::Vector<T, DenOrder> neg_yk = Eigen::Vector<T, DenOrder>::Zero();
-        T _memory;
+        T _memory = 0.98;
 
         public:
 
