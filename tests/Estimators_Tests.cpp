@@ -96,8 +96,8 @@ TEST(Estimators, DtfEstimator){
         const double u = 1.0;
         const double y = dssf.input(u);
         const double y_est = dssf_est.input(u);
-        std::cout << "y: " << y << ", y_est: " << y_est << std::endl;
-        //ASSERT_NEAR(y, y_est, 0.005);
+        //std::cout << "y: " << y << ", y_est: " << y_est << std::endl;
+        ASSERT_NEAR(y, y_est, 0.01);
     }
 
 }
