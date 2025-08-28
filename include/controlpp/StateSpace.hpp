@@ -85,8 +85,8 @@ namespace controlpp
              * ```
              */
             constexpr std::tuple<Eigen::Vector<T, internal_states>, Eigen::Vector<T, outputs>> eval(const Eigen::Vector<T, internal_states>& x, const Eigen::Vector<T, inputs>& u) const {
-                Eigen::Vector<T, internal_states> result_x = this->A() * x + this->B() * u;
-                Eigen::Vector<T, outputs> result_y = this->C() * x + this->D() * u;
+                const Eigen::Vector<T, internal_states> result_x = this->A() * x + this->B() * u;
+                const Eigen::Vector<T, outputs> result_y = this->C() * x + this->D() * u;
                 return std::tuple(result_x, result_y);
             }
 
@@ -105,8 +105,7 @@ namespace controlpp
             template<std::same_as<T> U>
                 requires(inputs == 1 && outputs != 1)
             constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                Eigen::Vector<T, 1> u;
-                u(0) = u_scalar;
+                const Eigen::Vector<T, 1> u(u_scalar);
                 return this->eval(x, u);
             }
 
@@ -125,8 +124,7 @@ namespace controlpp
             template<std::same_as<T> U>
                 requires(inputs == 1 && outputs == 1)
             constexpr std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                Eigen::Vector<T, 1> u;
-                u(0) = u_scalar;
+                const Eigen::Vector<T, 1> u(u_scalar);
                 const auto [new_x, y] = this->eval(x, u);
                 return {new_x, y(0)};
             }
