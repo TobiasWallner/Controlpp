@@ -362,13 +362,19 @@ namespace controlpp{
 	 * 
 	 * @see Zhou, Doyle, and Glover (1996), *Robust and Optimal Control*.
 	 */
-	template<class T, int NStates, int NInputs, int NOutputs>
+	template<class T, int NStates, int NInputs,
+			int AOpt, int AMaxR, int AMaxC,
+			int BOpt, int BMaxR, int BMaxC,
+			int ROpt, int RMaxR, int RMaxC,
+			int QOpt, int QMaxR, int QMaxC,
+			int NOpt, int NMaxR, int NMaxC
+  	>
 	constexpr Eigen::Matrix<T, NStates, NStates> care_solver(
-		const Eigen::Matrix<T, NStates, NStates>& A,
-		const Eigen::Matrix<T, NStates, NInputs>& B,
-        const Eigen::Matrix<T, NInputs, NInputs>& R,
-        const Eigen::Matrix<T, NStates, NStates> Q,
-		const Eigen::Matrix<T, NOutputs, NInputs>& N
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
+		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R,
+		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
+		const Eigen::Matrix<T, NStates, NInputs, NOpt, NMaxR, NMaxC>& N
 	){
 		// 1. Build the hamilton matrix
         const Eigen::Matrix<T, NInputs, NStates> R_inv_DT_C = R.ldlt().solve((N.transpose()));
