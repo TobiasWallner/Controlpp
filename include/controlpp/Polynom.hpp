@@ -324,11 +324,25 @@ namespace controlpp
             /// @param stream the stream to be printed to
             /// @param var the symbol name of the variable
             void print (std::ostream& stream, std::string_view var="x") const {
-                std::string_view plus = "";
                 for(size_t i = 0; i < this->size(); ++i){
                     if(this->at(i) != static_cast<T>(0)){
-                        stream << plus << this->at(i) << ' ' << var << '^' << i;
-                        plus = " + ";
+                        const auto value = this->at(i);
+                        if(value > 0){
+                            if(i > 0) stream << " + ";
+                            
+                            stream << value;
+
+                            if(i == 1) stream << ' ' << var;
+                            else if(i > 1) stream << ' ' << var << '^' << i;
+                        }else if(value < 0){
+                            if(i == 0) stream << "- ";
+                            else if(i > 0) stream << " - ";
+
+                            stream << (-value);
+
+                            if(i == 1) stream << ' ' << var;
+                            else if(i > 1) stream << ' ' << var << '^' << i;
+                        }
                     }
                 }
             }
