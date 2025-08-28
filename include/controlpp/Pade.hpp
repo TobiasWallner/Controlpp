@@ -96,12 +96,12 @@ namespace controlpp
     ContinuousTransferFunction<T, NumOrder, DenOrder> pade(T delay){
         ContinuousTransferFunction<T, NumOrder, DenOrder> result;
         
-        for(int k = 0; k < NumOrder; ++k){
+        for(int k = 0; k < (NumOrder+1); ++k){
             result.num().at(k) = pade_num_param<T>(NumOrder, DenOrder, k) * controlpp::pow(-delay, k);
         }
 
-        for(int k = 0; k < DenOrder; ++k){
-            result.den().at(k) = pade_num_param<T>(NumOrder, DenOrder, k) * controlpp::pow(delay, k);
+        for(int k = 0; k < (DenOrder+1); ++k){
+            result.den().at(k) = pade_den_param<T>(NumOrder, DenOrder, k) * controlpp::pow(delay, k);
         }
 
         return result;
