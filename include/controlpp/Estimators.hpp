@@ -319,11 +319,11 @@ namespace controlpp
             this->rls.add(y, s);
             
             // update uk
-            std::reverse_copy(this->uk.data(), this->uk.data()+this->uk.size(), this->uk.data()+1);
+            std::copy_backward(this->uk.data(), this->uk.data()+this->uk.size(), this->uk.data()+1);
             this->uk(0) = u;
             
             // update yk
-            std::reverse_copy(this->neg_yk.data(), this->neg_yk.data()+this->neg_yk.size(), this->neg_yk.data()+1);
+            std::copy_backward(this->neg_yk.data(), this->neg_yk.data()+this->neg_yk.size(), this->neg_yk.data()+1);
             this->neg_yk(0) = -y;
         }
 

@@ -128,10 +128,10 @@ namespace controlpp{
 
             const auto y = this->dtf_.eval(uk, this->yk_);
 
-            std::reverse_copy(this->uk_.data(), this->uk_.data()+this->uk_.size(), this->uk_.data()+1);
+            std::copy_backward(this->uk_.data(), this->uk_.data()+this->uk_.size(), this->uk_.data()+1);
             this->uk_(0) = u;
 
-            std::reverse_copy(this->yk_.data(), this->yk_.data()+this->yk_.size(), this->yk_.data()+1);
+            std::copy_backward(this->yk_.data(), this->yk_.data()+this->yk_.size(), this->yk_.data()+1);
             this->yk_(0) = y;
             return y;
         }
