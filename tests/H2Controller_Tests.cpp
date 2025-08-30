@@ -13,7 +13,7 @@
 TEST(H2Controller, for_PT1){
     using namespace controlpp;
     const auto s = tf::s<double>;
-    const double Ts = 1./4000.;
+    const double Ts = 1./10000.;
 
     // plant description
     const double f_p = 62;
@@ -58,5 +58,7 @@ TEST(H2Controller, for_PT1){
         y = Mf(z);
         file << time << ", " << r << ", " << err << ", " << u << ", " << z << ", " << y << std::endl;
     }
+
+    // TODO: somehow verify the results
 
 }
