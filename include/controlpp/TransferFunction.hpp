@@ -293,7 +293,19 @@ namespace controlpp
         return result;
     }
 
+    // -----------------------------------------------------------------------------------------------
+    //                                      analysis
+    // -----------------------------------------------------------------------------------------------
 
+    template<class T, int NumOrder, int DenOrder>
+    Eigen::Vector<std::complex<T>, NumOrder+1> zeros(const TransferFunction<T, NumOrder, DenOrder>& tf){
+        return zeros(tf.num());
+    }   
+
+    template<class T, int NumOrder, int DenOrder>
+    Eigen::Vector<std::complex<T>, DenOrder+1> poles(const TransferFunction<T, NumOrder, DenOrder>& tf){
+        return zeros(tf.den());
+    }
 
     ///--------------------------------------------------------------------------------------------------------------------
     ///--------------------------------------------------------------------------------------------------------------------

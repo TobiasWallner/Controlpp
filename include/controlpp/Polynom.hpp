@@ -392,6 +392,14 @@ namespace controlpp
     // -----------------------------------------------------------------------------------------------
     
     /**
+     * \brief Returns an empty vector resembling the absence of solutions
+     */
+    template<class T>
+    constexpr Eigen::Vector<std::complex<T>, 0> zeros([[maybe_unused]] const Polynom<T, 0>& polynom){
+        return Eigen::Vector<std::complex<T>, 0>();
+    }
+
+    /**
      * \brief calculates the zeros/roots of a polynomial
      * 
      * Specialisation for polynomials of degree 1.
