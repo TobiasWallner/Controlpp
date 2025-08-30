@@ -48,6 +48,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/StateSpace_Tests.cpp
         tests/Polynom_Tests.cpp
         tests/math_Tests.cpp
+        tests/analysis_Tests.cpp
     )
 
     set_target_properties(controlpp_tests PROPERTIES LINKER_LANGUAGE CXX)
@@ -71,3 +72,9 @@ if (CONTROLPP_COMPILE_TEST)
     add_test(NAME controlpp_tests COMMAND controlpp_tests)
 
 endif()
+
+
+##################################################################################
+#                               Examples
+##################################################################################
+
