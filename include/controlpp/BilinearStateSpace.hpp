@@ -83,12 +83,12 @@ namespace controlpp
      */
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr BilinearStateSpace<ValueType, DenOrder, 1, 1> to_bilinear_state_space(const BilinearTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return BilinearStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.ratpoly()));
+        return BilinearStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.transfer_function()));
     }
 
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr BilinearStateSpace<ValueType, DenOrder, 1, 1> to_state_space(const BilinearTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return BilinearStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.ratpoly()));
+        return BilinearStateSpace<ValueType, DenOrder, 1, 1>(to_state_space(dtf.transfer_function()));
     }
 
     /**

@@ -167,7 +167,7 @@ namespace controlpp
      */
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_discrete_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.transfer_function()));
     }
 
     /**
@@ -175,7 +175,7 @@ namespace controlpp
      */
     template<class ValueType, int NumOrder, int DenOrder>
     constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
-        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.ratpoly()));
+        return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.transfer_function()));
     }
 
     /**

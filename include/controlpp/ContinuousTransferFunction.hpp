@@ -23,11 +23,11 @@ namespace controlpp
     class ContinuousTransferFunction{
         public:
             using value_type = T;
-            using ratpoly_type = TransferFunction<T, NumOrder, DenOrder>;
-            using num_type = typename ratpoly_type::num_type;
-            using den_type = typename ratpoly_type::den_type;
-            using num_vector_type = typename ratpoly_type::num_vector_type;
-            using den_vector_type = typename ratpoly_type::den_vector_type;
+            using transfer_function_type = TransferFunction<T, NumOrder, DenOrder>;
+            using num_type = typename transfer_function_type::num_type;
+            using den_type = typename transfer_function_type::den_type;
+            using num_vector_type = typename transfer_function_type::num_vector_type;
+            using den_vector_type = typename transfer_function_type::den_vector_type;
 
         private:
             TransferFunction<T, NumOrder, DenOrder> tf_;
@@ -40,8 +40,8 @@ namespace controlpp
             constexpr explicit ContinuousTransferFunction(const Polynom<T, NumOrder>& num, const Polynom<T, DenOrder>& den)
                 : tf_(num, den){}
 
-            constexpr explicit ContinuousTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& ratpoly)
-                : tf_(ratpoly){}
+            constexpr explicit ContinuousTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& transfer_function)
+                : tf_(transfer_function){}
 
             constexpr explicit ContinuousTransferFunction(const num_vector_type& num, const den_vector_type& den)
                 : tf_(num, den){}
@@ -61,8 +61,8 @@ namespace controlpp
             constexpr T& den(size_t i) {return this->tf_.den(i);}
             constexpr const T& den(size_t i) const {return this->tf_.den(i);}
 
-            constexpr ratpoly_type& ratpoly() {return this->tf_;}
-            constexpr const ratpoly_type& ratpoly() const {return this->tf_;}
+            constexpr transfer_function_type& transfer_function() {return this->tf_;}
+            constexpr const transfer_function_type& transfer_function() const {return this->tf_;}
 
             /**
              * \brief Evaluates the rational polynomial at `x`
@@ -126,7 +126,7 @@ namespace controlpp
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const ContinuousTransferFunction& ctf){
-                ctf.ratpoly().print(stream, "s");
+                ctf.transfer_function().print(stream, "s");
                 return stream;
             }
     };
@@ -136,17 +136,17 @@ namespace controlpp
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
     constexpr auto operator+(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() + rhs.ratpoly());
+        return ContinuousTransferFunction(lhs.transfer_function() + rhs.transfer_function());
     }
 
     template<class Tpoly, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator+(const Tscalar& lhs, const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& rhs){
-        return ContinuousTransferFunction(lhs + rhs.ratpoly());
+        return ContinuousTransferFunction(lhs + rhs.transfer_function());
     }
 
     template<class Tpoly, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator+(const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() + rhs);
+        return ContinuousTransferFunction(lhs.transfer_function() + rhs);
     }
 
     // operator -
@@ -154,17 +154,17 @@ namespace controlpp
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
     constexpr auto operator-(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() - rhs.ratpoly());
+        return ContinuousTransferFunction(lhs.transfer_function() - rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator-(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
-        return ContinuousTransferFunction(lhs - rhs.ratpoly());
+        return ContinuousTransferFunction(lhs - rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() - rhs);
+        return ContinuousTransferFunction(lhs.transfer_function() - rhs);
     }
 
     // operator *
@@ -172,17 +172,17 @@ namespace controlpp
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
     constexpr auto operator*(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() * rhs.ratpoly());
+        return ContinuousTransferFunction(lhs.transfer_function() * rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator*(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
-        return ContinuousTransferFunction(lhs * rhs.ratpoly());
+        return ContinuousTransferFunction(lhs * rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator*(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() * rhs);
+        return ContinuousTransferFunction(lhs.transfer_function() * rhs);
     }
 
     // operator /
@@ -190,23 +190,37 @@ namespace controlpp
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
     constexpr auto operator/(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
-        return ContinuousTransferFunction(lhs.ratpoly() / rhs.ratpoly());
+        return ContinuousTransferFunction(lhs.transfer_function() / rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator/(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
-        return ContinuousTransferFunction(lhs / rhs.ratpoly());
+        return ContinuousTransferFunction(lhs / rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
     constexpr auto operator/(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
-        ContinuousTransferFunction result(lhs.ratpoly() / rhs);
+        ContinuousTransferFunction result(lhs.transfer_function() / rhs);
         return result;
     }
 
     namespace tf{
         template<class T=double>
         static inline const ContinuousTransferFunction<T, 1, 0> s({T(0), T(1)}, {T(1)});
+    }
+
+// analysis
+
+    template<class T, int NumOrder, int DenOrder>
+    Eigen::Vector<std::complex<T>, NumOrder> zeros(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf){
+        const Eigen::Vector<std::complex<T>, NumOrder> result = zeros(tf.num());
+        return result;
+    }   
+
+    template<class T, int NumOrder, int DenOrder>
+    Eigen::Vector<std::complex<T>, DenOrder> poles(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf){
+        const Eigen::Vector<std::complex<T>, DenOrder> result = zeros(tf.den());
+        return result;
     }
 
 } // namespace controlpp

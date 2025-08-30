@@ -81,7 +81,7 @@ namespace controlpp
      */
     template<class T, int NumOrder, int DenOrder>
     constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
-        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.ratpoly()));
+        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.transfer_function()));
     }
 
     /**
@@ -89,7 +89,7 @@ namespace controlpp
      */
     template<class T, int NumOrder, int DenOrder>
     constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
-        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.ratpoly()));
+        return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.transfer_function()));
     }
 
     /**
