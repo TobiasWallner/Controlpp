@@ -6,6 +6,9 @@
  * 
  */
 
+#include <complex>
+#include <numbers>
+
 #include <controlpp/DiscreteStateSpace.hpp>
 #include <controlpp/DiscreteTransferFunction.hpp>
 #include <controlpp/DiscreteFilter.hpp>
@@ -42,15 +45,25 @@ namespace controlpp
     }
 
     /**
-     * \brief suggests the simulation time and the sample time for a continuous transfer function to get a nice simulation for e.g.: a step response analysis
-     * \returns a tuple returning [sample_time, simulation_time]
+     * \brief Calculates the slowest (lowest) and fastest (highest) frequencies of a continuous transfer function
+     * 
+     * Example:
+     * 
+     * \code{.cpp}
+     * const auto [slowest, fastest] = slowest_fastest_frequencies(tf);
+     * \endcode
+     * 
+     * \param tf A continuous time transfer function
+     * \param alternative The value to be returned if the transfer function has no dynamics and frequencies to be evaluated.
+     * \returns A tuple `[slowest_frequency, fastest_frequency]` containing the fastest and slowest frequencies or the alternative.
      */
     template<class T, int NumOrder, int DenOrder>
-    std::tuple<T, T> suggest_simulation_times (const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf){
+    std::tuple<T, T> slowest_fastest_frequencies(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, T alternative = static_cast<T>(1)){
+        // calculate the poles and zeros
         const Eigen::Vector<T, NumOrder> z = zeros(tf).array().abs();
         const Eigen::Vector<T, DenOrder> p = poles(tf).array().abs();
 
-        // get the smallest non-zero value
+        // find the minimum and maximum of the zeros that is a non-zero number
         T max_z = std::numeric_limits<T>::lowest();
         T min_z = std::numeric_limits<T>::max();
         bool valid_z = false;
@@ -62,6 +75,7 @@ namespace controlpp
             }
         }
 
+        // find the minimum and maximum of the poles that is a non-zero number
         T max_p = std::numeric_limits<T>::lowest();
         T min_p = std::numeric_limits<T>::max();
         bool valid_p = false;
@@ -73,34 +87,22 @@ namespace controlpp
             }
         }
 
-        // use the larger simulation time
-        const T simulation_time_factor = static_cast<T>(20);
-        const T smaple_time_factor = static_cast<T>(0.05);
-        T simulation_time = static_cast<T>(1);
-        T sample_time = static_cast<T>(0.1);
-        // calculate the expected simulation time
+        // get the fastest and slowest frequency if valid
+        T fastest_frequency = alternative;
+        T slowest_frequency = alternative;
         if(valid_p && valid_z){
-            // if there are only integrative elements (poles at zero), default to 1s
-            if(min_p < min_z){
-                simulation_time = static_cast<T>(simulation_time_factor) / min_p;
-            }else{
-                simulation_time = static_cast<T>(simulation_time_factor) / min_z;
-            }
-
-            if(max_p > max_z){
-                sample_time = static_cast<T>(smaple_time_factor) / max_p;
-            }else{
-                sample_time = static_cast<T>(smaple_time_factor) / max_z;
-            }
+            slowest_frequency = (min_p < min_z) ? min_p : min_z;
+            fastest_frequency = (max_p > max_z) ? max_p : max_z;
         }else if(valid_p && !valid_z){
-                simulation_time = static_cast<T>(simulation_time_factor) / min_p;
-                sample_time = static_cast<T>(smaple_time_factor) / max_p;
+                slowest_frequency = min_p;
+                fastest_frequency = max_p;
         }else if(!valid_p && valid_z){
-                simulation_time = static_cast<T>(simulation_time_factor) / min_z;
-                sample_time = static_cast<T>(smaple_time_factor) / max_z;
+                slowest_frequency = min_z;
+                fastest_frequency = max_z;
         }
 
-        return std::tuple<T, T>(sample_time, simulation_time);
+        // return result as tuple
+        return std::tuple<T, T>(slowest_frequency, fastest_frequency);
     }
 
     template<class T, int NumOrder, int DenOrder>
@@ -112,7 +114,34 @@ namespace controlpp
 
     template<class T, int NumOrder, int DenOrder>
     TimeSeries<T> step(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf){
-        const auto [sample_time, simulation_time] = suggest_simulation_times(tf);
+        const auto [slowest_freq, fastest_freq] = slowest_fastest_frequencies(tf);
+        const T sample_time = static_cast<T>(0.05) / fastest_freq;
+        const T simulation_time = static_cast<T>(20) / slowest_freq;
         return step(tf, sample_time, simulation_time);
     }
+
+    template<class T, int N = Eigen::Dynamic>
+    struct Bode{
+        Eigen::Vector<T, N> frequencies;
+        Eigen::Vector<T, N> magnitudes;
+        Eigen::Vector<T, N> phases;
+    };
+
+    /**
+     * TODO: finish
+     */
+    //template<class T, int NumOrder, int DenOrder>
+    //Bode<T, Eigen::Dynamic> bode(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, const T& slowest_freq, const T& fastest_freq, int samples_per_decade=100){
+    //    
+    //    const T two_pi = stati_cast<T>(2) * std::numbers::pi_v<T>;
+    //
+    //    Eigen::Vector<T, Eigen::Dynamic> log_freqs = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(n, std::log(slowest_freq_rad), std::log(fastest_freq_rad)).exp();
+    //    Eigen::Vector<std::complex<T>, Eigen::Dynamic> complex_magnitudes = tf.eval_frequencies(log_freqs);
+    //    Bode result;
+    //    result.frequencies = log_freqs / two_pi;
+    //    result.magnitudes = complex_magnitudes.array.abs();
+    //    result.phases = complex_magnitudes.unaryExpr([](const std::complex<T>& v){ return std::arg(v); });
+    //    return result;
+    //}
+
 } // namespace controlpp
