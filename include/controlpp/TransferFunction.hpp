@@ -135,7 +135,7 @@ namespace controlpp
             constexpr Eigen::Vector<std::complex<T>, M> eval(const Eigen::Vector<std::complex<T>, M>& x_vec) const {
                 const Eigen::Vector<std::complex<T>, M> n = this->num().eval(x_vec);
                 const Eigen::Vector<std::complex<T>, M> d = this->den().eval(x_vec);
-                const std::complex<T> result = n.array()/d.array(); // element wise division
+                const Eigen::Vector<std::complex<T>, M> result = n.array()/d.array(); // element wise division
                 return result;
             }
 
@@ -160,7 +160,7 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies){
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
                 const std::complex<T> j(0, 1);
                 const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j;
                 const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);

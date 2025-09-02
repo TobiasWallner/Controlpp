@@ -41,3 +41,27 @@ TEST(analysis, step_response_PT2){
         ASSERT_NEAR(expected_values[i], timeseries.values(i), 1e-3) << "at index: " << i;
     }
 }
+
+TEST(analysis, bode_PT2){
+    const auto s = controlpp::tf::s<double>;
+
+    const double f = 100;
+    const double w = 2 * 3.1415 * f;
+    const double D = 0.5;
+    const auto G = 1 / (1 + 2 * D * s / w + (s*s)/(w*w));
+
+    const auto G_bode = controlpp::bode(G, 10);
+
+    std::ofstream file("bode.csv");
+    file << G_bode << std::endl;
+
+    const double expected_freqs[] = {9.99971, 12.7424, 16.2373, 20.6908, 26.3657, 33.5972, 42.8121, 54.5543, 69.5172, 88.5841, 112.88, 143.841, 183.293, 233.565, 297.626, 379.258, 483.279, 615.83, 784.737, 999.971};
+    const double expected_mags[] = {0.0432094, 0.0699347, 0.112945, 0.181725, 0.290427, 0.458256, 0.704278, 1.0185, 1.24777, 0.803529, -1.30173, -5.06802, -9.50781, -14.0326, -18.4891, -22.8675, -27.1867, -31.466, -35.7195, -39.9568};
+    const double expected_phases[] = {-5.76789, -7.38047, -9.46836, -12.1979, -15.8208, -20.7434, -27.6645, -37.8382, -53.3782, -76.3434, -103.657, -126.622, -142.162, -152.335, -159.257, -164.179, -167.802, -170.532, -172.62, -174.232};
+
+    for(int i = 0; i < G_bode.frequencies.size(); ++i){
+        ASSERT_NEAR(G_bode.frequencies(i), expected_freqs[i], 1e-3) << "at index: " << i;
+        ASSERT_NEAR(G_bode.magnitudes(i), expected_mags[i], 1e-3) << "at index: " << i;
+        ASSERT_NEAR(G_bode.phases(i), expected_phases[i], 1e-3) << "at index: " << i;
+    }
+}

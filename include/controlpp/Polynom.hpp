@@ -223,14 +223,11 @@ namespace controlpp
              * \returns The result of the polynomial evaluated at the position x
              */
             constexpr T eval(const T& x) const {
-                Eigen::Vector<T, Order+1> X;
-                T p = static_cast<T>(1);
-                for(int i = 0; i < X.size(); ++i){
-                    X(i) = p;
-                    p *= x;
+                T sum = static_cast<T>(0);
+                for(int i = this->size()-1; i >= 0; --i){
+                    sum = sum * x + this->at(i);
                 }
-                const T result = this->vector_.dot(X);
-                return result;
+                return sum;
             }
 
             /**
@@ -249,14 +246,15 @@ namespace controlpp
              */
             template<int M>
             constexpr Eigen::Vector<T, M> eval(const Eigen::Vector<T, M>& x_vec) const {
-                Eigen::Matrix<T, M, Order+1> X;
-                Eigen::Vector<T, M> p = Eigen::Vector<T, M>::Ones();
-                for(int i = 0; i < X.cols(); ++i){
-                    X.col(i) = p;
-                    p.array() *= x_vec.array(); // element wise multiplication
+                Eigen::Vector<T, M> sum_vec;
+                if constexpr (M == Eigen::Dynamic) sum_vec.resize(x_vec.size());
+                sum_vec.setZero();
+
+                for(int i = this->size()-1; i >= 0; --i){
+                    sum_vec.array() = sum_vec.array() * x_vec.array() + this->at(i);
                 }
-                const Eigen::Vector<T, M> result = X * this->vector_;
-                return result;
+
+                return sum_vec;
             }
 
             /**
@@ -274,14 +272,11 @@ namespace controlpp
              * \returns The result of the polynomial evaluated at the position x
              */
             constexpr std::complex<T> eval(const std::complex<T>& x) const {
-                Eigen::Vector<std::complex<T>, Order+1> X;
-                std::complex<T> p = static_cast<std::complex<T>>(1);
-                for(int i = 0; i < X.size(); ++i){
-                    X(i) = p;
-                    p *= x;
+                std::complex<T> sum(static_cast<T>(0), static_cast<T>(0));
+                for(int i = this->size()-1; i >= 0; --i){
+                    sum = sum * x + this->at(i);
                 }
-                const std::complex<T> result = this->vector_.dot(X);
-                return result;
+                return sum;
             }
 
             /**
@@ -300,14 +295,15 @@ namespace controlpp
              */
             template<int M>
             constexpr Eigen::Vector<std::complex<T>, M> eval(const Eigen::Vector<std::complex<T>, M>& x_vec) const {
-                Eigen::Matrix<std::complex<T>, M, Order+1> X;
-                Eigen::Vector<std::complex<T>, M> p = Eigen::Vector<T, M>::Ones();
-                for(int i = 0; i < X.cols(); ++i){
-                    X.col(i) = p;
-                    p.array() *= x_vec.array(); // element wise multiplication
+                Eigen::Vector<std::complex<T>, M> sum_vec;
+                if constexpr (M == Eigen::Dynamic) sum_vec.resize(x_vec.size());
+                sum_vec.setZero();
+
+                for(int i = this->size()-1; i >= 0; --i){
+                    sum_vec.array() = sum_vec.array() * x_vec.array() + this->at(i);
                 }
-                const Eigen::Vector<std::complex<T>, M> result = X * this->vector_;
-                return result;
+
+                return sum_vec;
             }
 
             /**

@@ -110,7 +110,7 @@ namespace controlpp
              * \param frequency The frequency (in radiants per second) at which to evaluate the transfer function at
              * \returns The complex result of the frequency evaluation/analysis.
              */
-            constexpr std::complex<T> eval_frequency(const T& frequency){
+            constexpr std::complex<T> eval_frequency(const T& frequency) const {
                 return this->tf_.eval_frequency(frequency);
             }
 
@@ -121,7 +121,7 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies){
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
                 return this->tf_.eval_frequencies(frequencies);
             }
 
