@@ -10,11 +10,10 @@ A modern C++ library for control systems: from classic transfer-function workflo
 Features:
 ---------
 
-- **Transfer Functions**  
-  Work directly with continuous and discrete transfer functions, numerator/denominator polynomials, zeros/poles, and conversions.
-- **State Space**  
-  Model systems in state-space or transfer functions
-- **Continuous <--> Discrete transformations**  
+- **Performance**
+  Supports [Vectorisation](https://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization) for: SSE2, SSE3, SSE4, AVX, AVX2, AVX512, AltiVec/VSX, ARM NEON and now S390x SIMD (ZVector) through the [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library.
+- **Classical Control, Transfer Functions and State Space**  
+  Work directly with continuous and discrete transfer functions, numerator/denominator polynomials, zeros/poles, and conversions from and to state space realisations.
   Switch domains as needed with zero order hold or tustin in a type save manner:  
   s -- zero-order hold --> z -- inverser-bilinear (tustin) --> q -- bilinear (tustin) --> z
 - **Time-Variant Controllers**  
@@ -24,6 +23,7 @@ Features:
   Includes linear-quadratic controller support and estimation tooling (LQR / Kalman), with room to extend into H2/H-inf synthesis.
 - **Identification & Estimation**
   Recursive Least Squares and Kalman filters to estimate parameters and states, ready to slot into your controller pipelines.
+
 
 Quick start
 ----
