@@ -31,7 +31,7 @@ namespace controlpp
      * \tparam T the data type the controller uses, like `float` or `double`
      */
     template<class T>
-    class P{
+    class PControl{
         public:
         using value_type = T;
         private:
@@ -41,13 +41,13 @@ namespace controlpp
         public:
 
         /// @brief Default copy constructor
-        constexpr P(const P&) = default;
+        constexpr PControl(const PControl&) = default;
 
         /**
          * \brief Construct a P (Proportional) controller with a constant gain
          * \param kp the proportional gain of the controller
          */
-        constexpr P(const T& kp) : kp_(kp){}
+        constexpr PControl(const T& kp) : kp_(kp){}
 
         /**
          * \brief sets the proportional gain
@@ -133,7 +133,7 @@ namespace controlpp
          * \see controlpp::IAntiWindup
          */
         template<class T>
-        class I{
+        class IControl{
             public:
             using value_type = T;
             private:
@@ -147,10 +147,10 @@ namespace controlpp
              * \brief Constructs an I (Integrator) controller
              * \param ki The integrator constant.
              */
-            constexpr I(const T& ki) : ki_(ki){}
+            constexpr IControl(const T& ki) : ki_(ki){}
 
             /// @brief Default copy constructor 
-            constexpr I(const I&) = default;
+            constexpr IControl(const IControl&) = default;
 
             /// @brief Sets the integrator gain
             /// @param ki The integrator gain for the next sample
@@ -419,7 +419,7 @@ namespace controlpp
          * \tparam T The data type of the D controller (inputs/outputs/states). Usually `float` or `double`.
          */
         template<class T>
-        class D{
+        class DControl{
             private:
 
             T k_d_; ///< differential gain
@@ -435,12 +435,12 @@ namespace controlpp
              * \param k_d The differential gain
              * \param omega The bandwidth of the low-pass filter in radians per second
              */
-            constexpr D(const T& k_d, const T& omega)
+            constexpr DControl(const T& k_d, const T& omega)
                 : k_d_(k_d)
                 , omega_(omega){}
 
             /// @brief default copy constructor 
-            constexpr D(const D&) = default;
+            constexpr DControl(const DControl&) = default;
 
             /// @brief Sets the differential gain
             /// @param k_d The new differential gain
@@ -547,7 +547,7 @@ namespace controlpp
          * 
          */
         template<class T>
-        class PT1{
+        class PT1Control{
             private:
             T K_;
             T omega_;
@@ -561,12 +561,12 @@ namespace controlpp
              * \param K The gain of the filter
              * \param omega The -3dB bandwidth of the lowpass filter
              */
-            constexpr PT1(const T& K, const T& omega)
+            constexpr PT1Control(const T& K, const T& omega)
                 : K_(K)
                 , omega_(omega){}
 
             /// @brief Default copy constructor 
-            constexpr PT1(const PT1&) = default;
+            constexpr PT1Control(const PT1Control&) = default;
 
             /// @brief Sets the gain of the filter
             /// @param K The new gain
@@ -637,7 +637,7 @@ namespace controlpp
 
         };
         template<class T>
-        using LowPassO1 = PT1<T>;
+        using LowPassO1 = PT1Control<T>;
 
         /**
          * \brief A PT2 (proportional time second order) filter (=low-pass element of order 1), with varying smaple-time
@@ -679,7 +679,7 @@ namespace controlpp
          * \tparam T Value type of the filter like `float` or `double`
          */
         template<class T>
-        class PT2{
+        class PT2Control{
             private:
             T K_;
             T D_;
@@ -691,7 +691,7 @@ namespace controlpp
             T y_k2_ = static_cast<T>(0);
 
             public:
-            PT2(const PT2&) = default;
+            PT2Control(const PT2Control&) = default;
 
             /**
              * \brief constructs a PT2 element
@@ -699,7 +699,7 @@ namespace controlpp
              * \param D Then dampening factor of the filter
              * \param omega The characteristic frequency of the filter (bandwidth)
              */
-            PT2(const T& K, const T& D, const T& omega)
+            PT2Control(const T& K, const T& D, const T& omega)
                 : K_(K)
                 , D_(D)
                 , omega_(omega)
@@ -825,7 +825,7 @@ namespace controlpp
             }
         };
         template<class T>
-        using LowPassO2 = PT2<T>;
+        using LowPassO2 = PT2Control<T>;
 
         /**
          * \brief A PI (Proportional Integral) controller with varying sample-times
@@ -866,10 +866,10 @@ namespace controlpp
          * \tparam T Value type of the filter like `float` or `double`
          */
         template<class T>
-        class PI{
+        class PIControl{
             private:
-            P<T> P_;
-            I<T> I_;
+            PControl<T> P_;
+            IControl<T> I_;
 
             public:
 
@@ -877,12 +877,12 @@ namespace controlpp
              * \param ki The integral gain
              * \param kp The proportional gain
              */
-            PI(const T& kp, const T& ki)
+            PIControl(const T& kp, const T& ki)
                 : P_(kp)
                 , I_(ki)
                 {}
 
-            PI(const PI&) = default;
+            PIControl(const PIControl&) = default;
 
             /**
              * \brief sets the proportional gain
@@ -986,7 +986,7 @@ namespace controlpp
         template<class T>
         class PIAntiWindup{
             private:
-            P<T> P_;
+            PControl<T> P_;
             IAntiWindup<T> I_;
 
             T y_k1_ = static_cast<T>(0);
@@ -1149,15 +1149,15 @@ namespace controlpp
          * \tparam T Value type of the filter like `float` or `double`
          */
         template<class T>
-        class PT1I{
+        class PT1IControl{
             private:
 
-            PT1<T> PT1_;
-            I<T> I_;
+            PT1Control<T> PT1_;
+            IControl<T> I_;
 
             public:
 
-            constexpr PT1I(const PT1I&) = default;
+            constexpr PT1IControl(const PT1IControl&) = default;
 
             /**
              * \brief Constructs a PT1I (proportional time delayed + integral) controller
@@ -1165,7 +1165,7 @@ namespace controlpp
              * \param ki The integral gain of the controller
              * \param omega The lowpass filter bandwidth
              */
-            constexpr PT1I(const T& kp, const T& ki, const T& omega)
+            constexpr PT1IControl(const T& kp, const T& ki, const T& omega)
                 : PT1_(kp, omega)
                 , I_(ki)
                 {}
@@ -1223,11 +1223,11 @@ namespace controlpp
          * 
          */
         template<class T>
-        class PID{
+        class PIDControl{
             private:
-            P<T> P_;
-            I<T> I_;
-            D<T> D_;
+            PControl<T> P_;
+            IControl<T> I_;
+            DControl<T> D_;
 
             public:
 
@@ -1238,7 +1238,7 @@ namespace controlpp
              * \param kd The differential gain
              * \param omega The thaming frequency
              */
-            PID(const T& kp, const T& ki, const T& kd, const T& omega)
+            PIDControl(const T& kp, const T& ki, const T& kd, const T& omega)
                 : P_(kp)
                 , I_(ki)
                 , D_(kd, omega){}
@@ -1260,12 +1260,12 @@ namespace controlpp
              * 
              * \param omega_c The desired cutoff frequency
              */
-            static PID from_alpha_tune(const T& alpha, const T& omega_c, const T& mag_G){
+            static PIDControl from_alpha_tune(const T& alpha, const T& omega_c, const T& mag_G){
                 const T kp = 1 / (mag_G * alpha);
                 const T ki = omega_c / (mag_G * alpha * alpha * alpha);
                 const T kd = 1 / (omega_c * mag_G);
                 const T omega = omega_c * alpha;
-                PID result(kp, ki, ki, omega);
+                PIDControl result(kp, ki, ki, omega);
                 return result;
             }
 
@@ -1326,7 +1326,7 @@ namespace controlpp
          * 
          */
         template<class T>
-        class LeadLag{
+        class LeadLagControl{
             private:
 
             T omega1_;
@@ -1337,12 +1337,12 @@ namespace controlpp
 
             public:
 
-            LeadLag(const T& omega1, const T& omega2)
+            LeadLagControl(const T& omega1, const T& omega2)
                 : omega1_(omega1)
                 , omega2_(omega2)
                 {}
 
-            LeadLag(const LeadLag&) = default;
+            LeadLagControl(const LeadLagControl&) = default;
 
             /// @brief Sets the low-pass bandwidth
             /// @param omega1 The new low-pass bandwidth
@@ -1434,7 +1434,7 @@ namespace controlpp
          * - \f$u_k\f$ current and previous control inputs
          */
         template<class T>
-        class Notch{
+        class NotchControl{
             private:
 
             T width_;
@@ -1460,7 +1460,7 @@ namespace controlpp
              *      - \f$d = 0\f$: Numerator and Denominator cancel --> theoretically a proportional gain but numerically instable
              *      - \f$d > 0\f$: inverse notch / peak
              */
-            constexpr Notch(const T& w, const T& d, const T& omega)
+            constexpr NotchControl(const T& w, const T& d, const T& omega)
                 : width_(w)
                 , damping_(d)
                 , omega_(omega){}

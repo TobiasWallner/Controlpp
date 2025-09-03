@@ -36,7 +36,7 @@ TEST(H2Controller, for_PT1){
     const double control_penalty = 500000.0;
     const double measurement_noise = 0.001;
 
-    const auto H2 = continous_h2_controller(P, M, Wd, Wz, control_penalty, measurement_noise);
+    const auto H2 = continous_h2(P, M, Wd, Wz, control_penalty, measurement_noise);
     
     const auto Pz = s_to_z(to_state_space(P), Ts);
     const auto Mz = s_to_z(to_state_space(M), Ts);
