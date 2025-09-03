@@ -59,6 +59,7 @@ namespace controlpp
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
         double _memory = 0.98;
+        double _cov_reg = 1e-9;
 
         public:
 
@@ -79,14 +80,20 @@ namespace controlpp
          * - `memory` = 1: no forgetting, converges to standard least squares
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between 0.8 and 0.98
+         * 
+         * \param cov_reg A value that will be added to the diagonal of the covariance matrix at each update
+         * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.95)
+            double memory = 0.95,
+            double cov_reg = 1e-9
+        )
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
+            , _cov_reg(cov_reg)
             {
                 if(memory <= T(0) || memory > T(1)){
                     throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
@@ -123,6 +130,10 @@ namespace controlpp
 
             // Covariance
             this->_cov = (this->_cov - K * s * this->_cov) / this->_memory;
+            
+            Eigen::Vector<T, NParams> d;
+            d.fill(this->_cov_reg);
+            this->_cov.diagonal() += d;
         }
 
         /**
@@ -178,6 +189,7 @@ namespace controlpp
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
         double _memory = 0.98;
+        double _cov_reg = 1e-9;
 
         public:
 
@@ -198,14 +210,20 @@ namespace controlpp
          * - `memory` = 1: no forgetting, converges to standard least squares
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between `0.9 `and `0.995`.
+         * 
+         * \param cov_reg A value that will be added to the diagonal of the covariance matrix at each update
+         * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.99)
+            double memory = 0.99,
+            double cov_reg = 1e-9
+        )
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
+            , _cov_reg(cov_reg)
             {
                 if(memory <= T(0) || memory > T(1)){
                     throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
@@ -227,6 +245,10 @@ namespace controlpp
 
             // Covariance
             this->_cov = (this->_cov - K * s.transpose() * this->_cov) / this->_memory;
+            
+            Eigen::Vector<T, NParams> d;
+            d.fill(this->_cov_reg);
+            this->_cov.diagonal() += d;
         }
 
         /**
