@@ -15,3 +15,4 @@
 #include <controlpp/H2Controller.hpp>
 #include <controlpp/Pade.hpp>
 #include <controlpp/analysis.hpp>
+#include <controlpp/Generator.hpp>

@@ -49,6 +49,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/Polynom_Tests.cpp
         tests/math_Tests.cpp
         tests/analysis_Tests.cpp
+        tests/Generator_Tests.cpp
     )
 
     set_target_properties(controlpp_tests PROPERTIES LINKER_LANGUAGE CXX)
