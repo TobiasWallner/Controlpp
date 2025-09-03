@@ -5,7 +5,7 @@ Controlpp
 
 [![clang-build-and-test](https://github.com/TobiasWallner/Controlpp/actions/workflows/test_with_clang.yml/badge.svg)](https://github.com/TobiasWallner/Controlpp/actions/workflows/test_with_clang.yml)
 
-A modern C++ library for control systems: from classic transfer-function workflows to state-space, estimators, and optimal control. Design continuous or discrete controllers, run time-variant logic, and bring in LQR, Kalman filtering, and even H₂ synthesis building blocks.
+A C++ library for control systems: from classic transfer-function workflows to state-space, estimators, and optimal control. Design continuous or discrete controllers, run time-variant logic, and bring in LQR, Kalman filtering, and even H₂ synthesis building blocks.
 
 Features:
 ---------
