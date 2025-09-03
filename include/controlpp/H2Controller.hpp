@@ -330,7 +330,6 @@ namespace controlpp
      * \param Wz Transfer function (weight) shaping the performance output
      * 
      * \see ContinuousGeneralisedPlant
-     * \see continuous_h2
      * \see ContinuousStateSpace
      * \see ContinuousTransferFunction
      */
@@ -404,5 +403,7 @@ namespace controlpp
         const ContinuousStateSpace<T, NStates, NInputs, NMeasOutputs> h2 = continuous_h2(Gp, control_penalty);
         return h2;
     }
+
+    
 
 } // namespace controlpp

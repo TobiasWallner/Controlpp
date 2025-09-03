@@ -131,6 +131,7 @@ namespace controlpp
             // Covariance
             this->_cov = (this->_cov - K * s * this->_cov) / this->_memory;
             
+            // for numerical stability
             Eigen::Vector<T, NParams> d;
             d.fill(this->_cov_reg);
             this->_cov.diagonal() += d;
@@ -246,6 +247,7 @@ namespace controlpp
             // Covariance
             this->_cov = (this->_cov - K * s.transpose() * this->_cov) / this->_memory;
             
+            // for numerical stability
             Eigen::Vector<T, NParams> d;
             d.fill(this->_cov_reg);
             this->_cov.diagonal() += d;
