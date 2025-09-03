@@ -34,8 +34,8 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     const auto Sys_z = controlpp::continuous_to_discrete(Sys_s, sample_time);
    
     // check
-    ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.001));
-    ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.001));
+    ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.001)) << "Sys_z.A():\n" << Sys_z.A() << "\n" << "expected_A\n" << expected_A;
+    ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.001)) << "Sys_z.B():\n" << Sys_z.B() << "\n" << "expected_B\n" << expected_B;
     ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.001));
     ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.001));
 }

@@ -70,11 +70,11 @@ namespace controlpp
         M *= sample_time;
         
         // calculation
-        M = controlpp::mexp(M);
+        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M);
 
         // re-assignment
-        result.A() = M.template block<states, states>(0, 0);
-        result.B().col(0) = M.col(states).head(states);
+        result.A() = Md.template block<states, states>(0, 0);
+        result.B().col(0) = Md.col(states).head(states);
         result.C() = sys.C();
         result.D() = sys.D();
 

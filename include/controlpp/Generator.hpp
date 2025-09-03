@@ -10,6 +10,7 @@
  */
 
 #include <Eigen/Dense>
+
 #include <controlpp/math.hpp>
 
 namespace controlpp

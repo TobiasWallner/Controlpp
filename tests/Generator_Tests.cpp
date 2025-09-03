@@ -15,8 +15,8 @@ TEST(Generator, SineGenerator){
     controlpp::SineGenerator sineGen(omega, sample_time);
 
     for(float time = 0.f; time < Tp; time += sample_time){
-        ASSERT_NEAR(sineGen.sin(), std::sin(time * omega), 0.01) << "at time: " << time;
-        ASSERT_NEAR(sineGen.cos(), std::cos(time * omega), 0.01) << "at time: " << time;
+        ASSERT_NEAR(sineGen.sin(), std::sin(time * omega), 1e-5) << "at time: " << time;
+        ASSERT_NEAR(sineGen.cos(), std::cos(time * omega), 1e-5) << "at time: " << time;
         sineGen.next();
     }
 }

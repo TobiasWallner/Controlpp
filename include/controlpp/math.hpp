@@ -55,17 +55,27 @@ namespace controlpp{
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
 	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, size_t n){
-		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
-		const Matrix I = Matrix::Identity();
-		Matrix x_pow = x * x;
-		T factorial = T(2);
-		Matrix result = I + x + x_pow / factorial;
-		for(size_t i = 3; i <= n; ++i){
-			x_pow = x_pow * x;
-			factorial *= i;
-			result = result + x_pow / factorial;
+		Eigen::Matrix<T, Rows, Cols> result;
+		const auto I = Eigen::Matrix<T, Rows, Cols>::Identity();
+		result.setZero();
+		for(int i = n; i > 0; --i){
+			Eigen::Matrix<T, Rows, Cols> new_result = (result + I) * x / static_cast<T>(i);
+			result = new_result;
 		}
+		result += I;
 		return result;
+		
+		// using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
+		// const Matrix I = Matrix::Identity();
+		// Matrix x_pow = x * x;
+		// T factorial = T(2);
+		// Matrix result = I + x + x_pow / factorial;
+		// for(size_t i = 3; i <= n; ++i){
+		// 	x_pow = x_pow * x;
+		// 	factorial *= i;
+		// 	result = result + x_pow / factorial;
+		// }
+		// return result;
 	}
 
 	/**
@@ -95,7 +105,7 @@ namespace controlpp{
 	 * \see controlpp::exp_taylor
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor_scaled(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 4, size_t scaling = 10){
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor_scaled(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 8, size_t scaling = 10){
 		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
 		T s = static_cast<T>(1 << scaling);
 		Matrix scaled_M = M/s;
@@ -123,12 +133,12 @@ namespace controlpp{
 	 * \see controlpp::exp_taylor_scaled
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 4){
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 8){
 		// use the absolute maxima as a (fast) normation factor to calculate the scaling
 		size_t norm = M.cwiseAbs().maxCoeff();
 
 		// a fast log2 to get the s^n scaling factor
-		size_t n = std::bit_width(norm);
+		size_t n = std::bit_width(norm)+1;
 
 		// actual exponent calculation
 		return exp_taylor_scaled(M, taylor_order, n);
