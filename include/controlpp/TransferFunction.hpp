@@ -140,29 +140,50 @@ namespace controlpp
             }
 
             /**
-             * \brief Evaluates the transfer function at the given frequency
+             * \brief Evaluates the transfer function at the given frequency (rad/s)
              * 
              * equivalent to calling `.eval(std::complex<T>(0, f))`.
              * 
              * \param frequency The frequency (in radiants per second) at which to evaluate the transfer function at
              * \returns The complex result of the frequency evaluation/analysis.
              */
-            constexpr std::complex<T> eval_frequency(const T& frequency){
+            constexpr std::complex<T> eval_frequency(const T& frequency) const {
                 const std::complex<T> jw(0, frequency);
                 const std::complex<T> result = this->eval(jw);
                 return result;
             }
 
             /**
-             * \brief Evaluates the transfer function at the given frequencies
-             * 
-             * \param frequencies The frequencies (in radiants per second) at which to evaluate the transfer function at
+             * \brief Evaluates the transfer function at the given frequency (Hz)
+             * \param frequency The frequency (Hz) at which to evaluate the transfer function at
+             * \returns The complex result of the frequency evaluation/analysis.
+             */
+            constexpr std::complex<T> eval_frequency_Hz(const T& frequency) const {
+                return this->eval_frequency(frequency * static_cast<T>(2) * std::numbers::pi_v<T>);
+            }
+
+            /**
+             * \brief Evaluates the transfer function at the given frequencies (rad/s)
+             * \param frequencies The frequencies (rad/s) at which to evaluate the transfer function at
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
             constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
                 const std::complex<T> j(0, 1);
                 const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j;
+                const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);
+                return result;
+            }
+
+            /**
+             * \brief Evaluates the transfer function at the given frequencies (Hz)
+             * \param frequencies The frequencies (Hz) at which to evaluate the transfer function at
+             * \returns The complex result of the frequency evaluation/analysis.
+             */
+            template<int M>
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
+                const std::complex<T> j(0, 1);
+                const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j * static_cast<T>(2) * std::numbers::pi_v<T>;
                 const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);
                 return result;
             }

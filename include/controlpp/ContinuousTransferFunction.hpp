@@ -114,15 +114,28 @@ namespace controlpp
                 return this->tf_.eval_frequency(frequency);
             }
 
+            constexpr std::complex<T> eval_frequency_Hz(const T& frequency) const {
+                return this->tf_.eval_frequency_Hz(frequency);
+            }
+
             /**
-             * \brief Evaluates the transfer function at the given frequencies
-             * 
-             * \param frequencies The frequencies (in radiants per second) at which to evaluate the transfer function at
+             * \brief Evaluates the transfer function (rad/s) at the given frequencies
+             * \param frequencies The frequencies (rad/s) at which to evaluate the transfer function at
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
             constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
                 return this->tf_.eval_frequencies(frequencies);
+            }
+
+            /**
+             * \brief Evaluates the transfer function (Hz) at the given frequencies
+             * \param frequencies The frequencies (Hz) at which to evaluate the transfer function at
+             * \returns The complex result of the frequency evaluation/analysis.
+             */
+            template<int M>
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
+                return this->tf_.eval_frequencies_Hz(frequencies);
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const ContinuousTransferFunction& ctf){
@@ -151,6 +164,11 @@ namespace controlpp
 
     // operator -
     // -----------
+
+    template<class T, int NumOrder, int DenOrder>
+    constexpr ContinuousTransferFunction<T, NumOrder, DenOrder> operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& a){
+        return ContinuousTransferFunction(-a.transfer_function());
+    }
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
     constexpr auto operator-(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
