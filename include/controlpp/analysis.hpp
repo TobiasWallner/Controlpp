@@ -170,22 +170,15 @@ namespace controlpp
             const T& fastest_freq_Hz, 
             const int samples_per_decade=100
     ){
-        const T two_pi = static_cast<T>(2) * std::numbers::pi_v<T>;
-        
-        const T slowest_freq_rad = two_pi * slowest_freq_Hz;
-        const T fastest_freq_rad = two_pi * fastest_freq_Hz;
-
         const T decades = std::log10(fastest_freq_Hz) - std::log10(slowest_freq_Hz);
         const T samples = samples_per_decade * decades;
 
-        const Eigen::Vector<T, Eigen::Dynamic> freqs_rad = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(samples, std::log(slowest_freq_rad), std::log(fastest_freq_rad)).array().exp();
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> complex_magnitudes = tf.eval_frequencies(freqs_rad);
+        const Eigen::Vector<T, Eigen::Dynamic> freqs_Hz = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(samples, std::log(slowest_freq_Hz), std::log(fastest_freq_Hz)).array().exp();
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> complex_magnitudes = tf.eval_frequencies_Hz(freqs_Hz);
         
         Bode<T, Eigen::Dynamic> result;
-        result.frequencies = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(samples, std::log(slowest_freq_Hz), std::log(fastest_freq_Hz)).array().exp();
-
+        result.frequencies = freqs_Hz;
         result.magnitudes = complex_magnitudes.array().abs().log10() * static_cast<T>(20);
-        
         result.phases = complex_magnitudes.array().arg() * static_cast<T>(180 / std::numbers::pi_v<T>);
         
         return result;
