@@ -49,6 +49,22 @@ namespace controlpp
                 , sample_time_(sample_time)
                 , x_(static_cast<T>(0), static_cast<T>(1))
             {
+                this->set_frequency_and_sample_time(frequency, sample_time);
+            }
+
+            void set_frequency(const T& frequency){
+                this->set_frequency_and_sample_time(frequency, this->sample_time_);
+            }
+
+            void set_sample_time(const T& sample_time){
+                this->set_frequency_and_sample_time(this->frequency_, sample_time);
+            }
+
+            void set_frequency_and_sample_time(const T& frequency, const T& sample_time){
+                // set members
+                this->frequency_ = frequency;
+                this->sample_time_ = sample_time;
+
                 // continuous dynamic matrix
                 Eigen::Matrix<T, 2, 2> A_continuous({
                     {0, frequency},
