@@ -1,14 +1,6 @@
 
 TODO:
-- use 'z^{-1}' instead of 'z' for discrete transfer functions.
-
-- larger tests of controllers designed with `tf::s`
-
-Naming Style
-------------
-- All functions and Methods in `snake_case`
-- Name controllers like: `PController`, `PControl` or `controller::P` instead of just `P`
-  >Looking at this I think I prefer `PControl`
+- make a pade version for matrix exponentiation
 
 Hybrid Storage
 --------------
