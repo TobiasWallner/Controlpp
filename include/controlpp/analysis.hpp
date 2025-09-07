@@ -179,7 +179,7 @@ namespace controlpp
         Bode<T, Eigen::Dynamic> result;
         result.frequencies = freqs_Hz;
         result.magnitudes = complex_magnitudes.array().abs().log10() * static_cast<T>(20);
-        result.phases = complex_magnitudes.array().arg() * static_cast<T>(180 / std::numbers::pi_v<T>);
+        result.phases = phase_unwrap_deg(complex_magnitudes.array().arg() * static_cast<T>(180 / std::numbers::pi_v<T>));
         
         return result;
     }
