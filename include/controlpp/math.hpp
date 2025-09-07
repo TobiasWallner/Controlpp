@@ -36,6 +36,64 @@ namespace controlpp{
 	}
 
 	/**
+	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in radiants
+	 * 
+	 * Checks wheather jumps in the phases occur that are larger than the threshold,
+	 * and if so \f$2 \pi\$f is added or subtracted until the phase is within the bounds of [-threshold, +threshold].
+	 * 
+	 * \param phase A vector op phases (rad)
+	 * \param threshold The threshold (rad) at which to correct the phase by two pi
+	 * \returns A vector with the corrected phases (rad)
+	 */
+	template<class T, int N>
+	Eigen::Vector<T, N> phase_unwrap_rad(const Eigen::Vector<T, N>& phase, const T& threshold=std::numbers::pi_v<T>){
+		Eigen::Vector<T, N> result;
+		if constexpr (N == Eigen::Dynamic) result.resize(phase.size());
+		T offset = 0;
+		result(0) = phase(0);
+		const T two_pi = static_cast<T>(2) * std::numbers::pi_v<T>;
+		for(int i = 1; i < phase.size(); ++i){
+			while(((phase(i) + offset) - result(i-1)) > threshold){
+				offset -= two_pi;
+			}
+			while(((phase(i) + offset) - result(i-1)) < -threshold){
+				offset += two_pi;
+			}
+			result(i) = phase(i) + offset;
+		}
+		return result;
+	}
+
+	/**
+	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in degrees
+	 * 
+	 * Checks wheather jumps in the phases occur that are larger than the threshold,
+	 * and if so 360° is added or subtracted until the phase is within the bounds of [-threshold, +threshold].
+	 * 
+	 * \param phase A vector op phases (deg)
+	 * \param threshold The threshold (deg) at which to correct the phase by two pi
+	 * \returns A vector with the corrected phases (deg)
+	 */
+	template<class T, int N>
+	Eigen::Vector<T, N> phase_unwrap_deg(const Eigen::Vector<T, N>& phase, const T& threshold=static_cast<T>(180)){
+		Eigen::Vector<T, N> result;
+		if constexpr (N == Eigen::Dynamic) result.resize(phase.size());
+		T offset = 0;
+		result(0) = phase(0);
+		for(int i = 1; i < phase.size(); ++i){
+			while(((phase(i) + offset) - result(i-1)) > threshold){
+				offset -= static_cast<T>(360);
+			}
+			while(((phase(i) + offset) - result(i-1)) < -threshold){
+				offset += static_cast<T>(360);
+			}
+			result(i) = phase(i) + offset;
+		}
+		return result;
+	}
+
+
+	/**
 	 * \brief Exponential function with a taylor approximation
 	 * 
 	 * \f[
