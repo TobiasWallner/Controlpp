@@ -3,13 +3,14 @@ CC = gcc
 CXX = g++
 G = "Ninja"
 
-.PHONY: config
-config:
+
+build/$(config)/config.timestampfile: CMakeLists.txt
 	cmake -S . -B build/$(config)/ -G $(G) -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_BUILD_TYPE=$(config) -DCONTROLPP_COMPILE_TEST=ON
+	echo "" > $@
 
 
 .PHONY: build
-build: config
+build: build/$(config)/config.timestampfile
 	cmake --build build/$(config)/ --config $(config)
 
 .PHONY: test
