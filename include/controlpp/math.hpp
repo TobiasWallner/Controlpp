@@ -7,10 +7,7 @@ namespace controlpp{
 	
 	/**
 	 * \brief Calculates the product of all numbers in the closed open range [from, to)
-	 * 
-	 * Example:
-	 * ```
-	 * product_over(2, )
+	 * \returns An integer
 	 */
 	constexpr unsigned long product_over(unsigned long from, unsigned long to){
 		unsigned long product = 1;
@@ -20,6 +17,9 @@ namespace controlpp{
 		return product;
 	}
 
+	/**
+	 * \brief Power function for integral exponents
+	 */
 	template<class T>
 	constexpr T pow(const T& base, const int& exp){
 		T result = static_cast<T>(1);
@@ -36,62 +36,58 @@ namespace controlpp{
 	}
 
 	/**
-	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in radiants
+	 * \brief Unwinds modulo jumps
 	 * 
-	 * Checks wheather jumps in the phases occur that are larger than the threshold,
-	 * and if so \f$2 \pi\$f is added or subtracted until the phase is within the bounds of [-threshold, +threshold].
+	 * Checks wheather jumps in occur that are larger than the threshold,
+	 * and if so the modulo is added or subtracted n times so that the step \f$y_{k+1} - y_{k}\f$ is within the bounds [-threshold, +threshold].
 	 * 
-	 * \param phase A vector op phases (rad)
-	 * \param threshold The threshold (rad) at which to correct the phase by two pi
-	 * \returns A vector with the corrected phases (rad)
+	 * \param y The vector to be unwrapped
+	 * \param modulo The modulo to unwrap. Will be added/subtracted n times to minimize variance.
+	 * \returns An eigen vector, the size of the input with the unwrapped values
 	 */
 	template<class T, int N>
-	Eigen::Vector<T, N> phase_unwrap_rad(const Eigen::Vector<T, N>& phase, const T& threshold=std::numbers::pi_v<T>){
+	Eigen::Vector<T, N> unwrap(const Eigen::Vector<T, N>& y, const T& modulo){
 		Eigen::Vector<T, N> result;
-		if constexpr (N == Eigen::Dynamic) result.resize(phase.size());
+		if constexpr (N == Eigen::Dynamic) result.resize(y.size());
 		T offset = 0;
-		result(0) = phase(0);
-		const T two_pi = static_cast<T>(2) * std::numbers::pi_v<T>;
-		for(int i = 1; i < phase.size(); ++i){
-			while(((phase(i) + offset) - result(i-1)) > threshold){
-				offset -= two_pi;
+		result(0) = y(0);
+		for(int i = 1; i < y.size(); ++i){
+			while(((y(i) + offset) - result(i-1)) > (modulo/2)){
+				offset -= modulo;
 			}
-			while(((phase(i) + offset) - result(i-1)) < -threshold){
-				offset += two_pi;
+			while(((y(i) + offset) - result(i-1)) < (-modulo/2)){
+				offset += modulo;
 			}
-			result(i) = phase(i) + offset;
+			result(i) = y(i) + offset;
 		}
 		return result;
 	}
 
 	/**
-	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in degrees
-	 * 
-	 * Checks wheather jumps in the phases occur that are larger than the threshold,
-	 * and if so 360° is added or subtracted until the phase is within the bounds of [-threshold, +threshold].
-	 * 
-	 * \param phase A vector op phases (deg)
-	 * \param threshold The threshold (deg) at which to correct the phase by two pi
-	 * \returns A vector with the corrected phases (deg)
+	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in radiants
+	 * \param phase A vector op phases (rad)
+	 * \returns A vector with the corrected phases (rad)
+	 * \see unwrap
+	 * \see unwrap_deg
 	 */
 	template<class T, int N>
-	Eigen::Vector<T, N> phase_unwrap_deg(const Eigen::Vector<T, N>& phase, const T& threshold=static_cast<T>(180)){
-		Eigen::Vector<T, N> result;
-		if constexpr (N == Eigen::Dynamic) result.resize(phase.size());
-		T offset = 0;
-		result(0) = phase(0);
-		for(int i = 1; i < phase.size(); ++i){
-			while(((phase(i) + offset) - result(i-1)) > threshold){
-				offset -= static_cast<T>(360);
-			}
-			while(((phase(i) + offset) - result(i-1)) < -threshold){
-				offset += static_cast<T>(360);
-			}
-			result(i) = phase(i) + offset;
-		}
-		return result;
+	Eigen::Vector<T, N> unwrap_rad(const Eigen::Vector<T, N>& phases){
+		const T modulo = std::numbers::pi_v<T> * static_cast<T>(2);
+		return unwrap(phases, modulo);
 	}
 
+	/**
+	 * \brief Unwinds phase jumps of \f$2 \pi\f$ in degrees
+	 * \param phase A vector op phases (deg)
+	 * \returns A vector with the corrected phases (deg)
+	 * \see unwrap
+	 * \see unwrap_rad
+	 */
+	template<class T, int N>
+	Eigen::Vector<T, N> unwrap_deg(const Eigen::Vector<T, N>& phases){
+		const T modulo = 360;
+		return unwrap(phases, modulo);
+	}
 
 	/**
 	 * \brief Exponential function with a taylor approximation
@@ -112,7 +108,10 @@ namespace controlpp{
 	 * \see controlpp::mexp
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, size_t n){
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor(
+			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, 
+			int n
+	){
 		Eigen::Matrix<T, Rows, Cols> result;
 		const auto I = Eigen::Matrix<T, Rows, Cols>::Identity();
 		result.setZero();
@@ -122,18 +121,6 @@ namespace controlpp{
 		}
 		result += I;
 		return result;
-		
-		// using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
-		// const Matrix I = Matrix::Identity();
-		// Matrix x_pow = x * x;
-		// T factorial = T(2);
-		// Matrix result = I + x + x_pow / factorial;
-		// for(size_t i = 3; i <= n; ++i){
-		// 	x_pow = x_pow * x;
-		// 	factorial *= i;
-		// 	result = result + x_pow / factorial;
-		// }
-		// return result;
 	}
 
 	/**
@@ -163,12 +150,16 @@ namespace controlpp{
 	 * \see controlpp::exp_taylor
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor_scaled(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 8, size_t scaling = 10){
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor_scaled(
+			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, 
+			int taylor_order = 8, 
+			int scaling = 10
+	){
 		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
 		T s = static_cast<T>(1 << scaling);
 		Matrix scaled_M = M/s;
 		Matrix t = exp_taylor(scaled_M, taylor_order);
-		for(size_t i = 0; i < scaling; ++i) t = t * t;
+		for(int i = 0; i < scaling; ++i) t = t * t;
 		return t;
 	}
 
@@ -191,12 +182,12 @@ namespace controlpp{
 	 * \see controlpp::exp_taylor_scaled
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, size_t taylor_order = 8){
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, unsigned int taylor_order = 8){
 		// use the absolute maxima as a (fast) normation factor to calculate the scaling
-		size_t norm = M.cwiseAbs().maxCoeff();
+		int norm = M.cwiseAbs().maxCoeff();
 
 		// a fast log2 to get the s^n scaling factor
-		size_t n = std::bit_width(norm)+1;
+		int n = std::bit_width(static_cast<unsigned int>(norm))+1;
 
 		// actual exponent calculation
 		return exp_taylor_scaled(M, taylor_order, n);
@@ -305,87 +296,78 @@ namespace controlpp{
 	}
 
 	/**
-	 * \brief Solves the continuous Riccati equation for the LQR (Linear Quadratic Regulator) problem
+	 * \brief Solves the continuous time Lyapunov equation
 	 * 
-	 * Solves the following LQR Riccati equation for \f$X\f$:
-	 * 
+	 * This function computes the stabilizing symmetric solution of the lyapunov equation:
+     * 
 	 * \f[
-	 * A^\top X + X A - X B R^{-1} B^\top X + Q = 0
+	 * A^\top X + X A + Q = 0
 	 * \f]
 	 * 
-	 * for the system:
-	 * 
-	 * \f[
-	 * \dot{x} = A x + B u\\
-	 * \f]
+	 * where A and Q are parameter and X is the matrix being solved for.
 	 * 
 	 * ----
 	 * 
-	 * Soves the Riccatiy equation by:
+	 * Soves the Lyapunov equation by:
 	 * 
-	 * 1. Building the Hamilton matrix (`controlpp::create_hamilton()`)
+	 * 1. Building the Hamilton matrix
 	 * 2. Compute its stable eigenvectors
 	 * 3. Re-Partitions the eigenvectors
 	 * 4. Recovers X from the partitions
 	 * 
-	 * \param A System dynamics matrix
-	 * \param B System input matrix
-	 * \param R Control cost matrix. Assumend to be strictly symetric positive definite!
-	 * \param Q State const matrix
+	 * \param A State matrix (\f$n \times n\f$).
+	 * \param Q State weighting matrix (\f$n \times n\f$, symmetric positive semidefinite).
+	 *
+	 * \tparam T Scalar type (e.g., `double`, `float`).
+	 * \tparam NStates Dimension of the matrices
 	 * 
-	 * \tparam T The data type of the matrix elements
-	 * \tparam N The number of states
-	 * \tparam M The number of imputs
-	 * 
+	 * \returns X the solution to the Lyapunov equation as an Eigen::Matrix with the dimensions `NStates x NStates`.
 	 */
-	template<
-		class T, int N, int M,
-		int AOptions, int AMaxRows, int AMaxCols,
-		int BOptions, int BMaxRows, int BMaxCols,
-		int QOptions, int QMaxRows, int QMaxCols,
-		int ROptions, int RMaxRows, int RMaxCols
-	>
-	constexpr Eigen::Matrix<T, N, N> solve_continuous_lqr_riccati(
-		const Eigen::Matrix<T, N, N, AOptions, AMaxRows, AMaxCols>& A,
-		const Eigen::Matrix<T, N, M, BOptions, BMaxRows, BMaxCols>& B,
-		const Eigen::Matrix<T, M, M, ROptions, RMaxRows, RMaxCols>& R,
-		const Eigen::Matrix<T, N, N, QOptions, QMaxRows, QMaxCols>& Q
+	template<class T, int NStates,
+			int AOpt, int AMaxR, int AMaxC,
+			int QOpt, int QMaxR, int QMaxC
+  	>
+	constexpr Eigen::Matrix<T, NStates, NStates> lyapunov_solver(
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q
 	){
 		// 1. Build the hamilton matrix
-		Eigen::Matrix<T, 2*N, 2*N> H;
-		H.topLeftCorner(N, N) = A;
-		H.topRightCorner(N, N) =  - B * R.ldlt().solve(B.transpose());
-		H.bottomLeftCorner(N, N) = -Q;
-		H.bottomRightCorner(N, N) = -A.transpose();
+		Eigen::Matrix<T, 2*NStates, 2*NStates> H;
+		H.topLeftCorner(NStates, NStates) = A;
+		H.topRightCorner(NStates, NStates).setZero();
+		H.bottomLeftCorner(NStates, NStates) = - Q;
+		H.bottomRightCorner(NStates, NStates) = -A.transpose();
 
 		// 2. Compute stable eigenvectors
-		Eigen::ComplexEigenSolver<Eigen::Matrix<T, 2*N, 2*N>> ces;
+		Eigen::ComplexEigenSolver<Eigen::Matrix<T, 2*NStates, 2*NStates>> ces;
 		ces.compute(H);
 		const auto& H_eigvals = ces.eigenvalues();
 		const auto& H_eigvecs = ces.eigenvectors();
 
 		// in a 2n hamilton matrix are exactly n stable ones
-		Eigen::Matrix<std::complex<T>, 2*N, N> StableEigenVecs;
+		Eigen::Matrix<std::complex<T>, 2*NStates, NStates> StableEigenVecs;
 		int si = 0; // stable eigenvalue iterator
 		int ei = 0; // eigen value iterator
-		for(; (si < N) && (ei < 2*N); ++ei){
-			if(H_eigvals(ei).real() < 0){// only stable ones
+		for(; (si < NStates) && (ei < 2*NStates); ++ei){
+			if(H_eigvals(ei).real() < static_cast<T>(0)){// only stable ones
 				StableEigenVecs.col(si) = H_eigvecs.col(ei);
 				++si;
 			}
 		}
 
 		// 3. Repartition
-		const auto TopPartition = StableEigenVecs.template block<N, N>(0, 0);
-		const auto BottomPartition = StableEigenVecs.template block<N, N>(N, 0);
+		const auto TopPartition = StableEigenVecs.template block<NStates, NStates>(0, 0);
+		const auto BottomPartition = StableEigenVecs.template block<NStates, NStates>(NStates, 0);
 
 		// 4. Recover Solution (BottomPartition * TopPartition^-1)
-		const Eigen::Matrix<std::complex<T>, N, N> X = TopPartition.transpose().partialPivLu().solve(BottomPartition.transpose()).transpose();
+		const Eigen::Matrix<std::complex<T>, NStates, NStates> X = TopPartition.transpose().partialPivLu().solve(BottomPartition.transpose()).transpose();
 
 		// The result is real, make sure it is real because it should be
-		const Eigen::Matrix<T, N, N> realX = X.real();
+		const Eigen::Matrix<T, NStates, NStates> realX = X.real();
 
-		return realX;
+        // force the result X to be symetric to combat small numerical errors
+        const Eigen::Matrix<T, NStates, NStates> result = static_cast<T>(0.5) * (realX + realX.transpose());
+		return result;
 	}
 
 	/**
