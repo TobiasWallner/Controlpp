@@ -284,8 +284,8 @@ namespace controlpp
                 : ki_(ki)
                 , min_(min)
                 , max_(max)
-                , vp_(vp)
                 , vn_(vn)
+                , vp_(vp)
                 {}
 
             /// @brief Default copy constructor 
@@ -1409,29 +1409,13 @@ namespace controlpp
          * Has the following continuous transfer function:
          * 
          * \f[
-         * N(s) = \frac{1 + \frac{2 W D s}{\omega} + \frac{s^2}{\omega^2}}{2 W s}{\omega} + \frac{s^2}{\omega^2}}
-         * \f]
-         * 
-         * transformed with the tustin transformation to the following time series:
-         * 
-         * \f[
-         * y_k = \frac{b_0  u_k + b_1  u_{k-1} + b_2  u_{k-2} - a_1  y_{k-1} - a_2  y_{k-2}}{a_0} \\
-         * a_0 = \omega^2 Ts^2 + 4 W \omega Ts + 4 \\
-         * a_1 = 2 \omega^2 T_s^2  - 8 \\
-         * a_2 = \omega^2 T_s^2 - 4 W \omega Ts + 4 \\
-         * b_0 = \omega^2 Ts^2 + 4 W D \omega Ts + 4 \\
-         * b_1 = a_1 \\
-         * b_2 = \omega^2 T_s^2 - 4 W D \omega Ts + 4 \\
+         * N(s) = \frac{1 + \frac{2 G_\text{min} W s}{\omega} + \frac{s^2}{\omega^2}}{2 W s}{\omega} + \frac{s^2}{\omega^2}}
          * \f]
          * 
          * where:
+         *  - \f$G_\text{min}\f$ is the value at the notch
+         *  - \f$W\f$ is the width of the notch
          * 
-         * - \f$T_s\f$ sample-time
-         * - \f$\omega\f$ the frequency of the notch
-         * - \f$W\f$ the width of the notch. (\f$W \geqslant 0\f$)
-         * - \f$D\f$ the dampening of the notch. (\f$0 \\leqslant D < 1\f$)
-         * - \f$y_k\f$ current and previous control outpouts
-         * - \f$u_k\f$ current and previous control inputs
          */
         template<class T>
         class NotchControl{
