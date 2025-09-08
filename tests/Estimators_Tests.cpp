@@ -74,7 +74,7 @@ TEST(Estimators, DtfEstimator){
 
     const auto Gs = (8) / (1 + 3*s);
 
-    const auto Sz = controlpp::s_to_z(controlpp::to_state_space(Gs), 0.1);
+    const auto Sz = controlpp::discretise_zoh(controlpp::to_state_space(Gs), 0.1);
 
     controlpp::DssFilter dssf(Sz);
     controlpp::DtfEstimator<double, 1, 1> dtf_est;

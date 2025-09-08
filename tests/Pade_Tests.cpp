@@ -1,6 +1,6 @@
 #include <cmath>
 #include <random>
-
+#include <fstream>
 // google test
 #include <gtest/gtest.h>
 
@@ -260,4 +260,24 @@ TEST(Pade, pade_polynom_3_4){
     for(size_t i = 0; i < ctf.den().size(); ++i){
         ASSERT_NEAR(ctf.den(i), expected.den(i), 1e-8);
     }
+}
+
+TEST(Pade, pade_3_4_step_response){
+    const auto P = controlpp::pade<double, 3, 4>(600e-6);
+
+    const auto [slowest_freq, fastest_freq] = slowest_fastest_frequencies(P);
+    const double sample_time = (0.05) / fastest_freq;
+    const double simulation_time = (20) / slowest_freq;
+    std::cout << "sample_time: " << sample_time << std::endl;
+
+    const auto Pss = controlpp::to_state_space(P);
+    std::cout << "Pss:\n" << Pss << std::endl;
+
+    const auto Pz = controlpp::discretise_zoh(Pss, sample_time);
+    std::cout << "Pz:\n" << Pz << std::endl;
+
+    const auto step = controlpp::step(P, sample_time, simulation_time);
+    
+    std::ofstream file("step.csv");
+    file << step << std::endl;
 }

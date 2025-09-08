@@ -31,7 +31,6 @@ namespace controlpp
 
         private:
             transfer_function_type tf_;
-            value_type _sample_time;
 
         public:
 
@@ -44,13 +43,13 @@ namespace controlpp
                 const Polynom<ValueType, DenOrder>& den)
                 : tf_(num, den){}
 
-            constexpr DiscreteTransferFunction(
-                const TransferFunction<ValueType, NumOrder, DenOrder>& transfer_function)
+            constexpr DiscreteTransferFunction(const TransferFunction<ValueType, NumOrder, DenOrder>& transfer_function)
                 : tf_(transfer_function){}
 
             constexpr explicit DiscreteTransferFunction(
                 const num_vector_type& num, 
-                const den_vector_type& den)
+                const den_vector_type& den
+            )
                 : tf_(num, den){}
 
             constexpr explicit DiscreteTransferFunction(
@@ -68,7 +67,7 @@ namespace controlpp
             
             constexpr transfer_function_type& transfer_function() {return this->tf_;}
             constexpr const transfer_function_type& transfer_function() const {return this->tf_;}
-
+            
             constexpr num_type& num() {return this->tf_.num();}
             constexpr const num_type& num() const {return this->tf_.num();}
 

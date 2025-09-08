@@ -1,5 +1,6 @@
 
 TODO:
+- make a `discretize_zoh()` and a `discretize_tustin()` function for discretisation.
 - make a pade version for matrix exponentiation
 
 Hybrid Storage

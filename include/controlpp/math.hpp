@@ -159,7 +159,10 @@ namespace controlpp{
 		T s = static_cast<T>(1 << scaling);
 		Matrix scaled_M = M/s;
 		Matrix t = exp_taylor(scaled_M, taylor_order);
-		for(int i = 0; i < scaling; ++i) t = t * t;
+		for(int i = 0; i < scaling; ++i){
+			const Matrix temp = t * t;
+			t = temp;
+		};
 		return t;
 	}
 

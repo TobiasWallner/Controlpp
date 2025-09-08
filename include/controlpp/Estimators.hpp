@@ -112,29 +112,17 @@ namespace controlpp
             // Gain
             const auto A = (this->_cov * s.transpose());
             const auto B = (this->_memory * I + s * this->_cov * s.transpose());
-            
-            /*
-                Note that B is positive definite:
-                    - memory > 0 ... is a positive scalar
-                    - I ... is positive definite
-                    - s * Cov * s^t ... is a squared therm which is positive definite
-
-                thus the 'ldlt' solver can be used which is more numerically stable an also faster
-            */
 
             // calculate: K = A * B^-1
-            const Eigen::Vector<T, NParams> K = B.transpose().ldlt().solve(A.transpose()).transpose();
+            const Eigen::Vector<T, NParams> K = B.transpose().llt().solve(A.transpose()).transpose();
 
             // Update
-            this->_param = this->_param + K * (y - s * this->_param);
+            const Eigen::Vector<T, NParams> new_param = this->_param + K * (y - s * this->_param);
+            this->_param = new_param;
 
             // Covariance
-            this->_cov = (this->_cov - K * s * this->_cov) / this->_memory;
-            
-            // for numerical stability
-            Eigen::Vector<T, NParams> d;
-            d.fill(this->_cov_reg);
-            this->_cov.diagonal() += d;
+            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s * this->_cov) / this->_memory;
+            this->_cov = new_cov;
         }
 
         /**
@@ -242,10 +230,11 @@ namespace controlpp
             const Eigen::Vector<T, NParams> K = (this->_cov * s) / (this->_memory + s.transpose() * this->_cov * s);
 
             // Update
-            this->_param = this->_param + K * (y - s.transpose() * this->_param);
+            const Eigen::Vector<T, NParams> new_param = this->_param + K * (y - s.transpose() * this->_param);
+            this->_param = new_param;
 
-            // Covariance
-            this->_cov = (this->_cov - K * s.transpose() * this->_cov) / this->_memory;
+            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s.transpose() * this->_cov) / this->_memory;
+            this->_cov = new_cov;
             
             // for numerical stability
             Eigen::Vector<T, NParams> d;

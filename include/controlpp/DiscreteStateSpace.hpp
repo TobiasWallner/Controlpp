@@ -71,8 +71,8 @@ namespace controlpp
             constexpr DiscreteStateSpace(const state_space_type& state_space) 
                 : _state_space(state_space){}
 
-            constexpr state_space_type& state_space(){return this->_state_space;}
-            constexpr const state_space_type& state_space() const {return this->_state_space;}
+            constexpr const state_space_type& state_space() const {return this->_state_space;}            
+            constexpr state_space_type& state_space() {return this->_state_space;}            
 
             /**
              * \brief calculates the next states and calculates the output from the previous states and new inputs

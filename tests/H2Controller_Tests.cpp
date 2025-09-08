@@ -38,9 +38,9 @@ TEST(H2Controller, for_PT1){
 
     const auto H2 = continous_h2(P, M, Wd, Wz, control_penalty, measurement_noise);
     
-    const auto Pz = s_to_z(to_state_space(P), Ts);
-    const auto Mz = s_to_z(to_state_space(M), Ts);
-    const auto H2z = s_to_z(H2, Ts);
+    const auto Pz = discretise_tustin(to_state_space(P), Ts);
+    const auto Mz = discretise_tustin(to_state_space(M), Ts);
+    const auto H2z = discretise_tustin(H2, Ts);
 
     DssFilter Pf(Pz);
     DssFilter Mf(Mz);

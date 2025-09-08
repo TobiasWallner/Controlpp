@@ -14,12 +14,9 @@
 #include <controlpp/DiscreteStateSpace.hpp>
 #include <controlpp/DiscreteTransferFunction.hpp>
 
-#include <controlpp/BilinearStateSpace.hpp>
-
 
 namespace controlpp
 {
-
     /**
      * \brief transform s-domain into z-domain using zero-order-hold
      * 
@@ -44,7 +41,7 @@ namespace controlpp
      * - R ... Controller
      * 
      * 1. mathematical model --> G(s)
-     * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
+     * 2. discretise_zoh (zero-order-hold) --> G(z) 
      * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
      * 4. bilinear_to_discrete (tustin) --> R(z)
      * 
@@ -58,7 +55,11 @@ namespace controlpp
      * \returns The discretised version of `sys`
      */
     template<class ValueType, int states>
-    constexpr DiscreteStateSpace<ValueType, states, 1, 1> continuous_to_discrete(const ContinuousStateSpace<ValueType, states, 1, 1>& sys, ValueType sample_time){
+    constexpr DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
+            const ContinuousStateSpace<ValueType, states, 1, 1>& sys, 
+            ValueType sample_time,
+            int taylor_order=8
+    ){
         // allocation
         DiscreteStateSpace<ValueType, states, 1, 1> result;
         Eigen::Matrix<ValueType, states+1, states+1> M;
@@ -70,7 +71,7 @@ namespace controlpp
         M *= sample_time;
         
         // calculation
-        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M);
+        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M, taylor_order);
 
         // re-assignment
         result.A() = Md.template block<states, states>(0, 0);
@@ -82,141 +83,51 @@ namespace controlpp
     }
 
     /**
-     * \brief transform s-domain into z-domain using zero-order-hold
+     * \brief discretises a continuous state space to a discrete one with the Tustin transformation
      * 
-     * alias for the function: `controlpp::continuous_to_discrete()`.
+     * Applies the following transformation:
+     * 
+     * \f[
+     * A_d = \left( I - \frac{Ts}{2} A \right)^{-1} \left( I + \frac{Ts}{2} A \right)\\
+     * B_d = \left( I - \frac{Ts}{2} A \right)^{-1} Ts B
+     * C_d = C \left( I - \frac{Ts}{2} A \right)^{-1}
+     * D_d = D + C * \left( I - \frac{Ts}{2} A \right)^{-1} * Ts * B / 2
+     * \f]
+     * 
+     * where:
+     *  - A, B, C, D are the continuous time system matrices
+     *  - A_d, B_d, C_d, D_d are the discrete time system matrices
+     *  - Ts is the sample time
+     * 
+     * \tparam T The value type of the matrices/systems. Usually `float` or `double`.
+     * \tparam NStates The number of states of the systems
+     * \tparam NInputs The number of inputs of the systems
+     * \tparam NOutputs The number of outputs of the systems
+     * 
+     * \param sys The continuous time state space system about to be discretised
+     * \param sample_time The sample time used for the discretisation
+     * 
+     * \returns A discrete state space system
      */
-    template<class ValueType, int states>
-    constexpr DiscreteStateSpace<ValueType, states, 1, 1> s_to_z(const ContinuousStateSpace<ValueType, states, 1, 1>& sys, ValueType sample_time){
-        return continuous_to_discrete<ValueType, states>(sys, sample_time);
-    }
+    template<class T, int NStates, int NInputs, int NOutputs>
+    constexpr DiscreteStateSpace<T, NStates, NInputs, NOutputs> discretise_tustin(
+            const ContinuousStateSpace<T, NStates, NInputs, NOutputs>& sys, 
+            const T& sample_time
+    ){
+        const Eigen::Matrix<T, NStates, NStates> I = Eigen::Matrix<T, NStates, NStates>::Identity();
+        const Eigen::Matrix<T, NStates, NStates> M = (I - (sample_time / static_cast<T>(2)) * sys.A()).eval();
+        const Eigen::Matrix<T, NStates, NStates> P = (I + (sample_time / static_cast<T>(2)) * sys.A()).eval();
 
-    /**
-     * \brief transform from z-domain into q-domain using the tustin (bilinear) transformation
-     * 
-     * Controller design chain:
-     * -------------------------
-     * - G ... Plant
-     * - R ... Controller
-     * 
-     * 1. mathematical model --> G(s)
-     * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
-     * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
-     * 4. bilinear_to_discrete (tustin) --> R(z)
-     */
-    template<class ValueType, int internal_states, int inputs, int outputs>
-    BilinearStateSpace<ValueType, internal_states, inputs, outputs> discrete_to_bilinear(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
-        const auto I = identity_like(dss.A());
+        Eigen::PartialPivLU<Eigen::Matrix<T, NStates, NStates>> Mfactor(M);
 
-        const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
+        const Eigen::Matrix<T, NStates, NStates> A_d = Mfactor.solve(P);
+        const Eigen::Matrix<T, NStates, NInputs> B_d = Mfactor.solve(sample_time * sys.B());
+        const Eigen::Matrix<T, NOutputs, NStates> C_d = M.transpose().partialPivLu().solve(sys.C().transpose()).transpose();
+        const Eigen::Matrix<T, NOutputs, NInputs> X = (sys.C() * Mfactor.solve(sys.B() * (sample_time / static_cast<T>(2))));
+        const Eigen::Matrix<T, NOutputs, NInputs> D_d = (sys.D() + X);
 
-        const auto ApI = (dss.A() + I).eval();
-        const auto ApI_inv_B = ApI.partialPivLu().solve(dss.B()).eval();
-
-        // (A - I) * (A + I)^{-1}
-        const auto A_q = ApI.transpose().partialPivLu().solve((dss.A() - I).transpose()).transpose().eval(); 
-
-        // sqrt(2) * (A + I)^{-1} * B
-        const auto B_q = (sqrt_2 * ApI_inv_B).eval();
-
-        // sqrt(2) * C * (A + I)^{-1}
-        const auto C_q = (sqrt_2 * ApI.transpose().partialPivLu().solve(dss.C().transpose()).transpose()).eval();
-
-        // D - C * (A + I)^{-1} * B
-        const auto D_q = (dss.D() - dss.C() * ApI_inv_B).eval();
-
-        BilinearStateSpace<ValueType, internal_states, inputs, outputs> result(A_q, B_q, C_q, D_q);
+        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> result(A_d, B_d, C_d, D_d);
         return result;
-    }
-
-    /**
-     * \brief transform from z-domain into q-domain using the tustin (bilinear) transformation
-     * 
-     * alias for the function `controlpp::discrete_to_bilinear()`.
-     */
-    template<class ValueType, int internal_states, int inputs, int outputs>
-    BilinearStateSpace<ValueType, internal_states, inputs, outputs> z_to_q(const DiscreteStateSpace<ValueType, internal_states, inputs, outputs>& dss){
-        return discrete_to_bilinear(dss);
-    }
-
-    /**
-     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
-     * 
-     * Internally performs:
-     * 
-     * 1. a zero-order-hold to go from the s-domain into the z-domain
-     * 2. a forward bilinear tustin to go from the z-domain into the q-domain
-     */
-    template<class ValueType, int internal_states>
-    BilinearStateSpace<ValueType, internal_states, 1, 1> continuous_to_bilinear(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
-        return discrete_to_bilinear(continuous_to_discrete(css));
-    }
-
-    /**
-     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
-     * 
-     * alias for the function `controlpp::continuous_to_bilinear()`.
-     */
-    template<class ValueType, int internal_states>
-    BilinearStateSpace<ValueType, internal_states, 1, 1> s_to_q(const ContinuousStateSpace<ValueType, internal_states, 1, 1>& css){
-        return z_to_q(s_to_z(css));
-    }
-
-    /**
-     * \brief transform from q-domain into z-domain using the tustin (inverse bilinear) transformation
-     * 
-     * Use this function to convert a controller designed in the q-domain back into the z-domain (discrete sampled world).
-     * 
-     * Controller design chain:
-     * -------------------------
-     * - G ... Plant
-     * - R ... Controller
-     * 
-     * 1. mathematical model --> G(s)
-     * 2. continuous_to_discrete (zero-order-hold) --> G(z) 
-     * 3. discrete_to_bilinear (tustin) --> controller design --> R(q) 
-     * 4. bilinear_to_discrete (tustin) --> R(z)
-     * 
-     * ---
-     * 
-     * Tip: For controll systems that are oversampled (\f$f_s >> f_{-3dB}\f$) the q- and s-domains are approximatelly similar.
-     * Thus many desing their controller directly in the q-domain without converting to the z-domain first and then only perform
-     * one bilinear transformation to go from the q-domain to the z-domain. (They may also not write q but s in their equations).
-     */
-    //DiscreteStateSpace bilinear_to_discrete(const BilinearTransferFunction& css, float sample_time){//TODO}
-    template<class ValueType, int internal_states, int inputs, int outputs>
-    DiscreteStateSpace<ValueType, internal_states, inputs, outputs> bilinear_to_discrete(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& bss){
-        const auto I = identity_like(bss.A());
-        const auto AmI = (bss.A() - I).eval();
-        
-        const auto sqrt_2 = std::sqrt(static_cast<ValueType>(2));
-
-        const auto AmI_inv_B = AmI.partialPivLu().solve(bss.B()).eval();
-
-        // (A + I) * (A - I)^{-1}
-        const auto A_z = AmI.transpose().partialPivLu().solve((I + bss.A()).transpose()).transpose().eval();
-
-        // sqrt(2) * (A - I)^{-1} * B
-        const auto B_z = (sqrt_2 * AmI_inv_B).eval();
-
-        // sqrt(2) * C * (A - I)^{-1}
-        const auto C_z = (sqrt_2 * AmI.transpose().partialPivLu().solve(bss.C().transpose()).transpose()).eval();
-
-        // D + C * (A - I)^{-1} * B
-        const auto D_z = bss.D() + bss.C() * AmI_inv_B;
-
-        DiscreteStateSpace<ValueType, internal_states, inputs, outputs> result(A_z, B_z, C_z, D_z);
-        return result;
-    }
-
-    /**
-     * \brief transorms a system in the continuous s-domain into the bilinear q-domain
-     * 
-     * alias for the function `controlpp::continuous_to_bilinear()`.
-     */
-    template<class ValueType, int internal_states, int inputs, int outputs>
-    DiscreteStateSpace<ValueType, internal_states, inputs, outputs> q_to_z(const BilinearStateSpace<ValueType, internal_states, inputs, outputs>& qss){
-        return bilinear_to_discrete(qss);
     }
 
     

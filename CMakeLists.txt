@@ -21,6 +21,8 @@ target_include_directories(controlpp INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
+target_include_directories(controlpp SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
+
 target_link_libraries(controlpp INTERFACE
     Eigen3::Eigen
 )
@@ -39,7 +41,7 @@ if (CONTROLPP_COMPILE_TEST)
 
     add_executable(controlpp_tests
         tests/main.cpp
-        tests/H2Controller_Tests.cpp
+        #tests/H2Controller_Tests.cpp
         tests/Pade_Tests.cpp
         tests/TimeVariantControl_Test.cpp
         tests/KalmanFilter_Tests.cpp

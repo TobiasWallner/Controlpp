@@ -161,6 +161,8 @@ namespace controlpp
         const Polynom<T, DenOrder> a = -(rp.den() / a_n);
         const Polynom<T, NumOrder> b = rp.num() / a_n;
         
+        const T bn = b.at(b.size()-1);
+
         // write A matrix
         if constexpr (number_of_states > 0){
             const auto I = Eigen::Matrix<T, number_of_states-1, number_of_states-1>::Identity();
@@ -177,12 +179,17 @@ namespace controlpp
         
         // write C matrix
         if constexpr (number_of_states > 0){
-            result.C().row(0).head(b.size()) = b.vector();
-            result.C().row(0).tail(number_of_states - b.size()).setZero();
+            const int l = (b.size() < number_of_states) ? b.size() : number_of_states;
+            if(b.size() > (number_of_states)){
+                result.C().row(0).head(l) = b.vector().head(l) + a.vector().head(l) * bn;
+            }else{
+                result.C().row(0).head(l) = b.vector().head(l);
+                result.C().row(0).tail(number_of_states - b.size()).setZero();
+            }
         }
         
         // write D matrix
-        result.D()(0, 0) = (b.size() > (number_of_states)) ? b[number_of_states] : T(0);
+        result.D()(0, 0) = (b.size() > (number_of_states)) ? bn : T(0);
         return result;
     }
 

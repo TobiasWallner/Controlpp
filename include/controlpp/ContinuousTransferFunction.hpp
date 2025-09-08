@@ -43,7 +43,7 @@ namespace controlpp
             constexpr explicit ContinuousTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& transfer_function)
                 : tf_(transfer_function){}
 
-            constexpr explicit ContinuousTransferFunction(const num_vector_type& num, const den_vector_type& den)
+            constexpr explicit ContinuousTransferFunction(const Eigen::Vector<T, NumOrder+1>& num, const Eigen::Vector<T, DenOrder+1>& den)
                 : tf_(num, den){}
 
             constexpr explicit ContinuousTransferFunction(const T(&num)[NumOrder+1], const T(&den)[DenOrder+1])

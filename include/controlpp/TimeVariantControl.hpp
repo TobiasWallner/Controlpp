@@ -11,6 +11,12 @@
 #include <algorithm>
 #include <limits>
 
+#include <controlpp/ContinuousTransferFunction.hpp>
+#include <controlpp/ContinuousStateSpace.hpp>
+#include <controlpp/DiscreteTransferFunction.hpp>
+#include <controlpp/DiscreteStateSpace.hpp>
+#include <controlpp/transformations.hpp>
+
 namespace controlpp
 {
     /**
@@ -154,25 +160,7 @@ namespace controlpp
 
             /// @brief Sets the integrator gain
             /// @param ki The integrator gain for the next sample
-            constexpr void ki(const T& ki) {return this->ki_ = ki;}
-
-            /// @brief returns the integrator gain 
-            [[nodiscard]] constexpr const T& ki() const {return this->ki_;}
-
-            /// @brief Sets the previous control input
-            /// @param u_k1 The previous control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous control output
-            /// @details Useful to set the initial integration state
-            /// @param y_k1 The previous control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
+            constexpr void set_param(const T& ki) {return this->ki_ = ki;}
 
             /**
              * \brief resets (clears) the internal states
@@ -293,25 +281,7 @@ namespace controlpp
 
             /// @brief Sets the integrator gain
             /// @param ki The integrator gain for the next sample;
-            constexpr void ki(const T& ki) {return this->ki_ = ki;}
-
-            /// @brief returns the integrator gain 
-            [[nodiscard]] constexpr const T& ki() const {return this->ki_;}
-
-            /// @brief Sets the previous control input
-            /// @param u_k1 The previous control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous control output
-            /// @details Useful to set the initial integration state
-            /// @param y_k1 The previous control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
+            constexpr void set_param(const T& ki) {return this->ki_ = ki;}
             
             /// @brief Sets the positive rate limit of the I controller
             /// @param pv The new positive rate limit
@@ -421,12 +391,8 @@ namespace controlpp
         template<class T>
         class DControl{
             private:
-
-            T k_d_; ///< differential gain
-            T omega_; ///< low pass bandwidth
-
-            T u_k1_ = static_cast<T>(0); ///< previous control input
-            T y_k1_ = static_cast<T>(0); ///< previous control output
+            ContinuousStateSpace<T, 1> css_;
+            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
 
             public:
 
@@ -435,80 +401,31 @@ namespace controlpp
              * \param k_d The differential gain
              * \param omega The bandwidth of the low-pass filter in radians per second
              */
-            constexpr DControl(const T& k_d, const T& omega)
-                : k_d_(k_d)
-                , omega_(omega){}
+            constexpr DControl(const T& k_d, const T& omega){
+                this->set_params(k_d, omega);
+            }
 
             /// @brief default copy constructor 
             constexpr DControl(const DControl&) = default;
 
-            /// @brief Sets the differential gain
-            /// @param k_d The new differential gain
-            constexpr void kd(const T& k_d){this->k_d_ = k_d;}
+            constexpr void set_params(const T& k_d, const T& omega){
+                const ContinuousTransferFunction<T, 1, 1> tf(
+                    Eigen::Vector<T, 2>(static_cast<T>(0), k_d), 
+                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega));
+                this->css_ = to_state_space(tf);
+            }
 
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& kd(){return this->k_d_;}
-
-            /// @brief Sets the low-pass bandwidth
-            /// @param omega The new low-pass bandwidth
-            constexpr void omega(const T& omega){this->omega_ = omega;}
-
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& omega(){return this->omega_;}
-
-            /// @brief Sets the previous control input
-            /// @param u_k1 The previous control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous control output
-            /// @details Useful to set the initial integration state
-            /// @param y_k1 The previous control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
-
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see D::operator()(const T& u, const T& Ts)
-             */
             constexpr T input(const T& u, const T& Ts){
-                // calculate new output
-                const T a = this->omega_ * this->k_d_;
-                const T b = this->omega_ * Ts / 2 - 1;
-                const T c = this->omega_ * Ts / 2 + 1;
-                const T y = (a * (u - this->u_k1_) - b * this->y_k1_) / c;
-
-                // update internal states
-                this->y_k1_ = y;
-                this->u_k1_ = u;
-
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
                 return y;
             }
 
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see D::input(const T& u, const T& Ts)
-             */
-            constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
-            /**
-             * \brief resets (clears) the internal states
-             * 
-             * resets the internal states (\f$u_{k-1}\f$ and \f$y_{k-1}\f$) to zero
-             */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
+                this->states_.setZero();
             }
         };
 
@@ -549,11 +466,9 @@ namespace controlpp
         template<class T>
         class PT1Control{
             private:
-            T K_;
-            T omega_;
-
-            T u_k1_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
+            ContinuousStateSpace<T, 1> css_;
+            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+        
             public:
             
             /**
@@ -561,78 +476,31 @@ namespace controlpp
              * \param K The gain of the filter
              * \param omega The -3dB bandwidth of the lowpass filter
              */
-            constexpr PT1Control(const T& K, const T& omega)
-                : K_(K)
-                , omega_(omega){}
+            constexpr PT1Control(const T& K, const T& omega){
+                this->set_params(K, omega);
+            }
 
             /// @brief Default copy constructor 
             constexpr PT1Control(const PT1Control&) = default;
 
-            /// @brief Sets the gain of the filter
-            /// @param K The new gain
-            constexpr void gain(const T& K){this->K_ = K;}
+            constexpr void set_params(const T& K, const T& omega){
+                const ContinuousTransferFunction<T, 0, 1> tf(
+                    Eigen::Vector<T, 1>(K), 
+                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1)/omega));
+                this->css_ = to_state_space(tf);
+            }
 
-            /// @brief Returns the gain (\f$K\f$) of the filter
-            /// @return The gain (\f$K\f$) of the filter
-            [[nodiscard]] constexpr const T& gain(){return this->K_;}
-
-            /// @brief Sets the low-pass bandwidth
-            /// @param omega The new low-pass bandwidth
-            constexpr void omega(const T& omega){this->omega_ = omega;}
-
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& omega(){return this->omega_;}
-
-            /// @brief Sets the previous control input
-            /// @param u_k1 The previous control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous control output
-            /// @details Useful to set the initial integration state
-            /// @param y_k1 The previous control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
-
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see operator()(const T& u, const T& Ts)
-             */
             constexpr T input(const T& u, const T& Ts){
-                // calculate control output:
-                const T a = this->K_ * this->omega_ * Ts;
-                const T b = this->omega_ * Ts - 2;
-                const T c = this->omega_ * Ts + 2;
-                const T y = (a * (u + this->u_k1_) - b * this->y_k1_) / c;
-
-                // update states
-                this->u_k1_ = u;
-                this->y_k1_ = y;
-
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
                 return y;
             }
 
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see input(const T& u, const T& Ts)
-             */
-            constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
-            /**
-             * \brief resets the internal states of the controller
-             */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
+                this->states_.setZero();
             }
 
         };
@@ -681,14 +549,8 @@ namespace controlpp
         template<class T>
         class PT2Control{
             private:
-            T K_;
-            T D_;
-            T omega_;
-
-            T u_k1_ = static_cast<T>(0);
-            T u_k2_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
-            T y_k2_ = static_cast<T>(0);
+            ContinuousStateSpace<T, 2> css_;
+            Eigen::Vector<T, 2> states_ = Eigen::Vector<T, 2>::Zero();
 
             public:
             PT2Control(const PT2Control&) = default;
@@ -699,129 +561,28 @@ namespace controlpp
              * \param D Then dampening factor of the filter
              * \param omega The characteristic frequency of the filter (bandwidth)
              */
-            PT2Control(const T& K, const T& D, const T& omega)
-                : K_(K)
-                , D_(D)
-                , omega_(omega)
-                {}
+            PT2Control(const T& K, const T& D, const T& omega){
+                this->set_params(K, D, omega);
+            }
 
-            /**
-             * \brief Sets the gain of the filter
-             * \param K The new gain for the filter
-             */ 
-            constexpr void gain(const T& K){this->K_ = K;}
+            constexpr void set_params(const T& K, const T& D, const T& omega){
+                const ContinuousTransferFunction<T, 0, 2> tf(
+                    Eigen::Vector<T, 1>(K), 
+                    Eigen::Vector<T, 3>(static_cast<T>(1), static_cast<T>(2) * D / omega, static_cast<T>(1)/(omega * omega)));
+                this->css_ = to_state_space(tf);
+            }
 
-            /**
-             * \brief Returns the gain factor
-             * \returns The gain of the filter
-             */
-            [[nodiscard]] constexpr const T& gain(){return this->K_;}
-
-            /**
-             * \brief Sets the dampening factor
-             * 
-             *  - Aperiodic borderline case: D = 1 
-             *  - Overdamped(creep-in) : D > 1 
-             *  - Underdamped(exponential decreasing oscillations): 0 < D < 1 
-             *  - Oscillating: D = 0
-             * 
-             * \param D The new dampening factor
-             */ 
-            constexpr void dampening(const T& D){this->D_ = D;}
-
-            /**
-             * \brief Returns the dampening factor
-             * 
-             *  - Aperiodic borderline case: D = 1 
-             *  - Overdamped(creep-in) : D > 1 
-             *  - Underdamped(exponential decreasing oscillations): 0 < D < 1 
-             *  - Oscillating: D = 0
-             * 
-             * \returns The dampening factor of the filter
-             */
-            [[nodiscard]] constexpr const T& dampening(){return this->D_;}
-
-            /// @brief Sets the low-pass bandwidth
-            /// @param omega The new low-pass bandwidth
-            constexpr void omega(const T& omega){this->omega_ = omega;}
-
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& omega(){return this->omega_;}
-
-            /// @brief Sets the previous \f$[k-1]\f$ control input
-            /// @param u_k1 The previous \f$[k-1]\f$ control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous \f$[k-1]\f$ control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous \f$[k-2]\f$ control input
-            /// @param u_k2 The previous \f$[k-2]\f$ control input
-            constexpr void u_k2(const T& u_k2) {return this->u_k2_ = u_k2;}
-
-            /// @brief Returns the previous \f$[k-2]\f$ control input
-            [[nodiscard]] constexpr const T& u_k2() const {return this->u_k2_;}
-
-            /// @brief Sets the previous \f$[k-1]\f$ control output
-            /// @param y_k1 The previous \f$[k-1]\f$ control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous \f$[k-1]\f$ control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
-
-            /// @brief Sets the previous \f$[k-2]\f$ control output
-            /// @param y_k2 The previous \f$[k-2]\f$ control output
-            constexpr void y_k2(const T& y_k2) {return this->y_k2_ = y_k2;}
-
-            /// @brief returns the previous \f$[k-2]\f$ control output
-            [[nodiscard]] constexpr const T& y_k2() const {return this->y_k2_;}
-
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see operator()(const T& u, const T& Ts)
-             */
             constexpr T input(const T& u, const T& Ts){
-                // calculate output
-                const T omega_sqr = omega_ * omega_;
-                const T Ts_sqr = Ts * Ts;
-                const T _4_D_omega_Ts = 4 * D_ * omega_ * Ts;
-                const T _omega_Ts_sqr = omega_sqr * Ts_sqr;
-
-                const T a0 = _omega_Ts_sqr + _4_D_omega_Ts + 4;
-                const T a1 = 2 * _omega_Ts_sqr - 8;
-                const T a2 = _omega_Ts_sqr - _4_D_omega_Ts + 4;
-
-                const T y = (K_ * _omega_Ts_sqr * (u + 2 * u_k1_ + u_k2_) - a1 * y_k1_ - a2 * y_k2_) / a0;
-
-                // update states
-                this->y_k2_ = this->y_k1_;
-                this->y_k1_ = y;
-                this->u_k2_ = this->u_k1_;
-                this->u_k1_ = u;
-
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
                 return y;
             }
 
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see input(const T& u, const T& Ts)
-             */
-            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
-            /**
-             * \brief resets (clears) the internal states
-             * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
-             */
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->u_k2_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
-                this->y_k2_ = static_cast<T>(0);
+                this->states_.setZero();
             }
         };
         template<class T>
@@ -868,8 +629,8 @@ namespace controlpp
         template<class T>
         class PIControl{
             private:
-            PControl<T> P_;
-            IControl<T> I_;
+            ContinuousStateSpace<T, 1> css_;
+            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
 
             public:
 
@@ -877,61 +638,30 @@ namespace controlpp
              * \param ki The integral gain
              * \param kp The proportional gain
              */
-            PIControl(const T& kp, const T& ki)
-                : P_(kp)
-                , I_(ki)
-                {}
+            PIControl(const T& kp, const T& ki){
+                this->set_params(kp, ki);
+            }
 
             PIControl(const PIControl&) = default;
 
-            /**
-             * \brief sets the proportional gain
-             * \param kp the new proportional gain for the next sample value
-             */
-            constexpr void kp(const T& kp){this->P_.kp(kp);}
-
-            /**
-             * \brief returns the current gain
-             */
-            [[nodiscard]] constexpr const T& kp() const {return this->P_.kp();}
-
-            /**
-             * \brief sets the integral gain
-             * \param ki the new proportional gain for the next sample value
-             */
-            constexpr void ki(const T& ki){this->I_.ki(ki);}
-
-            /**
-             * \brief returns the current gain
-             */
-            [[nodiscard]] constexpr const T& ki() const {return this->I_.ki();}
-
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see operator()(const T& u, const T& Ts)
-             */
-            constexpr T input(const T& u, const T& Ts){
-                const T result = this->I_(u, Ts) + this->P_(u, Ts);
-                return result;
+            constexpr void set_params(const T& kp, const T& ki){
+                const ContinuousTransferFunction<T, 1, 1> tf(
+                    Eigen::Vector<T, 2>(ki, kp), 
+                    Eigen::Vector<T, 2>(static_cast<T>(0), static_cast<T>(1)));
+                this->css_ = to_state_space(tf);
             }
 
-            /**
-             * \brief Input a new sample to the controller
-             * \param u The control input
-             * \param Ts The sample-time
-             * \see input(const T& u, const T& Ts)
-             */
-            constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
+            constexpr T input(const T& u, const T& Ts){
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
+                return y;
+            }
 
-            /**
-             * \brief resets (clears) the internal states
-             * resets the internal states (\f$u_{k-1}\f$ and \f$y_{k-1}\f$) to zero
-             */
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
             constexpr void reset(){
-                this->I_.reset();
-                this->P_.reset();
+                this->states_.setZero();
             }
         };
 
@@ -1328,78 +1058,34 @@ namespace controlpp
         template<class T>
         class LeadLagControl{
             private:
-
-            T omega1_;
-            T omega2_;
-
-            T u_k1_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
+            ContinuousStateSpace<T, 1> css_;
+            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
 
             public:
 
-            LeadLagControl(const T& omega1, const T& omega2)
-                : omega1_(omega1)
-                , omega2_(omega2)
-                {}
+            constexpr LeadLagControl(const T& omega1, const T& omega2){
+                this->set_params(omega1, omega2);
+            }
 
-            LeadLagControl(const LeadLagControl&) = default;
-
-            /// @brief Sets the low-pass bandwidth
-            /// @param omega1 The new low-pass bandwidth
-            constexpr void omega1(const T& omega1){this->omega1_ = omega1;}
-
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& omega1(){return this->omega1_;}
-
-            /// @brief Sets the low-pass bandwidth
-            /// @param omega2 The new low-pass bandwidth
-            constexpr void omega2(const T& omega2){this->omega2_ = omega2;}
-
-            /// @brief Returns the differential gain
-            /// @return The differentialgain
-            [[nodiscard]] constexpr const T& omega2(){return this->omega2_;}
-
-            /// @brief Sets the previous control input
-            /// @param u_k1 The previous control input
-            constexpr void u_k1(const T& u_k1) {return this->u_k1_ = u_k1;}
-
-            /// @brief Returns the previous control input
-            [[nodiscard]] constexpr const T& u_k1() const {return this->u_k1_;}
-
-            /// @brief Sets the previous control output
-            /// @details Useful to set the initial integration state
-            /// @param y_k1 The previous control output
-            constexpr void y_k1(const T& y_k1) {return this->y_k1_ = y_k1;}
-
-            /// @brief returns the previous control output
-            [[nodiscard]] constexpr const T& y_k1() const {return this->y_k1_;}
+            constexpr void set_params(const T& omega1, const T& omega2){
+                const ContinuousTransferFunction<T, 1, 1> tf(
+                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega1), 
+                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega2));
+                
+                this->css_ = to_state_space(tf);
+            }
 
             constexpr T input(const T& u, const T& Ts){
-                // calculate filter parameters
-                const T omega1_omega2_Ts = omega1_ * omega2_ * Ts;
-                const T _2_omega2 = 2 * omega2_;
-                const T _2_omega1 = 2 * omega1_;
-
-                const T b0 = omega1_omega2_Ts + _2_omega2;
-                const T b1 = omega1_omega2_Ts - _2_omega2;
-
-                const T a0 = omega1_omega2_Ts + _2_omega1;
-                const T a1 = omega1_omega2_Ts - _2_omega1;
-
-                // calculate filter outpuot
-                const T y = (b0 * u + b1 * this->u_k1_ - a1 * this->y_k1_) / a0;
-
-                // update state
-                this->y_k1_ = y;
-                this->u_k1_ = u;
-                
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
                 return y;
             }
 
+            constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
             constexpr void reset(){
-                this->u_k1_ = static_cast<T>(0);
-                this->y_k1_ = static_cast<T>(0);
+                this->states_.setZero();
             }
         };
 
@@ -1409,7 +1095,9 @@ namespace controlpp
          * Has the following continuous transfer function:
          * 
          * \f[
-         * N(s) = \frac{1 + \frac{2 G_\text{min} W s}{\omega} + \frac{s^2}{\omega^2}}{2 W s}{\omega} + \frac{s^2}{\omega^2}}
+         * N(s) = 
+         *   \frac{\omega^2 + 2 G_\text{min} W s \omega + s^2}
+         *   {\omega^2 + 2 W s \omega + s^2}
          * \f]
          * 
          * where:
@@ -1420,15 +1108,8 @@ namespace controlpp
         template<class T>
         class NotchControl{
             private:
-
-            T width_;
-            T damping_;
-            T omega_;
-
-            T u_k1_ = static_cast<T>(0);
-            T u_k2_ = static_cast<T>(0);
-            T y_k1_ = static_cast<T>(0);
-            T y_k2_ = static_cast<T>(0);
+            ContinuousStateSpace<T, 2> css_;
+            Eigen::Vector<T, 2> states_ = Eigen::Vector<T, 2>::Zero();
 
             public:
 
@@ -1437,63 +1118,32 @@ namespace controlpp
              * \param w The width of the noth. 
              *      - \f$w > 0\f$: Larger value \f$\Rightarrow\f$ wider notch
              *      - \f$w = 0\f$: Needle
-             * \param d The dampening of the notch. 
-             *      - \f$0 < d < 1\f$: 
-             *          - larger values \f$\Rightarrow\f$ wider
-             *          - smaller values \f$\Rightarrow\f$ narrower
-             *      - \f$d = 0\f$: Numerator and Denominator cancel --> theoretically a proportional gain but numerically instable
-             *      - \f$d > 0\f$: inverse notch / peak
+             * \param g_min The value at the notch peak
+             * \param omega the frequency (rad/s) of the notch peak
              */
-            constexpr NotchControl(const T& w, const T& d, const T& omega)
-                : width_(w)
-                , damping_(d)
-                , omega_(omega){}
+            constexpr NotchControl(const T& w, const T& g_min, const T& omega){
+                this->set_params(w, g_min, omega);
+            }
 
-            constexpr void width(const T& w){this->width_ = w;}
-            constexpr const T& width() const {return this->width_;}
-
-            constexpr void damping(const T& d){this->damping_ = d;}
-            constexpr const T& damping() const {return this->damping_;}
-
-            constexpr void omega(const T& omega){this->omega_ = omega;}
-            constexpr const T& omega() const {return this->omega_;}
+            constexpr void set_params(const T& w, const T& g_min, const T& omega){
+                const ContinuousTransferFunction<T, 2, 2> tf(
+                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * g_min * w * omega, static_cast<T>(1)), 
+                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * w * omega, static_cast<T>(1)));
+                
+                this->css_ = to_state_space(tf);
+            }
 
             constexpr T input(const T& u, const T& Ts){
-                // helpers
-                const T omega_Ts = omega_ * Ts;
-                const T omega_Ts_sqr = omega_Ts * omega_Ts;
-                const T width_omega_Ts = width_ * omega_Ts;
-                const T width_omega_Ts_damping = width_omega_Ts * damping_;
-
-                // calculate parameters
-                const T a0 = omega_Ts_sqr + (width_omega_Ts + 1) * 4;
-                const T a1 = 2 * omega_Ts_sqr - 8;
-                const T a2 = omega_Ts_sqr - (width_omega_Ts - 1) * 4;
-
-
-                const T b0 = omega_Ts_sqr + (width_omega_Ts_damping + 1) * 4;
-                const T b1 = a1;
-                const T b2 = omega_Ts_sqr - (width_omega_Ts_damping - 1) * 4;
-
-                // calculate output
-                const T y = (b0 * u + b1 * u_k1_ + b2 * u_k2_ - a1 * y_k1_ - a2 * y_k2_) / a0;
-
-                // update state
-                u_k2_ = u_k1_;
-                u_k1_ = u;
-                y_k2_ = y_k1_;
-                y_k1_ = y;
-
+                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
+                const auto [x, y] = dss.eval(this->states_, u);
+                this->states_ = x;
                 return y;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
             constexpr void reset(){
-                u_k1_ = static_cast<T>(0);
-                u_k2_ = static_cast<T>(0);
-                y_k1_ = static_cast<T>(0);
-                y_k2_ = static_cast<T>(0);
+                this->states_.setZero();
             }
         };
 

@@ -31,74 +31,13 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     });
 
     // to test
-    const auto Sys_z = controlpp::continuous_to_discrete(Sys_s, sample_time);
+    const auto Sys_z = controlpp::discretise_zoh(Sys_s, sample_time);
    
     // check
     ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.001)) << "Sys_z.A():\n" << Sys_z.A() << "\n" << "expected_A\n" << expected_A;
     ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.001)) << "Sys_z.B():\n" << Sys_z.B() << "\n" << "expected_B\n" << expected_B;
     ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.001));
     ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.001));
-}
-
-TEST(Transformation, discrete_ss_to_bilinear_ss){
-    // preparation
-    const auto z_1 = controlpp::tf::z_1<double>;
-    const auto G_z = (1 + z_1) / (1 + 3*z_1 + z_1*z_1);
-    const auto Sys_z = controlpp::to_state_space(G_z);
-
-    // function under test
-    const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
-
-    // expected values
-    const Eigen::Matrix<double, 2, 2> expected_A({
-        {3, 2},
-        {-2, -3}
-    });
-
-    const Eigen::Matrix<double, 2, 1> expected_B({
-        {-std::sqrt(2.0)},
-        {std::sqrt(2.0)}
-    });
-
-    const Eigen::Matrix<double, 1, 2> expected_C({
-        {std::sqrt(2.0), 0},
-    });
-
-    const Eigen::Matrix<double, 1, 1> expected_D({
-        {0},
-    });
-
-    // check
-    ASSERT_TRUE(Sys_q.A().isApprox(expected_A, 0.01));
-    ASSERT_TRUE(Sys_q.B().isApprox(expected_B, 0.01));
-    ASSERT_TRUE(Sys_q.C().isApprox(expected_C, 0.01));
-    ASSERT_NEAR(Sys_q.D()(0, 0), Sys_q.D()(0, 0), 0.01);
-}
-
-TEST(Transformation, continuous_ss_to_bilinear_ss){
-    // preparation
-    const auto z_1 = controlpp::tf::z_1<double>;
-    const auto G_z = (1 + z_1) / (1 + 3*z_1 + z_1*z_1);
-    const auto Sys_z = controlpp::to_state_space(G_z);
-    const auto Sys_q = controlpp::discrete_to_bilinear(Sys_z);
-
-    // function under test
-    const auto Sys_z2 = controlpp::bilinear_to_discrete(Sys_q);
-
-    // check
-    if(Sys_z2.A().isApprox(Sys_z.A(), 0.01)){
-        ASSERT_TRUE(Sys_z2.A().isApprox(Sys_z.A(), 0.01));
-        ASSERT_TRUE(Sys_z2.B().isApprox(Sys_z.B(), 0.01));
-        ASSERT_TRUE(Sys_z2.C().isApprox(Sys_z.C(), 0.01));
-        ASSERT_NEAR(Sys_z2.D()(0, 0), Sys_z.D()(0, 0), 0.01);
-    }else{
-        // maybe signs have flipped
-        ASSERT_TRUE(Sys_z2.A().isApprox((-Sys_z.A()).eval(), 0.01));
-        ASSERT_TRUE(Sys_z2.B().isApprox((-Sys_z.B()).eval(), 0.01));
-        ASSERT_TRUE(Sys_z2.C().isApprox((-Sys_z.C()).eval(), 0.01));
-        ASSERT_NEAR(Sys_z2.D()(0, 0), -Sys_z.D()(0, 0), 0.01);
-    }
-
 }
 
 TEST(Transformation, state_space_to_transfer_function){

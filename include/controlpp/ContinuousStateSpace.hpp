@@ -6,7 +6,7 @@
 
 namespace controlpp
 {
-    template<class T, int internal_states, int inputs, int outputs>
+    template<class T, int internal_states, int inputs=1, int outputs=1>
     class ContinuousStateSpace{
         public:
             using value_type = T;

@@ -66,7 +66,7 @@ int main(){
 
     // convert from s (continuous) to z (discrete) domain
     const float Ts = 1.0/10'000.0;
-    const auto PT2_z = s_to_z(PT2_ss, Ts);
+    const auto PT2_z = discretise_zoh(PT2_ss, Ts);
 }
 
 ```

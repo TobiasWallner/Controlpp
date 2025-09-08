@@ -113,7 +113,7 @@ namespace controlpp
     template<class T, int NumOrder, int DenOrder>
     TimeSeries<T> step(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, const T& sample_time, const T& simulation_time){
         const auto css = to_state_space(tf);
-        const auto dss = s_to_z(css, sample_time);
+        const auto dss = discretise_zoh(css, sample_time);
         return step(dss, sample_time, simulation_time);
     }
 
