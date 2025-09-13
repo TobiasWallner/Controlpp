@@ -110,18 +110,18 @@ namespace controlpp
             const Eigen::Matrix<T, NMeasurements, NMeasurements> I = Eigen::Matrix<T, NMeasurements, NMeasurements>::Identity();
 
             // Gain
-            const auto A = (this->_cov * s.transpose());
-            const auto B = (this->_memory * I + s * this->_cov * s.transpose());
+            const auto A = (this->_cov * s.transpose()).eval();
+            const auto B = (this->_memory * I + s * this->_cov * s.transpose()).eval();
 
             // calculate: K = A * B^-1
-            const Eigen::Vector<T, NParams> K = B.transpose().llt().solve(A.transpose()).transpose();
+            const Eigen::Vector<T, NParams> K = B.transpose().llt().solve(A.transpose()).transpose().eval();
 
             // Update
-            const Eigen::Vector<T, NParams> new_param = this->_param + K * (y - s * this->_param);
+            const Eigen::Vector<T, NParams> new_param = (this->_param + K * (y - s * this->_param)).eval();
             this->_param = new_param;
 
             // Covariance
-            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s * this->_cov) / this->_memory;
+            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s * this->_cov).eval() / this->_memory;
             this->_cov = new_cov;
         }
 
@@ -227,13 +227,13 @@ namespace controlpp
          */
         void add(const T& y, const Eigen::Vector<T, NParams>& s) noexcept {
             // Gain
-            const Eigen::Vector<T, NParams> K = (this->_cov * s) / (this->_memory + s.transpose() * this->_cov * s);
+            const Eigen::Vector<T, NParams> K = ((this->_cov * s) / (this->_memory + s.transpose() * this->_cov * s)).eval();
 
             // Update
-            const Eigen::Vector<T, NParams> new_param = this->_param + K * (y - s.transpose() * this->_param);
+            const Eigen::Vector<T, NParams> new_param = (this->_param + K * (y - s.transpose() * this->_param)).eval();
             this->_param = new_param;
 
-            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s.transpose() * this->_cov) / this->_memory;
+            const Eigen::Matrix<T, NParams, NParams> new_cov = ((this->_cov - K * s.transpose() * this->_cov) / this->_memory).eval();
             this->_cov = new_cov;
             
             // for numerical stability
