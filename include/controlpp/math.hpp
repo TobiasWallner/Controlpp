@@ -104,11 +104,11 @@ namespace controlpp{
 	 * 
 	 * \result the exponentiated value
 	 * 
-	 * \see controlpp::exp_taylor_scale
+	 * \see controlpp::mexp_taylor_scale
 	 * \see controlpp::mexp
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor(
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, 
 			int n
 	){
@@ -147,10 +147,10 @@ namespace controlpp{
 	 * 
 	 * \return The resulting exponentiated matrix
 	 * 
-	 * \see controlpp::exp_taylor
+	 * \see controlpp::mexp_taylor
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> exp_taylor_scaled(
+	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor_scaled(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, 
 			int taylor_order = 8, 
 			int scaling = 10
@@ -158,7 +158,7 @@ namespace controlpp{
 		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
 		T s = static_cast<T>(1 << scaling);
 		Matrix scaled_M = M/s;
-		Matrix t = exp_taylor(scaled_M, taylor_order);
+		Matrix t = mexp_taylor(scaled_M, taylor_order);
 		for(int i = 0; i < scaling; ++i){
 			const Matrix temp = t * t;
 			t = temp;
@@ -167,33 +167,164 @@ namespace controlpp{
 	}
 
 	/**
+	 * \brief Calculates the numerator parameters of the pade approximation
+     * 
+     * Calculates the parameter:
+     * 
+     * \f[
+     * P_k = \frac{(m + n - k)! m!}{(m + n)! k! (m - k)!}
+     * \f]
+     * 
+     * For a Pade approximation like:
+     * 
+     * \f[
+     * A = \frac{\sum_{k = 0}^{m} P_k s^k}{\sum_{k = 0}^{n} Q_k s^k} 
+     * \f]
+     * 
+     * \param m Is the order of the numerator
+     * \param n Is the order of the denominator
+     * \param k Is the order of the parameter
+     * 
+     * \tparam The result type of the division
+     * 
+     * \returns The pade parameter of the numerator at the k-th order
+     * 
+     * \see pade_den_param
+     * \see https://ris.utwente.nl/ws/portalfiles/portal/134422804/Some_remarks_on_Pade-approximations.pdf
+	 */
+    template<class T = double>
+	constexpr T pade_num_param(unsigned long m, unsigned long n, unsigned long k){
+		const unsigned long long num1 = product_over(k+1, m+1);
+		const unsigned long long den1 = product_over(m + n - k + 1, m + n + 1);
+		const unsigned long long den2 = product_over(1, m-k + 1);
+		const T result = static_cast<T>(num1) / static_cast<T>(den1 * den2);
+		return result;
+	}
+
+    /**
+	 * \brief Calculates the numerator parameters of the pade approximation
+     * 
+     * Calculates the parameter:
+     * 
+     * \f[
+     * Q_k = \frac{(n + m - k)! n!}{(n + m)! k! (n - k)!}
+     * \f]
+     * 
+     * For a Pade approximation like:
+     * 
+     * \f[
+     * A = \frac{\sum_{k = 0}^{m} P_k s^k}{\sum_{k = 0}^{n} Q_k s^k} 
+     * \f]
+     * 
+     * \param m Is the order of the numerator
+     * \param n Is the order of the denominator
+     * \param k Is the order of the parameter
+     * 
+     * \tparam T the result type of the function (used for the final division)
+     * 
+     * \returns The pade parameter of the numerator at the k-th order
+     * 
+     * \see pade_num_param
+     * \see https://ris.utwente.nl/ws/portalfiles/portal/134422804/Some_remarks_on_Pade-approximations.pdf
+	 */
+    template<class T = double>
+	constexpr T pade_den_param(unsigned long m, unsigned long n, unsigned long k){
+		return pade_num_param(n, m, k);
+	}
+
+	/**
+	 * @brief Approximates \f$\exp{A}\f$ using a pade fraction
+	 * @tparam T The value type of the matrix entries (usually `float` or `double`)
+	 * @tparam Rows The number of rows
+	 * @tparam Cols The number of columns
+	 * @tparam Options Matrix options (See: [Store Orders](https://libeigen.gitlab.io/eigen/docs-nightly/group__TopicStorageOrders.html))
+	 * @param A The input matrix
+	 * @param Order The order of the numerator and denominator of the pade fraction
+	 * @return An approximation of the exponential \f$\exp{A}\f$
+	 */
+	template<class T, int N, int Options, int MaxRows, int MaxCols>
+	Eigen::Matrix<T, N, N> mexp_pade(
+			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& A,
+			int Order = 5
+	){
+		const Eigen::Matrix<T, N, N> I = Eigen::Matrix<T, N, N>::Identity();
+		const Eigen::Matrix<T, N, N> A2 = A * A;
+
+		// even odd split of polynomials: allows to reuse results
+		Eigen::Matrix<T, N, N> even;
+		Eigen::Matrix<T, N, N> odd;
+		even.setZero();
+		odd.setZero();
+
+		// horner chains to evaluate the polynomials
+		for(int k = Order; k >= 0; --k){
+			const bool is_first_iteration = (k == Order);
+			const T pk = pade_num_param<T>(Order, Order, k);
+			if((k & 1) == 0){
+				// even
+				if(!is_first_iteration) even *= A2; // skipp on the first iteration
+				even += I * pk;
+			}else{
+				// odd
+				if(!is_first_iteration) odd *= A2; // skipp on the first iteration
+				odd += I * pk;
+			}
+		}
+		odd *= A;
+		
+		std::cout << std::endl;
+
+		const Eigen::Matrix<T, N, N> num = even + odd;
+		const Eigen::Matrix<T, N, N> den = even - odd;
+
+		const Eigen::Matrix<T, N, N> result = den.partialPivLu().solve(num);
+		
+		return result;
+	}
+
+	template<class T, int N, int Options, int MaxRows, int MaxCols>
+	constexpr Eigen::Matrix<T, N, N> mexp_pade_scaled(
+			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, 
+			int order = 5,
+			int scaling = 5
+	){
+		const T s = static_cast<T>(1ULL << scaling);
+		Eigen::Matrix<T, N, N> scaled_M = M/s;
+		Eigen::Matrix<T, N, N> t = mexp_pade(scaled_M, order);
+		for(int i = 0; i < scaling; ++i){
+			const Eigen::Matrix<T, N, N> temp = t * t;
+			t = temp;
+		};
+		return t;
+	}
+
+	/**
 	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
 	 * 
-	 * Uses a scaled taylor approximation for the exponential.
+	 * Uses a scaled pade approximation for the exponential.
 	 * 
 	 * \tparam T The value type of the matrix elements
 	 * \tparam Rows The number of rows of the matrix
 	 * \tparam Cols The number of columns of the matrix
 	 * 
 	 * \param M The matrix
-	 * \param taylor_order The order of the taylor polynomial used to approximate the exponential function 
+	 * \param order The order of the pade polynomial used to approximate the exponential function 
 	 * \param scaling The scaling factor used to improve the accuracy of the exponential function
 	 * 
 	 * \return The resulting exponentiated matrix
 	 * 
-	 * \see controlpp::exp_taylor
-	 * \see controlpp::exp_taylor_scaled
+	 * \see controlpp::mexp_pade
+	 * \see controlpp::mexp_pade_scaled
 	 */
-	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, unsigned int taylor_order = 8){
-		// use the absolute maxima as a (fast) normation factor to calculate the scaling
-		int norm = M.cwiseAbs().maxCoeff();
-
-		// a fast log2 to get the s^n scaling factor
-		int n = std::bit_width(static_cast<unsigned int>(norm))+1;
-
+	template<class T, int N, int Options, int MaxRows, int MaxCols>
+	constexpr Eigen::Matrix<T, N, N> mexp(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
 		// actual exponent calculation
-		return exp_taylor_scaled(M, taylor_order, n);
+		const T maxColNorm = M.colwise().norm().maxCoeff();
+		const T maxRowNorm = M.rowwise().norm().maxCoeff();
+		const T maxNorm = std::max(maxColNorm, maxRowNorm);
+		const T one = static_cast<T>(1);
+		int scaling = static_cast<int>(std::log2(std::max(maxNorm, one))) + 1;
+		return mexp_pade_scaled(M, order, scaling);
 	}
 
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
@@ -372,6 +503,84 @@ namespace controlpp{
         const Eigen::Matrix<T, NStates, NStates> result = static_cast<T>(0.5) * (realX + realX.transpose());
 		return result;
 	}
+
+	/**
+     * \brief Calculates the energy (Gramian) scaling via Lyapunov equations
+	 * 
+	 * Calculates the scaling (similarity) matrix T so that the similar system:
+	 * 
+	 * \f[
+	 * A' = T A T^{-1}, \quad B' = T B, \quad C' = C T^{-1}, \quad D' = D
+	 * \f]
+	 * 
+	 * has equal state energy.
+	 * 
+	 * This is especially useful, if a system has very small and very large entries 
+	 * of very small and large frequency components/dynamics.
+	 * 
+     * \tparam ValueType The value type of the matrices. (E.g.: `double`, `float`)
+     * \tparam NStates The number of states
+     * \tparam NInputs The number of inputs
+     * \tparam NOutputs The number of outputs
+	 * \param A The system state matrix (NStates x NStates)
+	 * \param B The system input matrix (NStates x NInputs)
+	 * \param C The system output matrix (NOutputs x NStates)
+	 * \param D The system passthrough matrix (NOutputs x NInputs)
+     * \return The tuple of matrices T and its inverse \f$T^{-1}\f$ [T, T_inverse]
+     */
+    template<class ValueType, int NStates, int NInputs, int NOutputs>
+    std::tuple<Eigen::Matrix<ValueType, NStates, NStates>, Eigen::Matrix<ValueType, NStates, NStates>> energy_scaling_matrix(
+		const Eigen::Matrix<ValueType, NStates, NStates> A,
+		const Eigen::Matrix<ValueType, NStates, NInputs> B,
+		const Eigen::Matrix<ValueType, NOutputs, NStates> C
+	){
+		// Calculate the two gramians Wc and Wo
+		const Eigen::Matrix<ValueType, NStates, NStates> Bsqr = B * B.transpose();
+		const Eigen::Matrix<ValueType, NStates, NStates> Wc = lyapunov_solver(A.transpose(), Bsqr);
+
+		const Eigen::Matrix<ValueType, NStates, NStates> Csqr = C.transpose() * C;
+		const Eigen::Matrix<ValueType, NStates, NStates> Wo = lyapunov_solver(A, Csqr);
+
+		// force symetry and add some to the diagonal for numerical stability
+		const ValueType eps = std::numeric_limits<ValueType>::epsilon();
+
+		Eigen::Matrix<ValueType, NStates, NStates> Wc_sym = (Wc + Wc.transpose()) * static_cast<ValueType>(0.5);
+		{
+			ValueType jitter = std::max(ValueType(1), Wc_sym.diagonal().cwiseAbs().maxCoeff());
+			Wc_sym.diagonal().array() += jitter * eps;
+		}
+		Eigen::Matrix<ValueType, NStates, NStates> Wo_sym = (Wo + Wo.transpose()) * static_cast<ValueType>(0.5);
+		{
+			ValueType jitter = std::max(ValueType(1), Wo_sym.diagonal().cwiseAbs().maxCoeff());
+			Wo_sym.diagonal().array() += jitter * eps;
+		}
+
+		// calculate the cholesky factors using LLT
+		const Eigen::LLT<Eigen::Matrix<ValueType, NStates, NStates>> Wc_colesky(Wc_sym);
+		const Eigen::LLT<Eigen::Matrix<ValueType, NStates, NStates>> Wo_colesky(Wo_sym);
+
+		// partition into triangle forms
+		const Eigen::Matrix<ValueType, NStates, NStates> Rc = Wc_colesky.matrixU();
+		const Eigen::Matrix<ValueType, NStates, NStates> Ro = Wo_colesky.matrixL();
+
+		// calculate the SVD
+		const Eigen::Matrix<ValueType, NStates, NStates> M = Ro * Rc;
+		const Eigen::JacobiSVD<Eigen::Matrix<ValueType, NStates, NStates>> svd(M, Eigen::ComputeThinU | Eigen::ComputeThinV);
+		const Eigen::Matrix<ValueType, NStates, NStates> U  = svd.matrixU();
+		const Eigen::Matrix<ValueType, NStates, 1> s  = svd.singularValues();
+		const Eigen::Matrix<ValueType, NStates, NStates> V = svd.matrixV();
+
+		
+		const Eigen::Matrix<ValueType, NStates, 1> s_sqrt = (s.array().max(eps)).sqrt().matrix();
+		const Eigen::Matrix<ValueType, NStates, NStates> S_sqrt = s_sqrt.asDiagonal();		
+
+		// Finally!!! we can calculate the resulting transformation matrices
+		const Eigen::Matrix<ValueType, NStates, NStates> T = Rc.transpose().template triangularView<Eigen::Lower>().solve((S_sqrt * V.transpose()).transpose()).transpose();
+		const Eigen::Matrix<ValueType, NStates, NStates> T_inverse = Ro.template triangularView<Eigen::Lower>().solve(U * S_sqrt);
+
+		return {T, T_inverse};
+    }
+
 
 	/**
 	 * \brief Solves the continuous time riccati equation (CARE)

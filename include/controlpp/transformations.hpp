@@ -58,11 +58,13 @@ namespace controlpp
     constexpr DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
             const ContinuousStateSpace<ValueType, states, 1, 1>& sys, 
             ValueType sample_time,
-            int taylor_order=8
+            int approximation_order=8
     ){
         // allocation
         DiscreteStateSpace<ValueType, states, 1, 1> result;
         Eigen::Matrix<ValueType, states+1, states+1> M;
+
+        // scale the energy of the states
 
         // preparation
         M.template block<states, states>(0, 0) = sys.A();
@@ -71,7 +73,7 @@ namespace controlpp
         M *= sample_time;
         
         // calculation
-        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M, taylor_order);
+        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M, approximation_order);
 
         // re-assignment
         result.A() = Md.template block<states, states>(0, 0);

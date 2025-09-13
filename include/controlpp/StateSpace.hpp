@@ -14,17 +14,6 @@
 namespace controlpp
 {
 
-    enum class Domain{s, q, z};
-    
-    constexpr std::string_view to_string(Domain domain){
-        switch(domain){
-            case Domain::s : return "s";
-            case Domain::q : return "q";
-            case Domain::z : return "z";
-            default : return "None";
-        }
-    }
-
     /**
      * \brief Base class for the state space representation of a linear time invariant system
      * 
@@ -38,19 +27,19 @@ namespace controlpp
      * Note that this class only stores the A, B, C, and D matrices and **not** the state x.
      * 
      */
-    template<class T, int internal_states, int inputs, int outputs>
+    template<class T, int NStates, int NInputs, int NOutputs>
     class StateSpace{
         public:
             using value_type = T;
 
-            using A_matrix_type = Eigen::Matrix<T, internal_states, internal_states>;
-            using B_matrix_type = Eigen::Matrix<T, internal_states, inputs>;
-            using C_matrix_type = Eigen::Matrix<T, outputs, internal_states>;
-            using D_matrix_type = Eigen::Matrix<T, outputs, inputs>;
+            using A_matrix_type = Eigen::Matrix<T, NStates, NStates>;
+            using B_matrix_type = Eigen::Matrix<T, NStates, NInputs>;
+            using C_matrix_type = Eigen::Matrix<T, NOutputs, NStates>;
+            using D_matrix_type = Eigen::Matrix<T, NOutputs, NInputs>;
 
-            //constexpr static int number_of_states = internal_states;
-            //constexpr static int number_of_inputs = inputs;
-            //constexpr static int number_of_outputs = outputs;
+            //constexpr static int number_of_states = NStates;
+            //constexpr static int number_of_inputs = NInputs;
+            //constexpr static int number_of_outputs = NOutputs;
 
         private:
             A_matrix_type _A;
@@ -64,10 +53,10 @@ namespace controlpp
             constexpr StateSpace& operator=(const StateSpace&) = default;
 
             constexpr StateSpace(
-                const Eigen::Matrix<T, internal_states, internal_states>& A,
-                const Eigen::Matrix<T, internal_states, inputs>& B,
-                const Eigen::Matrix<T, outputs, internal_states>& C,
-                const Eigen::Matrix<T, outputs, inputs>& D
+                const Eigen::Matrix<T, NStates, NStates>& A,
+                const Eigen::Matrix<T, NStates, NInputs>& B,
+                const Eigen::Matrix<T, NOutputs, NStates>& C,
+                const Eigen::Matrix<T, NOutputs, NInputs>& D
             )
                 : _A(A)
                 , _B(B)
@@ -81,30 +70,30 @@ namespace controlpp
              * ```
              * StateSpace ss = some_calculation();
              * Eigen::Vector<float, 2> = some_measurement();
-             * auto [new_internal_states, new_output] = ss(internal_states, input);
+             * auto [new_internal_states, new_output] = ss(NStates, input);
              * ```
              */
-            constexpr std::tuple<Eigen::Vector<T, internal_states>, Eigen::Vector<T, outputs>> eval(const Eigen::Vector<T, internal_states>& x, const Eigen::Vector<T, inputs>& u) const {
-                const Eigen::Vector<T, internal_states> result_x = this->A() * x + this->B() * u;
-                const Eigen::Vector<T, outputs> result_y = this->C() * x + this->D() * u;
+            constexpr std::tuple<Eigen::Vector<T, NStates>, Eigen::Vector<T, NOutputs>> eval(const Eigen::Vector<T, NStates>& x, const Eigen::Vector<T, NInputs>& u) const {
+                const Eigen::Vector<T, NStates> result_x = this->A() * x + this->B() * u;
+                const Eigen::Vector<T, NOutputs> result_y = this->C() * x + this->D() * u;
                 return std::tuple(result_x, result_y);
             }
 
             /**
              * \brief calculates the new system states and outupts for SISO (single input, single output) systems
              * 
-             * Overload for SI systems that accepts scalar values as inputs.
+             * Overload for SI systems that accepts scalar values as NInputs.
              * 
              * Usage Example:
              * ```
              * StateSpace ss = some_calculation();
              * float input = some_measurement();
-             * auto [new_internal_states, new_output] = ss(internal_states, input);
+             * auto [new_internal_states, new_output] = ss(NStates, input);
              * ```
              */
             template<std::same_as<T> U>
-                requires(inputs == 1 && outputs != 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                requires(NInputs == 1 && NOutputs != 1)
+            constexpr std::tuple<Eigen::Vector<U, NStates>, Eigen::Vector<U, NOutputs>> eval(const Eigen::Vector<U, NStates>& x, const U& u_scalar) const {
                 const Eigen::Vector<T, 1> u(u_scalar);
                 return this->eval(x, u);
             }
@@ -112,18 +101,18 @@ namespace controlpp
             /**
              * \brief calculates the new system states and outupts for SISO (single input, single output) systems
              * 
-             * Overload for SISO systems that accepts scalar values as inputs.
+             * Overload for SISO systems that accepts scalar values as NInputs.
              * 
              * Usage Example:
              * ```
              * StateSpace ss = some_calculation();
              * float input = some_measurement();
-             * auto [new_internal_states, new_output] = ss(internal_states, input);
+             * auto [new_internal_states, new_output] = ss(NStates, input);
              * ```
              */
             template<std::same_as<T> U>
-                requires(inputs == 1 && outputs == 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+                requires(NInputs == 1 && NOutputs == 1)
+            constexpr std::tuple<Eigen::Vector<U, NStates>, U> eval(const Eigen::Vector<U, NStates>& x, const U& u_scalar) const {
                 const Eigen::Vector<T, 1> u(u_scalar);
                 const auto [new_x, y] = this->eval(x, u);
                 return {new_x, y(0)};
@@ -214,6 +203,8 @@ namespace controlpp
         return TransferFunction<T, states+1, states+1>(num.vector(), den.vector());
     }
 
+
+    
 /*
     template<class T, int LStates, int Linputs, int Loutputs, int RStates, int Rinputs, int Routputs>
     StateSpace<...> operator+(const StateSpace<>& lhs, const StateSpace<>& rhs){
