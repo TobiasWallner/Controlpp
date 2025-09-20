@@ -316,10 +316,28 @@ namespace controlpp
                 return this->eval(x_vec);
             }
 
+            /**
+             * @brief Checks if every element in the polynomial is zero
+             * @param epsilon A threshold below which everything is considered to be zero.
+             * @returns `true` if all elements are smaller than epsilon and `false` otherwise.
+             */
+            bool is_zero(T epsilon = std::numeric_limits<T>::min) const {
+                for(int i = 0; i < this->size(); ++i){
+                    if((this->at(i) >= epsilon)){
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             /// @brief prints polynomial to an output character stream with a variale
             /// @param stream the stream to be printed to
             /// @param var the symbol name of the variable
             void print (std::ostream& stream, std::string_view var="x") const {
+                if(this->is_zero()){
+                    stream << '0';
+                    return;
+                }
                 for(size_t i = 0; i < this->size(); ++i){
                     if(this->at(i) != static_cast<T>(0)){
                         const auto value = this->at(i);

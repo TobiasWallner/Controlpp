@@ -25,6 +25,19 @@ namespace controlpp
             constexpr TransferFunction(const TransferFunction&) = default;
             constexpr TransferFunction& operator=(const TransferFunction&) = default;
 
+            template<int NumOrder2, int DenOrder2>
+            requires(((NumOrder2 < NumOrder) || (DenOrder2 < DenOrder)) && (NumOrder2 <= NumOrder) && (DenOrder2 <= DenOrder))
+            TransferFunction(const TransferFunction<T, NumOrder2, DenOrder2>& other)
+                : TransferFunction(other.num(), other.den()){}
+
+            template<int NumOrder2, int DenOrder2>
+            requires(((NumOrder2 < NumOrder) || (DenOrder2 < DenOrder)) && (NumOrder2 <= NumOrder) && (DenOrder2 <= DenOrder))
+            TransferFunction& operator=(const TransferFunction<T, NumOrder2, DenOrder2>& other){
+                this->tf_.num() = other.num();
+                this->tf_.den() = other.den();
+                return *this;
+            }
+
             constexpr TransferFunction(const Polynom<T, NumOrder>& num, const Polynom<T, DenOrder>& den)
                 : _num(num)
                 , _den(den){}

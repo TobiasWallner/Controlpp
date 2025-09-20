@@ -15,15 +15,15 @@ namespace controlpp
      * 
      * Note that the transfer function uses the delay operator: \f$d = z^{-1}\f$.
      * 
-     * \tparam ValueType The value type that the transfer function should use. Like `double` or `float`.
+     * \tparam T The value type that the transfer function should use. Like `double` or `float`.
      * \tparam NumberOrder The order of the numerator. m in the equation.
      * \tparam DenOrder The order of the denominator. n in the equation.
      */
-    template<class ValueType, int NumOrder, int DenOrder>
+    template<class T, int NumOrder, int DenOrder>
     class DiscreteTransferFunction{
         public:
-            using value_type = ValueType;
-            using transfer_function_type = TransferFunction<ValueType, NumOrder, DenOrder>;
+            using value_type = T;
+            using transfer_function_type = TransferFunction<T, NumOrder, DenOrder>;
             using num_type = typename transfer_function_type::num_type;
             using den_type = typename transfer_function_type::den_type;
             using num_vector_type = typename transfer_function_type::num_vector_type;
@@ -36,14 +36,28 @@ namespace controlpp
 
             constexpr DiscreteTransferFunction() = default;
             constexpr DiscreteTransferFunction(const DiscreteTransferFunction&) = default;
+
             constexpr DiscreteTransferFunction& operator=(const DiscreteTransferFunction&) = default;
 
+            
+            template<int NumOrder2, int DenOrder2>
+            requires(((NumOrder2 < NumOrder) || (DenOrder2 < DenOrder)) && (NumOrder2 <= NumOrder) && (DenOrder2 <= DenOrder))
+            DiscreteTransferFunction(const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& other)
+                : tf_(other.transfer_function()){}
+
+            template<int NumOrder2, int DenOrder2>
+            requires(((NumOrder2 < NumOrder) || (DenOrder2 < DenOrder)) && (NumOrder2 <= NumOrder) && (DenOrder2 <= DenOrder))
+            DiscreteTransferFunction& operator=(const DiscreteTransferFunction<T, NumOrder2, DenOrder2>& other){
+                this->tf_ = other.transfer_function();
+                return *this;
+            }
+
             constexpr DiscreteTransferFunction(
-                const Polynom<ValueType, NumOrder>& num, 
-                const Polynom<ValueType, DenOrder>& den)
+                const Polynom<T, NumOrder>& num, 
+                const Polynom<T, DenOrder>& den)
                 : tf_(num, den){}
 
-            constexpr DiscreteTransferFunction(const TransferFunction<ValueType, NumOrder, DenOrder>& transfer_function)
+            constexpr DiscreteTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& transfer_function)
                 : tf_(transfer_function){}
 
             constexpr explicit DiscreteTransferFunction(
@@ -58,10 +72,10 @@ namespace controlpp
                 : tf_(num, den){}
             
 
-            constexpr ValueType eval(const Eigen::Vector<ValueType, NumOrder+1>& input_series, const Eigen::Vector<ValueType, DenOrder>& output_series){
-                const ValueType B = this->num().vector().dot(input_series);
-                const ValueType A = this->den().vector().tail(DenOrder).dot(output_series);
-                const ValueType y = (B - A) / this->den(0);
+            constexpr T eval(const Eigen::Vector<T, NumOrder+1>& input_series, const Eigen::Vector<T, DenOrder>& output_series){
+                const T B = this->num().vector().dot(input_series);
+                const T A = this->den().vector().tail(DenOrder).dot(output_series);
+                const T y = (B - A) / this->den(0);
                 return y;
             }
             
@@ -71,18 +85,17 @@ namespace controlpp
             constexpr num_type& num() {return this->tf_.num();}
             constexpr const num_type& num() const {return this->tf_.num();}
 
-            constexpr ValueType& num(int i) {return this->tf_.num(i);}
-            constexpr const ValueType& num(int i) const {return this->tf_.num(i);}
+            constexpr T& num(int i) {return this->tf_.num(i);}
+            constexpr const T& num(int i) const {return this->tf_.num(i);}
 
             constexpr den_type& den() {return this->tf_.den();}
             constexpr const den_type& den() const {return this->tf_.den();}
 
-            constexpr ValueType& den(int i) {return this->tf_.den(i);}
-            constexpr const ValueType& den(int i) const {return this->tf_.den(i);}
+            constexpr T& den(int i) {return this->tf_.den(i);}
+            constexpr const T& den(int i) const {return this->tf_.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
-                dtf.transfer_function().print(stream, "d");
-                std::cout << "d = z^{-1}" << std::endl;
+                dtf.transfer_function().print(stream, "z^{-1}");
                 return stream;
             }
     };
@@ -164,10 +177,10 @@ namespace controlpp
         /**
          * \brief The delay operator \f$z^{-1}\f$
          * 
-         * \tparam ValueType The value type of the delay operator. Usually `double`, `float` or a custom fixpoint.
+         * \tparam T The value type of the delay operator. Usually `double`, `float` or a custom fixpoint.
          */
-        template<class ValueType=double>
-        static inline const DiscreteTransferFunction<ValueType, 1, 0> z_1({ValueType(0), ValueType(1)}, {ValueType(1)});
+        template<class T=double>
+        static inline const DiscreteTransferFunction<T, 1, 0> z_1({T(0), T(1)}, {T(1)});
     }
 
 } // namespace controlpp

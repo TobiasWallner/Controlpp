@@ -59,7 +59,6 @@ namespace controlpp
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
         double _memory = 0.98;
-        double _cov_reg = 1e-9;
 
         public:
 
@@ -85,7 +84,7 @@ namespace controlpp
          * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
-            const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
+            const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
             double memory = 0.95,
             double cov_reg = 1e-9
@@ -93,7 +92,6 @@ namespace controlpp
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
-            , _cov_reg(cov_reg)
             {
                 if(memory <= T(0) || memory > T(1)){
                     throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
@@ -178,7 +176,6 @@ namespace controlpp
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
         double _memory = 0.98;
-        double _cov_reg = 1e-9;
 
         public:
 
@@ -204,20 +201,29 @@ namespace controlpp
          * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
-            const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setZero(), 
+            const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOnes(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.99,
-            double cov_reg = 1e-9
-        )
+            double memory = 0.99)
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
-            , _cov_reg(cov_reg)
-            {
-                if(memory <= T(0) || memory > T(1)){
-                    throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
-                }
+        {
+            if(memory <= T(0) || memory > T(1)){
+                throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
             }
+        }
+
+        inline void set_cov(const Eigen::Matrix<T, NParams, NParams>& cov){
+            this->_cov = cov;
+        }
+
+        inline void set_param(const Eigen::Vector<T, NParams>& param){
+            this->_param = param;
+        }
+
+        inline void set_memory(const T& memory){
+            this->_memory = memory;
+        }
 
         /**
          * \brief Adds a new input output pair that updates the estimate
@@ -235,11 +241,6 @@ namespace controlpp
 
             const Eigen::Matrix<T, NParams, NParams> new_cov = ((this->_cov - K * s.transpose() * this->_cov) / this->_memory).eval();
             this->_cov = new_cov;
-            
-            // for numerical stability
-            Eigen::Vector<T, NParams> d;
-            d.fill(this->_cov_reg);
-            this->_cov.diagonal() += d;
         }
 
         /**
@@ -255,7 +256,7 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        inline const Eigen::Matrix<T, NParams, NParams>& covariance() const noexcept {return this->_cov;}
+        inline const Eigen::Matrix<T, NParams, NParams>& cov() const noexcept {return this->_cov;}
     };
 
     /**
@@ -284,6 +285,14 @@ namespace controlpp
 
         ReccursiveLeastSquares<T, NumOrder+1 + DenOrder> rls;
         
+        /*
+            TODO
+
+            Possible cause for numerical instability:
+
+            For early iterations, when uk and neg_yk are mostly zero, the system matrix s may be poorly conditioned (near-zero values), leading to numerical instability in the RLS update, especially in the gain calculation.
+
+        */
         Eigen::Vector<T, NumOrder> uk = Eigen::Vector<T, NumOrder>::Zero();
         Eigen::Vector<T, DenOrder> neg_yk = Eigen::Vector<T, DenOrder>::Zero();
         T _memory = 0.98;
@@ -293,24 +302,32 @@ namespace controlpp
         /**
          * \brief Initialises a discrete transfer function estimator with optional hints and memory/decay parameters
          * 
-         * Note that \f$a_0\f$ will be set to 1 with an uncertainty of 0. 
+         * Note that the hint needs to be a propper transfer function with `a_0 != 0`
          * 
          * This also means, that the `DenominatorUncertainty` starts at \f$a_1\f$ wheras the `NumeratorUncertainty` starts at \f$b_0\f$
+         * 
          */
         DtfEstimator(
-            const DiscreteTransferFunction<T, NumOrder, DenOrder>& hint = DiscreteTransferFunction<T, NumOrder, DenOrder>(Eigen::Vector<T, NumOrder+1>().setZero(), Eigen::Vector<T, DenOrder+1>().setZero()),
+            DiscreteTransferFunction<T, NumOrder, DenOrder> hint = DiscreteTransferFunction<T, 0, 0>({static_cast<T>(1)}, {static_cast<T>(1)}),
             const Eigen::Vector<T, NumOrder+1> NumeratorUncertainty = Eigen::Vector<T, NumOrder+1>().setOnes()*T(1000),
             const Eigen::Vector<T, DenOrder> DenominatorUncertainty = Eigen::Vector<T, DenOrder>().setOnes()*T(1000),
             const T& memory = 0.99)
-            : rls(
-                controlpp::join_to_vector<T, NumOrder+1, DenOrder>(hint.num().vector(), hint.den().vector().tail(DenOrder).eval()), 
-                controlpp::join_to_diagonal<T, NumOrder+1, DenOrder>(NumeratorUncertainty, DenominatorUncertainty), 
-                memory)
         {
-            static_assert(NumOrder <= DenOrder, "The Discrete Transfer Function has to be propper. Meaning `NumOrder <= DenOrder` has to be true.");
-            if(memory <= T(0) || memory > T(1)){
-                throw std::invalid_argument("Error: DtfEstimator::DtfEstimator(): memory has to be in the open-closed range of: (0, 1]");
+            T a_0 = hint.den().at(0);
+            if(a_0 != static_cast<T>(0)){
+                hint.num() /= a_0;
+                hint.den() /= a_0;
             }
+
+            auto param = controlpp::join_to_vector<T, NumOrder+1, DenOrder>(hint.num().vector(), hint.den().vector().tail(DenOrder).eval());
+            this->rls.set_param(param);
+
+            auto cov = controlpp::join_to_diagonal<T, NumOrder+1, DenOrder>(NumeratorUncertainty, DenominatorUncertainty);
+            this->rls.set_cov(cov);
+
+            this->rls.set_memory(memory);
+
+            static_assert(NumOrder <= DenOrder, "The Discrete Transfer Function has to be propper. Meaning `NumOrder <= DenOrder` has to be true.");
         }
 
         /**
