@@ -86,8 +86,7 @@ namespace controlpp
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.95,
-            double cov_reg = 1e-9
+            double memory = 0.95
         )
             : _cov(cov_hint)
             , _param(param_hint)

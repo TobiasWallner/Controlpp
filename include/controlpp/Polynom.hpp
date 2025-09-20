@@ -7,6 +7,7 @@
 #include <iterator>
 #include <concepts>
 #include <complex>
+#include <limits>
 
 // eigen
 #include <Eigen/Core>
@@ -321,8 +322,8 @@ namespace controlpp
              * @param epsilon A threshold below which everything is considered to be zero.
              * @returns `true` if all elements are smaller than epsilon and `false` otherwise.
              */
-            bool is_zero(T epsilon = std::numeric_limits<T>::min) const {
-                for(int i = 0; i < this->size(); ++i){
+            bool is_zero(T epsilon = std::numeric_limits<T>::min()) const {
+                for(size_t i = 0; i < this->size(); ++i){
                     if((this->at(i) >= epsilon)){
                         return false;
                     }

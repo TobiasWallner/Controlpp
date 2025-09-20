@@ -95,7 +95,7 @@ namespace controlpp
             constexpr const T& den(int i) const {return this->tf_.den(i);}
 
             friend inline std::ostream& operator<<(std::ostream& stream, const DiscreteTransferFunction& dtf){
-                dtf.transfer_function().print(stream, "z^{-1}");
+                dtf.transfer_function().print(stream, "z^-");
                 return stream;
             }
     };
