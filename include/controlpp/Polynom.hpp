@@ -362,6 +362,34 @@ namespace controlpp
                 }
             }
 
+            void print (std::ostream& stream, std::function<std::string(int i)> var) const {
+                if(this->is_zero()){
+                    stream << '0';
+                    return;
+                }
+                for(size_t i = 0; i < this->size(); ++i){
+                    if(this->at(i) != static_cast<T>(0)){
+                        const auto value = this->at(i);
+                        if(value > 0){
+                            if(i > 0) stream << " + ";
+                            
+                            stream << value;
+
+                            if(i == 1) stream << ' ' << var(i);
+                            else if(i > 1) stream << ' ' << var(i) << '^' << i;
+                        }else if(value < 0){
+                            if(i == 0) stream << "- ";
+                            else if(i > 0) stream << " - ";
+
+                            stream << (-value);
+
+                            if(i == 1) stream << ' ' << var(i);
+                            else if(i > 1) stream << ' ' << var(i) << '^' << i;
+                        }
+                    }
+                }
+            }
+
             /// @brief prints the polynomial (pretty) to an output stream with `"x"` as the symbol name of the variable
             /// @param stream a reference to the output stream printed to
             /// @param poly the polynomial to be printed

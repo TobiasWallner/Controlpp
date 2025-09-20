@@ -206,6 +206,11 @@ namespace controlpp
                 stream << "\nden: "; this->den().print(stream, var); stream << '\n';
             }
 
+            void print(std::ostream& stream, std::function<std::string(int i)> var) const {
+                stream << "num: "; this->num().print(stream, var);
+                stream << "\nden: "; this->den().print(stream, var); stream << '\n';
+            }
+
             friend std::ostream& operator<<(std::ostream& stream, const TransferFunction& rpoly){
                 rpoly.print(stream);
                 return stream;

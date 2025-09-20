@@ -83,8 +83,6 @@ TEST(Estimators, DtfEstimator){
         const double u = (i == 0) ? 0.0 : 1.0;
         const double y = dssf.input(u);
         dtf_est.add(y, u);
-        std::cout << "iteration: " << std::endl;
-        std::cout << dtf_est.estimate() << '\n' << std::endl;
     }
 
     const auto Gz_est = dtf_est.estimate();
@@ -98,8 +96,7 @@ TEST(Estimators, DtfEstimator){
         const double u = 1.0;
         const double y = dssf.input(u);
         const double y_est = dssf_est.input(u);
-        std::cout << "iteration: " << i << ", y: " << y << ", y_est: " << y_est << std::endl;
-        //ASSERT_NEAR(y, y_est, 0.01);
+        ASSERT_NEAR(y, y_est, 0.01);
     }
 
 }
