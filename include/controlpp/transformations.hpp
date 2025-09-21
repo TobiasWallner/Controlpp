@@ -55,7 +55,7 @@ namespace controlpp
      * \returns The discretised version of `sys`
      */
     template<class ValueType, int states>
-    constexpr DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
+    DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
             const ContinuousStateSpace<ValueType, states, 1, 1>& sys, 
             ValueType sample_time,
             int approximation_order=8
@@ -112,7 +112,7 @@ namespace controlpp
      * \returns A discrete state space system
      */
     template<class T, int NStates, int NInputs, int NOutputs>
-    constexpr DiscreteStateSpace<T, NStates, NInputs, NOutputs> discretise_tustin(
+    DiscreteStateSpace<T, NStates, NInputs, NOutputs> discretise_tustin(
             const ContinuousStateSpace<T, NStates, NInputs, NOutputs>& sys, 
             const T& sample_time
     ){

@@ -57,28 +57,28 @@ namespace controlpp
             state_space_type _state_space;
 
         public:
-            constexpr DiscreteStateSpace() = default;
-            constexpr DiscreteStateSpace(const DiscreteStateSpace&) = default;
-            constexpr DiscreteStateSpace& operator=(const DiscreteStateSpace&) = default;
+            DiscreteStateSpace() = default;
+            DiscreteStateSpace(const DiscreteStateSpace&) = default;
+            DiscreteStateSpace& operator=(const DiscreteStateSpace&) = default;
 
-            constexpr DiscreteStateSpace(
+            DiscreteStateSpace(
                 const Eigen::Matrix<ValueType, internal_states, internal_states>& A,
                 const Eigen::Matrix<ValueType, internal_states, inputs>& B,
                 const Eigen::Matrix<ValueType, outputs, internal_states>& C,
                 const Eigen::Matrix<ValueType, outputs, inputs>& D)
                 : _state_space(A, B, C, D){}
 
-            constexpr DiscreteStateSpace(const state_space_type& state_space) 
+            DiscreteStateSpace(const state_space_type& state_space) 
                 : _state_space(state_space){}
 
-            constexpr const state_space_type& state_space() const {return this->_state_space;}            
-            constexpr state_space_type& state_space() {return this->_state_space;}            
+            const state_space_type& state_space() const {return this->_state_space;}            
+            state_space_type& state_space() {return this->_state_space;}            
 
             /**
              * \brief calculates the next states and calculates the output from the previous states and new inputs
              * \returns a tuple of `[nest_states, output]`
              */
-            constexpr std::tuple<Eigen::Vector<ValueType, internal_states>, Eigen::Vector<ValueType, outputs>> eval(const Eigen::Vector<ValueType, internal_states>& x, const Eigen::Vector<ValueType, inputs>& u) const {
+            std::tuple<Eigen::Vector<ValueType, internal_states>, Eigen::Vector<ValueType, outputs>> eval(const Eigen::Vector<ValueType, internal_states>& x, const Eigen::Vector<ValueType, inputs>& u) const {
                 return this->_state_space.eval(x, u);
             }
 
@@ -88,7 +88,7 @@ namespace controlpp
              */
             template<std::same_as<ValueType> U>
                 requires(inputs == 1 && outputs != 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+            std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
                 return this->_state_space.eval(x, u_scalar);
             }
 
@@ -98,20 +98,20 @@ namespace controlpp
              */
             template<std::same_as<ValueType> U>
                 requires(inputs == 1 && outputs == 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+            std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
                 return this->_state_space.eval(x, u_scalar);
             }
             
             
-            constexpr A_matrix_type& A() {return this->_state_space.A();}
-            constexpr B_matrix_type& B() {return this->_state_space.B();}
-            constexpr C_matrix_type& C() {return this->_state_space.C();}
-            constexpr D_matrix_type& D() {return this->_state_space.D();}
+            A_matrix_type& A() {return this->_state_space.A();}
+            B_matrix_type& B() {return this->_state_space.B();}
+            C_matrix_type& C() {return this->_state_space.C();}
+            D_matrix_type& D() {return this->_state_space.D();}
 
-            constexpr const A_matrix_type& A() const {return this->_state_space.A();}
-            constexpr const B_matrix_type& B() const {return this->_state_space.B();}
-            constexpr const C_matrix_type& C() const {return this->_state_space.C();}
-            constexpr const D_matrix_type& D() const {return this->_state_space.D();}
+            const A_matrix_type& A() const {return this->_state_space.A();}
+            const B_matrix_type& B() const {return this->_state_space.B();}
+            const C_matrix_type& C() const {return this->_state_space.C();}
+            const D_matrix_type& D() const {return this->_state_space.D();}
 
             friend std::ostream& operator<<(std::ostream& stream, const DiscreteStateSpace& dss){
                 stream << dss.state_space();
@@ -124,7 +124,7 @@ namespace controlpp
      */
     template<class T, int NumOrder, int DenOrder>
     requires(NumOrder <= DenOrder)
-    constexpr DiscreteStateSpace<T, DenOrder, 1, 1> to_discrete_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+    DiscreteStateSpace<T, DenOrder, 1, 1> to_discrete_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
         static constexpr int number_of_states = DenOrder;
         StateSpace<T, number_of_states, 1, 1> result;
         const T a_0 = rp.den(0);
@@ -166,7 +166,7 @@ namespace controlpp
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, int NumOrder, int DenOrder>
-    constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_discrete_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
+    DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_discrete_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
         return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.transfer_function()));
     }
 
@@ -174,7 +174,7 @@ namespace controlpp
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class ValueType, int NumOrder, int DenOrder>
-    constexpr DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
+    DiscreteStateSpace<ValueType, DenOrder, 1, 1> to_state_space(const DiscreteTransferFunction<ValueType, NumOrder, DenOrder>& dtf){
         return DiscreteStateSpace<ValueType, DenOrder, 1, 1>(to_discrete_state_space(dtf.transfer_function()));
     }
 
@@ -185,7 +185,7 @@ namespace controlpp
      */
     // redo:
     //template<class T, int states>
-    //constexpr DiscreteTransferFunction<T, states+1, states+1> to_transfer_function(const DiscreteStateSpace<T, states, 1, 1>& dss){
+    //DiscreteTransferFunction<T, states+1, states+1> to_transfer_function(const DiscreteStateSpace<T, states, 1, 1>& dss){
     //    return DiscreteTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     //}
 
