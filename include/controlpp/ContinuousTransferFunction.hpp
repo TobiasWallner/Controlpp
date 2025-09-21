@@ -33,43 +33,43 @@ namespace controlpp
             TransferFunction<T, NumOrder, DenOrder> tf_;
         public:
 
-            constexpr ContinuousTransferFunction() = default;
-            constexpr ContinuousTransferFunction(const ContinuousTransferFunction&) = default;
-            constexpr ContinuousTransferFunction& operator=(const ContinuousTransferFunction&) = default;
+            ContinuousTransferFunction() = default;
+            ContinuousTransferFunction(const ContinuousTransferFunction&) = default;
+            ContinuousTransferFunction& operator=(const ContinuousTransferFunction&) = default;
 
-            constexpr explicit ContinuousTransferFunction(const Polynom<T, NumOrder>& num, const Polynom<T, DenOrder>& den)
+            explicit ContinuousTransferFunction(const Polynom<T, NumOrder>& num, const Polynom<T, DenOrder>& den)
                 : tf_(num, den){}
 
-            constexpr explicit ContinuousTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& transfer_function)
+            explicit ContinuousTransferFunction(const TransferFunction<T, NumOrder, DenOrder>& transfer_function)
                 : tf_(transfer_function){}
 
-            constexpr explicit ContinuousTransferFunction(const Eigen::Vector<T, NumOrder+1>& num, const Eigen::Vector<T, DenOrder+1>& den)
+            explicit ContinuousTransferFunction(const Eigen::Vector<T, NumOrder+1>& num, const Eigen::Vector<T, DenOrder+1>& den)
                 : tf_(num, den){}
 
-            constexpr explicit ContinuousTransferFunction(const T(&num)[NumOrder+1], const T(&den)[DenOrder+1])
+            explicit ContinuousTransferFunction(const T(&num)[NumOrder+1], const T(&den)[DenOrder+1])
                 : tf_(num, den){}
 
-            constexpr num_type& num() {return this->tf_.num();}
-            constexpr const num_type& num() const {return this->tf_.num();}
+            num_type& num() {return this->tf_.num();}
+            const num_type& num() const {return this->tf_.num();}
 
-            constexpr T& num(size_t i) {return this->tf_.num(i);}
-            constexpr const T& num(size_t i) const {return this->tf_.num(i);}
+            T& num(size_t i) {return this->tf_.num(i);}
+            const T& num(size_t i) const {return this->tf_.num(i);}
 
-            constexpr den_type& den() {return this->tf_.den();}
-            constexpr const den_type& den() const {return this->tf_.den();}
+            den_type& den() {return this->tf_.den();}
+            const den_type& den() const {return this->tf_.den();}
 
-            constexpr T& den(size_t i) {return this->tf_.den(i);}
-            constexpr const T& den(size_t i) const {return this->tf_.den(i);}
+            T& den(size_t i) {return this->tf_.den(i);}
+            const T& den(size_t i) const {return this->tf_.den(i);}
 
-            constexpr transfer_function_type& transfer_function() {return this->tf_;}
-            constexpr const transfer_function_type& transfer_function() const {return this->tf_;}
+            transfer_function_type& transfer_function() {return this->tf_;}
+            const transfer_function_type& transfer_function() const {return this->tf_;}
 
             /**
              * \brief Evaluates the rational polynomial at `x`
              * \param x The variable used to evaluate the polynomial
              * \returns The result of the polynomial
              */
-            constexpr T eval(const T& x) const {
+            T eval(const T& x) const {
                 return this->tf_.eval(x);
             }
 
@@ -79,7 +79,7 @@ namespace controlpp
              * \returns An eigen vector with the results of the rational polynomial
              */
             template<int M>
-            constexpr Eigen::Vector<T, M> eval(const Eigen::Vector<T, M>& x_vec) const {
+            Eigen::Vector<T, M> eval(const Eigen::Vector<T, M>& x_vec) const {
                 return this->tf_.eval(x_vec);
             }
 
@@ -88,7 +88,7 @@ namespace controlpp
              * \param x The complex variable used to evaluate the polynomial
              * \returns The result of the polynomial as a complex value
              */
-            constexpr std::complex<T> eval(const std::complex<T>& x) const {
+            std::complex<T> eval(const std::complex<T>& x) const {
                 return this->tf_.eval(x);
             }
 
@@ -98,7 +98,7 @@ namespace controlpp
              * \returns An eigen vector with the complex results of the rational polynomial
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval(const Eigen::Vector<std::complex<T>, M>& x_vec) const {
+            Eigen::Vector<std::complex<T>, M> eval(const Eigen::Vector<std::complex<T>, M>& x_vec) const {
                 return this->tf_.eval(x_vec);
             }
 
@@ -110,11 +110,11 @@ namespace controlpp
              * \param frequency The frequency (in radiants per second) at which to evaluate the transfer function at
              * \returns The complex result of the frequency evaluation/analysis.
              */
-            constexpr std::complex<T> eval_frequency(const T& frequency) const {
+            std::complex<T> eval_frequency(const T& frequency) const {
                 return this->tf_.eval_frequency(frequency);
             }
 
-            constexpr std::complex<T> eval_frequency_Hz(const T& frequency) const {
+            std::complex<T> eval_frequency_Hz(const T& frequency) const {
                 return this->tf_.eval_frequency_Hz(frequency);
             }
 
@@ -124,7 +124,7 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
+            Eigen::Vector<std::complex<T>, M> eval_frequencies(const Eigen::Vector<T, M>& frequencies) const {
                 return this->tf_.eval_frequencies(frequencies);
             }
 
@@ -134,7 +134,7 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
+            Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
                 return this->tf_.eval_frequencies_Hz(frequencies);
             }
 
@@ -148,17 +148,17 @@ namespace controlpp
     // -----------
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
-    constexpr auto operator+(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
+    auto operator+(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() + rhs.transfer_function());
     }
 
     template<class Tpoly, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator+(const Tscalar& lhs, const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& rhs){
+    auto operator+(const Tscalar& lhs, const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& rhs){
         return ContinuousTransferFunction(lhs + rhs.transfer_function());
     }
 
     template<class Tpoly, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator+(const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+    auto operator+(const ContinuousTransferFunction<Tpoly, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() + rhs);
     }
 
@@ -166,22 +166,22 @@ namespace controlpp
     // -----------
 
     template<class T, int NumOrder, int DenOrder>
-    constexpr ContinuousTransferFunction<T, NumOrder, DenOrder> operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& a){
+    ContinuousTransferFunction<T, NumOrder, DenOrder> operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& a){
         return ContinuousTransferFunction(-a.transfer_function());
     }
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
-    constexpr auto operator-(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
+    auto operator-(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() - rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator-(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
+    auto operator-(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
         return ContinuousTransferFunction(lhs - rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+    auto operator-(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() - rhs);
     }
 
@@ -189,17 +189,17 @@ namespace controlpp
     // -----------
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
-    constexpr auto operator*(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
+    auto operator*(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() * rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator*(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
+    auto operator*(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
         return ContinuousTransferFunction(lhs * rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator*(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+    auto operator*(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() * rhs);
     }
 
@@ -207,17 +207,17 @@ namespace controlpp
     // -----------
 
     template<class T, int NumOrder1, int DenOrder1, int NumOrder2, int DenOrder2>
-    constexpr auto operator/(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
+    auto operator/(const ContinuousTransferFunction<T, NumOrder1, DenOrder1>& lhs, const ContinuousTransferFunction<T, NumOrder2, DenOrder2>& rhs){
         return ContinuousTransferFunction(lhs.transfer_function() / rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator/(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
+    auto operator/(const Tscalar& lhs, const ContinuousTransferFunction<T, NumOrder, DenOrder>& rhs){
         return ContinuousTransferFunction(lhs / rhs.transfer_function());
     }
 
     template<class T, class Tscalar, int NumOrder, int DenOrder>
-    constexpr auto operator/(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
+    auto operator/(const ContinuousTransferFunction<T, NumOrder, DenOrder>& lhs, const Tscalar& rhs){
         ContinuousTransferFunction result(lhs.transfer_function() / rhs);
         return result;
     }

@@ -108,7 +108,7 @@ namespace controlpp{
 	 * \see controlpp::mexp
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor(
+	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, 
 			int n
 	){
@@ -150,7 +150,7 @@ namespace controlpp{
 	 * \see controlpp::mexp_taylor
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor_scaled(
+	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor_scaled(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, 
 			int taylor_order = 8, 
 			int scaling = 10
@@ -283,7 +283,7 @@ namespace controlpp{
 	}
 
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, N, N> mexp_pade_scaled(
+	Eigen::Matrix<T, N, N> mexp_pade_scaled(
 			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, 
 			int order = 5,
 			int scaling = 5
@@ -317,7 +317,7 @@ namespace controlpp{
 	 * \see controlpp::mexp_pade_scaled
 	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, N, N> mexp(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
+	Eigen::Matrix<T, N, N> mexp(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
 		// actual exponent calculation
 		const T maxColNorm = M.colwise().norm().maxCoeff();
 		const T maxRowNorm = M.rowwise().norm().maxCoeff();
@@ -328,7 +328,7 @@ namespace controlpp{
 	}
 
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	constexpr Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> identity_like([[maybe_unused]]const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& unused){
+	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> identity_like([[maybe_unused]]const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& unused){
 		return Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>::Identity();
 	}
 
@@ -461,7 +461,7 @@ namespace controlpp{
 			int AOpt, int AMaxR, int AMaxC,
 			int QOpt, int QMaxR, int QMaxC
   	>
-	constexpr Eigen::Matrix<T, NStates, NStates> lyapunov_solver(
+	Eigen::Matrix<T, NStates, NStates> lyapunov_solver(
 		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
 		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q
 	){
@@ -631,7 +631,7 @@ namespace controlpp{
 			int QOpt, int QMaxR, int QMaxC,
 			int NOpt, int NMaxR, int NMaxC
   	>
-	constexpr Eigen::Matrix<T, NStates, NStates> care_solver(
+	Eigen::Matrix<T, NStates, NStates> care_solver(
 		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
 		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
 		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R,

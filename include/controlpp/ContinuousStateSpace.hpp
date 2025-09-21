@@ -26,41 +26,41 @@ namespace controlpp
             state_space_type _state_space;
 
         public:
-            constexpr ContinuousStateSpace() = default;
-            constexpr ContinuousStateSpace(const ContinuousStateSpace&) = default;
-            constexpr ContinuousStateSpace& operator=(const ContinuousStateSpace&) = default;
+            ContinuousStateSpace() = default;
+            ContinuousStateSpace(const ContinuousStateSpace&) = default;
+            ContinuousStateSpace& operator=(const ContinuousStateSpace&) = default;
 
-            constexpr ContinuousStateSpace(
+            ContinuousStateSpace(
                 const Eigen::Matrix<T, internal_states, internal_states>& A,
                 const Eigen::Matrix<T, internal_states, inputs>& B,
                 const Eigen::Matrix<T, outputs, internal_states>& C,
                 const Eigen::Matrix<T, outputs, inputs>& D = Eigen::Matrix<T, outputs, inputs>::Zero()
             ) : _state_space(A, B, C, D){}
 
-            constexpr ContinuousStateSpace(const StateSpace<T, internal_states, inputs, outputs>& state_space) : _state_space(state_space){}
+            ContinuousStateSpace(const StateSpace<T, internal_states, inputs, outputs>& state_space) : _state_space(state_space){}
             
-            constexpr StateSpace<T, internal_states, inputs, outputs>& state_space(){return this->_state_space;}
-            constexpr const StateSpace<T, internal_states, inputs, outputs>& state_space() const {return this->_state_space;}
+            StateSpace<T, internal_states, inputs, outputs>& state_space(){return this->_state_space;}
+            const StateSpace<T, internal_states, inputs, outputs>& state_space() const {return this->_state_space;}
 
-            constexpr std::tuple<Eigen::Vector<T, internal_states>, Eigen::Vector<T, outputs>> eval(const Eigen::Vector<T, internal_states>& x, const Eigen::Vector<T, inputs>& u) const {
+            std::tuple<Eigen::Vector<T, internal_states>, Eigen::Vector<T, outputs>> eval(const Eigen::Vector<T, internal_states>& x, const Eigen::Vector<T, inputs>& u) const {
                 this->_state_space(x, u);
             }
 
             template<std::same_as<T> U>
                 requires(inputs == 1)
-            constexpr std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
+            std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
                 this->_state_space(x, u_scalar);
             }
 
-            constexpr A_matrix_type& A() {return this->_state_space.A();}
-            constexpr B_matrix_type& B() {return this->_state_space.B();}
-            constexpr C_matrix_type& C() {return this->_state_space.C();}
-            constexpr D_matrix_type& D() {return this->_state_space.D();}
+            A_matrix_type& A() {return this->_state_space.A();}
+            B_matrix_type& B() {return this->_state_space.B();}
+            C_matrix_type& C() {return this->_state_space.C();}
+            D_matrix_type& D() {return this->_state_space.D();}
 
-            constexpr const A_matrix_type& A() const {return this->_state_space.A();}
-            constexpr const B_matrix_type& B() const {return this->_state_space.B();}
-            constexpr const C_matrix_type& C() const {return this->_state_space.C();}
-            constexpr const D_matrix_type& D() const {return this->_state_space.D();}
+            const A_matrix_type& A() const {return this->_state_space.A();}
+            const B_matrix_type& B() const {return this->_state_space.B();}
+            const C_matrix_type& C() const {return this->_state_space.C();}
+            const D_matrix_type& D() const {return this->_state_space.D();}
 
             friend std::ostream& operator<<(std::ostream& stream, const ContinuousStateSpace& css){
                 stream << css.state_space();
@@ -72,7 +72,7 @@ namespace controlpp
      * \brief constructs a continuous state space function from a rational polynom
      */
     template<class T, int NumOrder, int DenOrder>
-    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+    ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
         return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(rp));
     }
 
@@ -80,7 +80,7 @@ namespace controlpp
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class T, int NumOrder, int DenOrder>
-    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
+    ContinuousStateSpace<T, DenOrder, 1, 1> to_continuous_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
         return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.transfer_function()));
     }
 
@@ -88,7 +88,7 @@ namespace controlpp
      * \brief constructs a continuous state space function from a continuous transfer function
      */
     template<class T, int NumOrder, int DenOrder>
-    constexpr ContinuousStateSpace<T, DenOrder, 1, 1> to_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
+    ContinuousStateSpace<T, DenOrder, 1, 1> to_state_space(const ContinuousTransferFunction<T, NumOrder, DenOrder>& ctf){
         return ContinuousStateSpace<T, DenOrder, 1, 1>(to_state_space(ctf.transfer_function()));
     }
 
@@ -98,7 +98,7 @@ namespace controlpp
      * \see controlpp::DiscreteTransferFunction
      */
     template<class T, int states>
-    constexpr ContinuousTransferFunction<T, states+1, states+1> to_transfer_function(const ContinuousStateSpace<T, states, 1, 1>& dss){
+    ContinuousTransferFunction<T, states+1, states+1> to_transfer_function(const ContinuousStateSpace<T, states, 1, 1>& dss){
         return ContinuousTransferFunction<T, states+1, states+1>(to_transfer_function(dss.state_space()));
     }
     

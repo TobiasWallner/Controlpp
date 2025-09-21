@@ -13,7 +13,7 @@
 namespace controlpp
 {
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
+    ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -184,7 +184,7 @@ namespace controlpp
      */
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
     requires(NInputs>1 && NMeasOutputs>1)
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
+    ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -208,7 +208,7 @@ namespace controlpp
      * 
      */
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
+    ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continous_h2(
             const Eigen::Matrix<T, NStates, NStates>& A,
             const Eigen::Matrix<T, NStates, NDisturbances>& Bw,
             const Eigen::Matrix<T, NStates, NInputs>& Bu,
@@ -271,7 +271,7 @@ namespace controlpp
      * \see controlpp::ContinuousGeneralisedPlant
      */
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>   
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continuous_h2(
+    ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continuous_h2(
         const ContinuousGeneralisedPlant<T, NStates, NInputs, NPerfOutputs, NMeasOutputs, NDisturbances> & Gss,
         const Eigen::Vector<T, NInputs>& control_penalty = Eigen::Vector<T, NInputs>::Zero(),
         const Eigen::Vector<T, NMeasOutputs>& measurement_noise = Eigen::Vector<T, NMeasOutputs>::Zero()
@@ -285,7 +285,7 @@ namespace controlpp
     }
 
     template<class T, int NStates, int NInputs, int NPerfOutputs, int NMeasOutputs, int NDisturbances>   
-    constexpr ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continuous_h2(
+    ContinuousStateSpace<T, NStates, NMeasOutputs, NInputs> continuous_h2(
         const ContinuousGeneralisedPlant<T, NStates, NInputs, NPerfOutputs, NMeasOutputs, NDisturbances> & Gss,
         const T& control_penalty = static_cast<T>(0),
         const T& measurement_noise = static_cast<T>(0)
@@ -338,7 +338,7 @@ namespace controlpp
         int MNumOrder, int MDenOrder,
         int WdNumOrder, int WdDenOrder,
         int WzNumOrder, int WzDenOrder>
-    constexpr ContinuousStateSpace<T, PDenOrder + MDenOrder + WdDenOrder + WzDenOrder, 1, 1> continous_h2(
+    ContinuousStateSpace<T, PDenOrder + MDenOrder + WdDenOrder + WzDenOrder, 1, 1> continous_h2(
         const ContinuousTransferFunction<T, PNumOrder, PDenOrder>& P,
         const ContinuousTransferFunction<T, MNumOrder, MDenOrder>& M,
         const ContinuousTransferFunction<T, WdNumOrder, WdDenOrder>& Wd,

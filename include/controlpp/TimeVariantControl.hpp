@@ -466,8 +466,9 @@ namespace controlpp
         template<class T>
         class PT1Control{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            T _K = static_cast<T>(1);       ///< The gain of the filter
+            T _omega = static_cast<T>(1);   ///< The characteristic frequency of the filter
+            T _x = static_cast<T>(0);       ///< The internal state of the filter
         
             public:
             
@@ -476,36 +477,44 @@ namespace controlpp
              * \param K The gain of the filter
              * \param omega The -3dB bandwidth of the lowpass filter
              */
-            constexpr PT1Control(const T& K, const T& omega){
-                this->set_params(K, omega);
-            }
+            constexpr PT1Control(const T& K, const T& omega)
+                : _K(K)
+                , _omega(omega){}
 
             /// @brief Default copy constructor 
             constexpr PT1Control(const PT1Control&) = default;
 
-            constexpr void set_params(const T& K, const T& omega){
-                const ContinuousTransferFunction<T, 0, 1> tf(
-                    Eigen::Vector<T, 1>(K), 
-                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1)/omega));
-                this->css_ = to_state_space(tf);
-            }
+            constexpr void set_gain(const T& g){this->_K = g;}
+            [[nodiscard]] constexpr const T& gain() const {return this->_K;}
+
+            constexpr void set_omega(const T& w){this->_omega = w;}
+            [[nodiscard]] constexpr const T& omega() const {return this->_omega;}
 
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                // helper values
+                const T p = (Ts * this->_omega + 2);
+                const T n = (Ts * this->_omega - 2);
+
+                // parameters
+                // a_0 = 1
+                const T a = n / p;
+                const T b = this->_K * Ts * this->_omega / p;
+
+                // calculate new state and output
+                const T new_x = (-a) * this->_x + u;
+                const T new_y = b * ((1 - a) * this->_x + u);
+
+                // update state and output
+                this->_x = new_x;
+                return new_y;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
             constexpr void reset(){
-                this->states_.setZero();
+                this->_x = static_cast<T>(0);
             }
-
         };
-        template<class T>
-        using LowPassO1 = PT1Control<T>;
 
         /**
          * \brief A PT2 (proportional time second order) filter (=low-pass element of order 1), with varying smaple-time
@@ -545,6 +554,8 @@ namespace controlpp
          * - \f$y_{k}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$ are current and previous control outputs
          * 
          * \tparam T Value type of the filter like `float` or `double`
+         * 
+         * TODO: calculate the tustin discretised states space manuall and build the state space matrices directly to improve performance-
          */
         template<class T>
         class PT2Control{
