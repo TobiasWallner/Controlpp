@@ -21,7 +21,7 @@ namespace controlpp
      */
     template<class T, int XRows, int XCols, int XOpt, int XMaxRows, int XMaxCols>
     requires((XRows >= XCols) || (XRows == Eigen::Dynamic) || (XCols == Eigen::Dynamic))
-    Eigen::Vector<T, XCols> least_squares(const Eigen::Matrix<T, XRows, XCols, XOpt, XMaxRows, XMaxCols>& X, const Eigen::Vector<T, XRows>& y) noexcept {
+    Eigen::Vector<T, XCols> least_squares(const Eigen::Matrix<T, XRows, XCols, XOpt, XMaxRows, XMaxCols>& X, const Eigen::Vector<T, XRows>& y)  {
         Eigen::Vector<T, XCols> result = X.colPivHouseholderQr().solve(y).eval();
         return result;
     }
@@ -45,22 +45,26 @@ namespace controlpp
      * 
      * ---
      * 
-     * Note that for a number of outputs greater than one (`NOutputs>1`)
+     * For a number of outputs greater than one (`NOutputs>1`)
      * the model uses the 'Multi-Output System with shared parameter vector'.
-     * 
      * This allows to use multiple sensors observing the same
      * system states and parameters to increase the estimation result.
      * 
+     * There is a default regularisation therm (default: 1e-9) added to the diagonal elements of the covariance updata
+     * 
+     * There is gain clamping (default: [-10, +10]) applied to the parameter update therem K.
      */
     template<class T, size_t NParams, size_t NMeasurements = 1>
     class ReccursiveLeastSquares{
         private:
 
-        Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
-        Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        T _memory = 0.98;
-        T _regularisation = 1e-9;
+        Eigen::Matrix<T, NParams, NParams> _cov;    ///< previous covariance
+        Eigen::Vector<T, NParams> _param;           ///< previous parameter estimate
         Eigen::Vector<T, NParams> _K;
+        T _memory = 0.98;
+        T _cov_regularisation = 1e-9;
+        T _gain_clamp = 10;
+        
 
         public:
 
@@ -82,23 +86,17 @@ namespace controlpp
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between 0.8 and 0.98
          * 
-         * \param regularisation A value that will be added to the diagonal of the covariance matrix before each update
-         * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
-            const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            T memory = 0.95,
-            T regularisation = 1e-9
-        )
-            : _cov(cov_hint)
-            , _param(param_hint)
+            T memory = 0.99)
+            : _param(param_hint)
             , _memory(memory)
-            , _regularisation(regularisation)
             {
                 if(memory <= T(0) || memory > T(1)){
                     throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
                 }
+                this->_cov = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000));
                 this->_K.setZero();
             }
 
@@ -108,17 +106,23 @@ namespace controlpp
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s) noexcept {
-            // this->_cov.diagonal().array() += this->_regularisation;
+        void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s)  {
+            this->_cov.diagonal().array() += this->_cov_regularisation;
 
             // Gain
             const auto A = (this->_cov * s.transpose()).eval();
             const Eigen::Matrix<T, NMeasurements, NMeasurements> I_m = Eigen::Matrix<T, NMeasurements, NMeasurements>::Identity();
-            auto B = (s * this->_cov * s.transpose()).eval();
-            B.diagonal().array() += this->_memory;
+            auto B1 = (s * this->_cov * s.transpose()).eval();
+            B1.diagonal().array() += this->_memory;
+            const auto B = ((B1 + B1.transpose())/2).eval(); // force symetry
 
             // calculate: K = A * B^-1
             this->_K = B.transpose().llt().solve(A.transpose()).transpose().eval();
+
+            // Limit the update gain
+            for(int i = 0; i < this->_K.size(); ++i){
+                this->_K.at(i) = std::clamp(this->_K.at(i), -this->_gain_clamp, this->_gain_clamp);
+            }
 
             // Update
             this->_param += this->_K * (y - s * this->_param);
@@ -132,7 +136,7 @@ namespace controlpp
          * \brief returns the current best estimate
          * \returns the parameter vector
          */
-        inline const Eigen::Vector<T, NParams>& estimate() const noexcept {return this->_param;}
+        inline const Eigen::Vector<T, NParams>& estimate() const  {return this->_param;}
 
         /**
          * \brief returns the current covariance
@@ -141,7 +145,61 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        inline const Eigen::Matrix<T, NParams, NParams>& cov() const noexcept {return this->_cov;}
+        [[nodiscard]] inline const Eigen::Matrix<T, NParams, NParams>& cov() const  {return this->_cov;}
+
+        inline void set_cov(const Eigen::Matrix<T, NParams, NParams>& cov) {
+            this->_cov = cov;
+        }
+
+        /**
+         * @brief Sets the memory factor
+         * 
+         * The memory factor [0, 1], where:
+         * - larger values: Old parameters and inputs are remembered for longer (slower changes, more robust to noise).
+         * - smaller values: Old parameters are forgotten more quickly (faster changes)
+         * 
+         * @param memory The new memory factor
+         */
+        inline void set_memory(const T& memory){
+            this->_memory = memory;
+        }
+
+        /**
+         * @brief Returns the memory factor
+         * 
+         * The memory factor [0, 1], where:
+         * - larger values: Old parameters and inputs are remembered for longer (slower changes, more robust to noise).
+         * - smaller values: Old parameters are forgotten more quickly (faster changes)
+         * 
+         * @returns The current memory factor
+         */
+        [[nodiscard]] inline const T& memory() const {
+            return this->_memory;
+        }
+
+        /**
+         * \brief Limits the update gain K. 
+         * 
+         * Limits the update gain K from -gain_clamp to +gain_clamp. 
+         * Prevents too fast updates and ill conditioned updates. For example from a lack of excitation variety
+         * 
+         * default is 10
+         * 
+         * \param gain_clamp The new gain clamp
+         */
+        inline void set_gain_clamp(const T& gain_clamp) {
+            this->_gain_clamp = gain_clamp;
+        }
+
+        /**
+         * @brief Returns the currect gain clamp factor
+         * @return The currect gain clamp factor
+         */
+        [[nodiscard]] inline const T& gain_clamp(){
+            return this->_gain_clamp;
+        }
+
+
 
         /**
          * @brief Returns the gain K used in the parameter update
@@ -150,7 +208,7 @@ namespace controlpp
          * 
          * @return The gain vector;
          */
-        inline const Eigen::Vector<T, NParams>& gain() const noexcept {return this->_K;}
+        inline const Eigen::Vector<T, NParams>& gain() const  {return this->_K;}
     };
 
     /**
@@ -189,9 +247,11 @@ namespace controlpp
 
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        T _memory = 0.98;
-        T _regularisation = 1e-9;
         Eigen::Vector<T, NParams> _K;
+        T _memory = 0.98;
+        T _cov_regularisation = 1e-9;
+        T _gain_clamp = 10;
+        
 
         public:
 
@@ -213,7 +273,7 @@ namespace controlpp
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between `0.9 `and `0.995`.
          * 
-         * \param regularisation A value that will be added to the diagonal of the covariance matrix before each update
+         * \param cov_regularisation A value that will be added to the diagonal of the covariance matrix before each update
          * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          * 
          */
@@ -221,12 +281,12 @@ namespace controlpp
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOnes(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
             T memory = 0.99,
-            T regularisation = 1e-9
+            T cov_regularisation = 1e-9
         )
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
-            , _regularisation(regularisation)
+            , _cov_regularisation(cov_regularisation)
         {
             if(memory <= T(0) || memory > T(1)){
                 throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
@@ -246,19 +306,31 @@ namespace controlpp
             this->_memory = memory;
         }
 
+        inline void set_gain_clamp(const T& gain_clamp){
+            this->_gain_clamp = gain_clamp;
+        }
+
+        [[nodiscard]] inline const T& gain_clamp() const {
+            return this->_gain_clamp;
+        }
+
         /**
          * \brief Adds a new input output pair that updates the estimate
          * \param y The new system measurements/outputs
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Vector<T, NParams>& s) noexcept {
-            // this->_cov.diagonal().array() += this->_regularisation;
+        void add(const T& y, const Eigen::Vector<T, NParams>& s)  {
+            this->_cov.diagonal().array() += this->_cov_regularisation;
 
             // Gain
             const auto A = (this->_cov * s).eval();
             const T B = this->_memory + s.transpose() * this->_cov * s;
             this->_K = A / B;
+
+            for(int i = 0; i < this->_K.size(); ++i){
+                this->_K(i) = std::clamp(this->_K(i), -this->_gain_clamp, this->_gain_clamp);
+            }
 
             // Update
             this->_param += this->_K * (y - s.transpose() * this->_param);
@@ -271,7 +343,7 @@ namespace controlpp
          * \brief returns the current best estimate
          * \returns the parameter vector
          */
-        inline const Eigen::Vector<T, NParams>& estimate() const noexcept {return this->_param;}
+        inline const Eigen::Vector<T, NParams>& estimate() const  {return this->_param;}
 
         /**
          * \brief returns the current covariance
@@ -280,7 +352,7 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        inline const Eigen::Matrix<T, NParams, NParams>& cov() const noexcept {return this->_cov;}
+        inline const Eigen::Matrix<T, NParams, NParams>& cov() const  {return this->_cov;}
 
         /**
          * @brief Returns the gain used for the updata
@@ -289,7 +361,7 @@ namespace controlpp
          * 
          * @return The gain used in the parameter update
          */
-        inline const Eigen::Vector<T, NParams>& gain() const noexcept {return this->_K;}
+        inline const Eigen::Vector<T, NParams>& gain() const  {return this->_K;}
     };
 
     /**
@@ -409,6 +481,14 @@ namespace controlpp
 
         const Eigen::Vector<T, NumOrder+1 + DenOrder>& gain(){
             return this->rls.gain();
+        }
+
+        void set_gain_clamp(const T& g){
+            this->rls.set_gain_clamp(g);
+        }
+
+        [[nodiscard]] const T& gain_clamp() const {
+            return this->rls.gain_clamp();
         }
 
     };

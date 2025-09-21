@@ -83,13 +83,13 @@ TEST(Estimators, DtfEstimator){
         const double u = (i == 0) ? 0.0 : 1.0;
         const double y = dssf.input(u);
         dtf_est.add(y, u);
-        std::cout << "iteration: " << i << std::endl;
-        std::cout << "- estimage:" << std::endl;
-        std::cout << dtf_est.estimate() << std::endl;
-        std::cout << "- covariance:" << std::endl;
-        std::cout << dtf_est.cov() << std::endl;
-        std::cout << "- gain:" << std::endl;
-        std::cout << dtf_est.gain().transpose() << '\n' << std::endl;
+        // std::cout << "iteration: " << i << std::endl;
+        // std::cout << "- estimage:" << std::endl;
+        // std::cout << dtf_est.estimate() << std::endl;
+        // std::cout << "- covariance:" << std::endl;
+        // std::cout << dtf_est.cov() << std::endl;
+        // std::cout << "- gain:" << std::endl;
+        // std::cout << dtf_est.gain().transpose() << '\n' << std::endl;
     }
 
     const auto Gz_est = dtf_est.estimate();
@@ -103,7 +103,7 @@ TEST(Estimators, DtfEstimator){
         const double u = 1.0;
         const double y = dssf.input(u);
         const double y_est = dssf_est.input(u);
-        std::cout << "iteration: " << i << ", y: " << y << ", y_est: " << y_est << std::endl;
+        // std::cout << "iteration: " << i << ", y: " << y << ", y_est: " << y_est << std::endl;
         ASSERT_NEAR(y, y_est, 0.05);
     }
 
