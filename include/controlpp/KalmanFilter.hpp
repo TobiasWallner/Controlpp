@@ -259,9 +259,10 @@ namespace controlpp
             // > note S is already symetric, so no need to transpose
             //
             // K = (S.inverse() * U.transpose()).transpose()
-            const auto U = P_p * _H.transpose();
-            const auto S = _H * P_p * _H.transpose() + _R;
-            const Eigen::Matrix<T, NStates, NMeasurements> K = (S.ldlt().solve(U.transpose())).transpose();
+            const auto U = (P_p * _H.transpose()).eval();
+            const auto S1 = _H * P_p * _H.transpose() + _R;
+            const auto S = ((S1 + S1.transpose()) / 2).eval();
+            const Eigen::Matrix<T, NStates, NMeasurements> K = (S.llt().solve(U.transpose())).transpose();
 
             _x = x_p + K * (z - _H * x_p);
 

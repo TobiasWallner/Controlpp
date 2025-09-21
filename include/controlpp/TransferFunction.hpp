@@ -203,12 +203,12 @@ namespace controlpp
 
             void print(std::ostream& stream, std::string_view var="x") const {
                 stream << "num: "; this->num().print(stream, var);
-                stream << "\nden: "; this->den().print(stream, var); stream << '\n';
+                stream << "\nden: "; this->den().print(stream, var); 
             }
 
             void print(std::ostream& stream, std::function<std::string(int i)> var) const {
                 stream << "num: "; this->num().print(stream, var);
-                stream << "\nden: "; this->den().print(stream, var); stream << '\n';
+                stream << "\nden: "; this->den().print(stream, var);
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const TransferFunction& rpoly){
