@@ -58,7 +58,9 @@ namespace controlpp
 
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        double _memory = 0.98;
+        T _memory = 0.98;
+        T _regularisation = 1e-9;
+        Eigen::Vector<T, NParams> _K;
 
         public:
 
@@ -80,21 +82,24 @@ namespace controlpp
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between 0.8 and 0.98
          * 
-         * \param cov_reg A value that will be added to the diagonal of the covariance matrix at each update
+         * \param regularisation A value that will be added to the diagonal of the covariance matrix before each update
          * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
          */
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.95
+            T memory = 0.95,
+            T regularisation = 1e-9
         )
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
+            , _regularisation(regularisation)
             {
                 if(memory <= T(0) || memory > T(1)){
                     throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
                 }
+                this->_K.setZero();
             }
 
         /**
@@ -104,22 +109,23 @@ namespace controlpp
          * \returns The new parameter state estimate
          */
         void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s) noexcept {
-            const Eigen::Matrix<T, NMeasurements, NMeasurements> I = Eigen::Matrix<T, NMeasurements, NMeasurements>::Identity();
+            // this->_cov.diagonal().array() += this->_regularisation;
 
             // Gain
             const auto A = (this->_cov * s.transpose()).eval();
-            const auto B = (this->_memory * I + s * this->_cov * s.transpose()).eval();
+            const Eigen::Matrix<T, NMeasurements, NMeasurements> I_m = Eigen::Matrix<T, NMeasurements, NMeasurements>::Identity();
+            auto B = (s * this->_cov * s.transpose()).eval();
+            B.diagonal().array() += this->_memory;
 
             // calculate: K = A * B^-1
-            const Eigen::Vector<T, NParams> K = B.transpose().llt().solve(A.transpose()).transpose().eval();
+            this->_K = B.transpose().llt().solve(A.transpose()).transpose().eval();
 
             // Update
-            const Eigen::Vector<T, NParams> new_param = (this->_param + K * (y - s * this->_param)).eval();
-            this->_param = new_param;
+            this->_param += this->_K * (y - s * this->_param);
 
             // Covariance
-            const Eigen::Matrix<T, NParams, NParams> new_cov = (this->_cov - K * s * this->_cov).eval() / this->_memory;
-            this->_cov = new_cov;
+            this->_cov -= this->_K * s * this->_cov;
+            this->_cov /= this->_memory;
         }
 
         /**
@@ -135,7 +141,16 @@ namespace controlpp
          * 
          * \returns the current covariance matrix
          */
-        inline const Eigen::Matrix<T, NParams, NParams>& covariance() const noexcept {return this->_cov;}
+        inline const Eigen::Matrix<T, NParams, NParams>& cov() const noexcept {return this->_cov;}
+
+        /**
+         * @brief Returns the gain K used in the parameter update
+         * 
+         * The gain K can be seen as a measure of uncertainty
+         * 
+         * @return The gain vector;
+         */
+        inline const Eigen::Vector<T, NParams>& gain() const noexcept {return this->_K;}
     };
 
     /**
@@ -174,7 +189,9 @@ namespace controlpp
 
         Eigen::Matrix<T, NParams, NParams> _cov; ///< previous covariance
         Eigen::Vector<T, NParams> _param; ///< previous parameter estimate
-        double _memory = 0.98;
+        T _memory = 0.98;
+        T _regularisation = 1e-9;
+        Eigen::Vector<T, NParams> _K;
 
         public:
 
@@ -196,20 +213,25 @@ namespace controlpp
          * - `memory` < 1: forgetting older values with an exponential decay
          * Often used values are between `0.9 `and `0.995`.
          * 
-         * \param cov_reg A value that will be added to the diagonal of the covariance matrix at each update
+         * \param regularisation A value that will be added to the diagonal of the covariance matrix before each update
          * to prevent the covariance to be become too small, ill formed and unregular. This is mainly to increase numerical stability. 
+         * 
          */
         inline ReccursiveLeastSquares(
             const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOnes(), 
             const Eigen::Matrix<T, NParams, NParams>& cov_hint = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000)),
-            double memory = 0.99)
+            T memory = 0.99,
+            T regularisation = 1e-9
+        )
             : _cov(cov_hint)
             , _param(param_hint)
             , _memory(memory)
+            , _regularisation(regularisation)
         {
             if(memory <= T(0) || memory > T(1)){
                 throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
             }
+            this->_K.setZero();
         }
 
         inline void set_cov(const Eigen::Matrix<T, NParams, NParams>& cov){
@@ -231,15 +253,18 @@ namespace controlpp
          * \returns The new parameter state estimate
          */
         void add(const T& y, const Eigen::Vector<T, NParams>& s) noexcept {
+            // this->_cov.diagonal().array() += this->_regularisation;
+
             // Gain
-            const Eigen::Vector<T, NParams> K = ((this->_cov * s) / (this->_memory + s.transpose() * this->_cov * s)).eval();
+            const auto A = (this->_cov * s).eval();
+            const T B = this->_memory + s.transpose() * this->_cov * s;
+            this->_K = A / B;
 
             // Update
-            const Eigen::Vector<T, NParams> new_param = (this->_param + K * (y - s.transpose() * this->_param)).eval();
-            this->_param = new_param;
+            this->_param += this->_K * (y - s.transpose() * this->_param);
 
-            const Eigen::Matrix<T, NParams, NParams> new_cov = ((this->_cov - K * s.transpose() * this->_cov) / this->_memory).eval();
-            this->_cov = new_cov;
+            this->_cov -= this->_K * s.transpose() * this->_cov;
+            this->_cov /= this->_memory;
         }
 
         /**
@@ -256,6 +281,15 @@ namespace controlpp
          * \returns the current covariance matrix
          */
         inline const Eigen::Matrix<T, NParams, NParams>& cov() const noexcept {return this->_cov;}
+
+        /**
+         * @brief Returns the gain used for the updata
+         * 
+         * The gain can be seen as a measurement of uncertainty
+         * 
+         * @return The gain used in the parameter update
+         */
+        inline const Eigen::Vector<T, NParams>& gain() const noexcept {return this->_K;}
     };
 
     /**
@@ -367,6 +401,14 @@ namespace controlpp
             result.den().vector()(0) = T(1);
             result.den().vector().tail(DenOrder) = est.tail(DenOrder);
             return result;
+        }
+
+        const Eigen::Matrix<T, NumOrder+1 + DenOrder, NumOrder+1 + DenOrder> cov(){
+            return this->rls.cov();
+        }
+
+        const Eigen::Vector<T, NumOrder+1 + DenOrder>& gain(){
+            return this->rls.gain();
         }
 
     };
