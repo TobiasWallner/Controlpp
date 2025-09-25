@@ -718,8 +718,8 @@ namespace controlpp
         template<class T>
         class PIControl{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            PControl<T> P_;
+            IControl<T> I_;
 
             public:
 
@@ -727,23 +727,14 @@ namespace controlpp
              * \param ki The integral gain
              * \param kp The proportional gain
              */
-            PIControl(const T& kp, const T& ki){
-                this->set_params(kp, ki);
-            }
+            PIControl(const T& kp, const T& ki)
+                : P_(kp)
+                , I_(ki){}
 
             PIControl(const PIControl&) = default;
 
-            constexpr void set_params(const T& kp, const T& ki){
-                const ContinuousTransferFunction<T, 1, 1> tf(
-                    Eigen::Vector<T, 2>(ki, kp), 
-                    Eigen::Vector<T, 2>(static_cast<T>(0), static_cast<T>(1)));
-                this->css_ = to_state_space(tf);
-            }
-
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
+                const T y = P_(u, Ts) + I_(u, Ts);
                 return y;
             }
 
@@ -754,7 +745,8 @@ namespace controlpp
             }
 
             constexpr void reset(){
-                this->states_.setZero();
+                this->P_.reset();
+                this->I_.reset();
             }
         };
 
