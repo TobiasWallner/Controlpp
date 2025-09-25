@@ -19,6 +19,13 @@
 
 namespace controlpp
 {
+
+    template<class T>
+    struct ControlbalueSampletimePair{
+        T value;
+        T sample_time;
+    };
+
     /**
      * \brief A P (Proportional) controller
      * 
@@ -95,6 +102,10 @@ namespace controlpp
          * \returns the new output based on the input
          */
         constexpr T operator() (const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
+
+        friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PControl& c){
+            return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+        }
 
         /**
          * \brief resets the internal states of the filter
@@ -191,6 +202,10 @@ namespace controlpp
              * \see controlpp::I::input(const T& u, const T& Ts)
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, IControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
         };
 
         /**
@@ -346,6 +361,10 @@ namespace controlpp
              * \see controlpp::I::input(const T& u, const T& Ts)
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, IAntiWindup& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
         };
 
         /**
@@ -423,6 +442,10 @@ namespace controlpp
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, DControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
 
             constexpr void reset(){
                 this->states_.setZero();
@@ -511,6 +534,10 @@ namespace controlpp
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PT1Control& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
                 this->_x = static_cast<T>(0);
             }
@@ -560,8 +587,10 @@ namespace controlpp
         template<class T>
         class PT2Control{
             private:
-            ContinuousStateSpace<T, 2> css_;
-            Eigen::Vector<T, 2> states_ = Eigen::Vector<T, 2>::Zero();
+            T K_; ///< the gain of the filter
+            T D_; ///< the dampening of the filter resonance frequency
+            T omega_; ///< the characteristic frequency (rad/s) of the filter
+            Eigen::Vector<T, 2> x_ = Eigen::Vector<T, 2>::Zero(); ///< internal states
 
             public:
             PT2Control(const PT2Control&) = default;
@@ -572,9 +601,10 @@ namespace controlpp
              * \param D Then dampening factor of the filter
              * \param omega The characteristic frequency of the filter (bandwidth)
              */
-            PT2Control(const T& K, const T& D, const T& omega){
-                this->set_params(K, D, omega);
-            }
+            PT2Control(const T& K, const T& D, const T& omega)
+                : K_(K)
+                , D_(D)
+                , omega_(omega){}
 
             constexpr void set_params(const T& K, const T& D, const T& omega){
                 const ContinuousTransferFunction<T, 0, 2> tf(
@@ -584,20 +614,62 @@ namespace controlpp
             }
 
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                // calculate params of the tustin transformed transfer function
+                const T b0 = static_cast<T>(1);
+                const T b1 = static_cast<T>(2);
+                const T b2 = static_cast<T>(1);
+
+                const T omega_Ts_sqr = this->omega_ * this->omega_ * Ts * Ts;
+                const T _4_DomegaTs = 4 * this->D_ * this->omega_ * Ts;
+
+                const T V = this->K_ * omega_Ts_sqr;
+                const T a0 = omega_Ts_sqr + _4_DomegaTs + 4;
+                const T a1 = 2 * omega_Ts_sqr - 8;
+                const T a2 = omega_Ts_sqr - _4_DomegaTs + 4;
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+                const T b2_ = b2 / a0;
+
+                const T a1_ = a1 / a0;
+                const T a2_ = a2 / a0;
+
+                // turn it into state space form
+                Eigen::Matrix<T, 2, 2> A({
+                    {-a1_, -a2_},
+                    {static_cast<T>(1), static_cast<T>(0)}
+                });
+
+                const Eigen::Matrix<T, 2, 1> B({
+                    static_cast<T>(1),
+                    static_cast<T>(0)
+                });
+
+                const Eigen::Matrix<T, 1, 2> C({
+                    (b1_ - a1_ * b0_), (b2_ - a2_ * b0_)
+                });
+
+                const T D = b0_;
+
+                // calculate the state space system response
+                const Eigen::Vector<T, 2> new_x = A * this->x_ + B * u;
+                const T y = C * this->x_ + D * u;
+
+                // update states and output result
+                this->x_ = new_x;
+                return y * V;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PT2Control& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
-                this->states_.setZero();
+                this->x_.setZero();
             }
         };
-        template<class T>
-        using LowPassO2 = PT2Control<T>;
 
         /**
          * \brief A PI (Proportional Integral) controller with varying sample-times
@@ -670,6 +742,10 @@ namespace controlpp
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PIControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
 
             constexpr void reset(){
                 this->states_.setZero();
@@ -826,6 +902,10 @@ namespace controlpp
              */
             constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PIAntiWindup& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$y_{k-1}\f$) to zero
@@ -931,6 +1011,10 @@ namespace controlpp
              */
             constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PT1IControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
@@ -1027,6 +1111,10 @@ namespace controlpp
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, PIDControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
@@ -1095,6 +1183,10 @@ namespace controlpp
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, LeadLagControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
                 this->states_.setZero();
             }
@@ -1152,6 +1244,10 @@ namespace controlpp
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
+
+            friend constexpr ControlbalueSampletimePair<T> operator>> (const ControlbalueSampletimePair<T>& p, NotchControl& c){
+                return ControlbalueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
 
             constexpr void reset(){
                 this->states_.setZero();
