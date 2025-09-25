@@ -410,35 +410,48 @@ namespace controlpp
         template<class T>
         class DControl{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            T kd_;
+            T omega_;
+            T x_ = static_cast<T>(0);
 
             public:
 
             /**
              * \brief Construct a D control element
-             * \param k_d The differential gain
+             * \param kd The differential gain
              * \param omega The bandwidth of the low-pass filter in radians per second
              */
-            constexpr DControl(const T& k_d, const T& omega){
-                this->set_params(k_d, omega);
-            }
+            constexpr DControl(const T& kd, const T& omega)
+                : kd_(kd)
+                , omega_(omega){}
 
             /// @brief default copy constructor 
             constexpr DControl(const DControl&) = default;
 
-            constexpr void set_params(const T& k_d, const T& omega){
-                const ContinuousTransferFunction<T, 1, 1> tf(
-                    Eigen::Vector<T, 2>(static_cast<T>(0), k_d), 
-                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega));
-                this->css_ = to_state_space(tf);
-            }
-
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                const T V = 2 * kd_ * omega_;
+                
+                const T b0 = 1;
+                const T b1 = -1;
+
+                const T omega_Ts = omega_ * Ts;
+                const T a0 = omega_Ts + 2;
+                const T a1 = omega_Ts - 2;
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+
+                const T a1_ = a1 / a0;
+
+                const T A = -a1_;
+                const T C = b1_ - a1_ * b0_;
+                const T D = b0_;
+
+                const T new_x = A * x_ + u;
+                const T y = C * x_ + D * u;
+
+                this->x_ = new_x;
+                return y * V;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
@@ -448,7 +461,7 @@ namespace controlpp
             }
 
             constexpr void reset(){
-                this->states_.setZero();
+                this->x_ = static_cast<T>(0);
             }
         };
 
@@ -605,13 +618,6 @@ namespace controlpp
                 : K_(K)
                 , D_(D)
                 , omega_(omega){}
-
-            constexpr void set_params(const T& K, const T& D, const T& omega){
-                const ContinuousTransferFunction<T, 0, 2> tf(
-                    Eigen::Vector<T, 1>(K), 
-                    Eigen::Vector<T, 3>(static_cast<T>(1), static_cast<T>(2) * D / omega, static_cast<T>(1)/(omega * omega)));
-                this->css_ = to_state_space(tf);
-            }
 
             constexpr T input(const T& u, const T& Ts){
                 // calculate params of the tustin transformed transfer function
@@ -1230,9 +1236,9 @@ namespace controlpp
 
             constexpr void set_params(const T& w, const T& g_min, const T& omega){
                 const ContinuousTransferFunction<T, 2, 2> tf(
-                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * g_min * w * omega, static_cast<T>(1)), 
+                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * g_min * w * omega, static_cast<T>(1)),    
                     Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * w * omega, static_cast<T>(1)));
-                
+
                 this->css_ = to_state_space(tf);
             }
 
