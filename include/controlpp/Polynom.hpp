@@ -31,7 +31,7 @@ namespace controlpp
      * , where indices correspond to the parameter number and the potence
      * 
      * \tparam T The datatype of the polynomial parameters (e.g: `float`, `double`, `complex`)
-     * \tparam Order The Order of the polynomial
+     * \tparam Order The Order of the polynomial or Eigen::Dynamic for dynamically allocated sizes
      * \tparam AutoGrow If true for at least one polynomial of an operation the resulting polynomial will 
      * grow automatically in size to contain all values. Usually set `false` if one needs to sum over polynomials in a loop.
      */
@@ -39,7 +39,8 @@ namespace controlpp
     class Polynom{
         public:
             using value_type = T;
-            using vector_type = Eigen::Vector<T, Order+1>;
+            static constexpr int eigen_vector_size = (Order == Eigen::Dynamic) ? Eigen::Dynamic : Order + 1;
+            using vector_type = Eigen::Vector<T, eigen_vector_size>;
 
         private:
             vector_type vector_;
@@ -64,9 +65,19 @@ namespace controlpp
                 }
             }
 
-            /// @brief Copy assignment operator
+            template<class... Args>
+            requires(Order != Eigen::Dynamic && (std::convertible_to<Args, T> && ...))
+            explicit Polynom(Args&&... args) : vector_(std::forward<Args>(args)...){}
+
+            template<class... Args>
+            requires(Order == Eigen::Dynamic && (std::convertible_to<Args, T> && ...))
+            explicit Polynom(Args&&... args) : vector_(Eigen::Vector<T, sizeof...(Args)>(std::forward<Args>(args)...)){}
+
+
+            /// @brief Copy assignment operator from polynomials with equal compile time size
             Polynom& operator=(const Polynom&) = default;
 
+            /// @brief Copy assignment from polynomials with smaller compile time size
             template<int M>
             requires(M < Order)
             Polynom& operator=(const Polynom<T, M>& other){
@@ -80,37 +91,66 @@ namespace controlpp
                 return *this;
             }
 
-
-
             /// @brief Constructs a polynomial from an array
-            /// @param values the values to be assigned to the polynomial
-            explicit Polynom(const T (&values)[Order+1])
-                : vector_(values){}
-
-            /// @brief Constructs a polynomial from an array
-            /// @param values the values to be assigned to the polynomial
+            /// @param array the values to be assigned to the polynomial
             template<int M>
-            requires(M < Order+1)
-            explicit Polynom(const T (&values)[M]){
+            requires((Order != Eigen::Dynamic) && (M == Order+1))
+            explicit Polynom(const T (&array)[M]) : vector_(array){}
+
+            /// @brief Constructs a polynomial from an array
+            /// @param array the values to be assigned to the polynomial
+            template<int M>
+            requires((Order != Eigen::Dynamic) && (M < Order+1))
+            explicit Polynom(const T (&array)[M]){
                 size_t i = 0;
                 for(; i < M; ++i){
-                    this->vector_[i] = values[i];
+                    this->vector_[i] = array[i];
                 } 
                 for(; i < this->size(); ++i){
                     this->vector_[i] = static_cast<T>(0);
                 } 
             }
+            
+            /**
+             * @brief Constructs a dynamically sized polynomial from an array
+             * @param values A pointer to an array of values to be assigned to the polynom
+             * @param length The length of the values
+             */
+            explicit Polynom(const T* values, size_t length){
+                if constexpr (Order == Eigen::Dynamic){
+                    this->vector_.resize(length);
+                }
+                size_t i = 0;
+                for(; i < length && i < this->size(); ++i){
+                    this->vector_(i) = values[i];
+                }
+                for(; i < this->size(); ++i){
+                    this->vector_(i) = static_cast<T>(0);
+                }
+            }
+
+            /**
+             * @brief Constructs a dynamically sized polynomial from an array
+             * @tparam M The compile time size of the array
+             * @param array The array
+             */
+            template<int M>
+            requires(Order == Eigen::Dynamic)
+            explicit Polynom(const T (&array)[M])
+                : Polynom(array, M){}
 
             /// @brief Constructs a polynomial from a vector
             /// @param vector Eigen::Vector object
-            explicit Polynom(const Eigen::Vector<T, Order+1>& vector) : vector_(vector){}
+            template<int M>
+            requires((Order != Eigen::Dynamic) && (M != Eigen::Dynamic) && (M == Order+1))
+            explicit Polynom(const Eigen::Vector<T, M>& vector) : vector_(vector){}
 
             template<class U>
-            requires(std::constructible_from<Eigen::Vector<T, Order+1>, U>)
+            requires(std::constructible_from<Eigen::Vector<T, eigen_vector_size>, U>)
             explicit Polynom(const U& vector_expression) : vector_(vector_expression){}
 
             template<int M>
-            requires(M < Order+1)
+            requires((Order != Eigen::Dynamic) && (M != Eigen::Dynamic) && (M < Order+1))
             explicit Polynom(const Eigen::Vector<T, M>& vector){
                 size_t i = 0;
                 for(; i < vector.size(); ++i){
@@ -120,52 +160,17 @@ namespace controlpp
                     this->vector_[i] = static_cast<T>(0);
                 } 
             }
-            
-            Polynom& operator=(const T (&values)[Order+1]) {
-                this->vector_ = values;
-                return *this;
+
+            template<std::same_as<T> U>
+            requires(Order == Eigen::Dynamic)
+            explicit Polynom(const Eigen::Vector<U, Eigen::Dynamic>& vector) : vector_(vector.size()){
+                this->vector_ = vector;
             }
 
             template<int M>
-            requires(M < Order+1)
-            Polynom& operator=(const T (&values)[M]){
-                size_t i = 0;
-                for(; i < M; ++i){
-                    this->vector_[i] = values[i];
-                } 
-                for(; i < this->size(); ++i){
-                    this->vector_[i] = static_cast<T>(0);
-                } 
-                return *this;
-            }
-            
-            /// @brief Assigns the values of a vector to this polynomial
-            /// @param vector An Eigen::Vector holding the values to be assigned to this polynomial
-            Polynom& operator=(const Eigen::Vector<T, Order+1>& vector){
+            requires(Order == Eigen::Dynamic && M != Eigen::Dynamic)
+            explicit Polynom(const Eigen::Vector<T, M>& vector) : vector_(M){
                 this->vector_ = vector;
-                return *this;
-            }
-
-            /// @brief Assigns the values of a vector expression to this polynomial
-            /// @param vector An Eigen::Vector holding the values to be assigned to this polynomial
-            template<class U>
-            requires(std::constructible_from<Eigen::Vector<T, Order+1>, U>)
-            Polynom& operator=(const U& vector){
-                this->vector_ = vector;
-                return *this;
-            }
-
-            template<int M>
-            requires(M < Order+1)
-            Polynom& operator=(const Eigen::Vector<T, M>& vector){
-                size_t i = 0;
-                for(; i < vector.size(); ++i){
-                    this->vector_[i] = vector(i);
-                } 
-                for(; i < this->size(); ++i){
-                    this->vector_[i] = static_cast<T>(0);
-                } 
-                return *this;
             }
 
             /// @brief Access elements at the i-th position
@@ -205,10 +210,11 @@ namespace controlpp
             /// @details the order can maxially be one smaller then the size of the polynomial. Takes zero data entries size_to account.
             /// @return an size_teger value holding the order of the polynomial
             size_t order() const {
-                size_t result = Order;
-                const T zero(0);
+                size_t result = this->size()-1;
                 for(size_t i = 0; i < this->size(); ++i){
-                    if(this->at(this->size()-1-i) != zero){
+                    const T& elem = this->at(this->size() - 1 - i);
+                    const T zero(0);
+                    if(elem != zero){
                         break;
                     }
                     --result;
@@ -551,7 +557,7 @@ namespace controlpp
 
     template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int N>
     Polynom<Tpoly, N> operator+(const Polynom<Tpoly, N>& lhs, const Tscalar& rhs){
-        return (static_cast<Tpoly>(rhs) + lhs);
+        return ((static_cast<Tpoly>(rhs) + lhs).eval());
     }
 
     // operator -
@@ -559,7 +565,7 @@ namespace controlpp
 
     template<class T, int N>
     Polynom<T, N> operator-(const Polynom<T, N>& poly){
-        return Polynom<T, N>(-poly.vector());
+        return Polynom<T, N>((-poly.vector()).eval());
     }
 
     template<class T, int Nl, int Nr>
@@ -610,13 +616,12 @@ namespace controlpp
 
     template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
     Polynom<Tpoly, Order> operator*(const Polynom<Tpoly, Order>& lhs, const Tscalar& rhs){
-        Polynom<Tpoly, Order> result(lhs.vector() * static_cast<Tpoly>(rhs));
-        return result;
+        return Polynom<Tpoly, Order>((lhs.vector() * static_cast<Tpoly>(rhs)).eval());
     }
 
     template<class Tpoly, std::convertible_to<Tpoly> Tscalar, int Order>
     Polynom<Tpoly, Order> operator*(const Tscalar& lhs, const Polynom<Tpoly, Order>& rhs){
-        return (rhs * static_cast<Tpoly>(lhs));
+        return Polynom<Tpoly, Order>(rhs * static_cast<Tpoly>(lhs));
     }
 
     // operator /
@@ -631,7 +636,7 @@ namespace controlpp
     namespace polynom{
 
         template<class T>
-        inline const Polynom<T, 1> x({0, 1});
+        inline const Polynom<T, 1> x(0, 1);
     }
 
 // -----------------------------------------------------------------------------------------------------------------

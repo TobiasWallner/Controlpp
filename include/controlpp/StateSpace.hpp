@@ -239,7 +239,51 @@ namespace controlpp
     }
 
 
-    
+    /**
+     * @brief Generates the block diagonal state space representation of the system of transfer functions
+     * 
+     * The matrix of transfer functions represensts a multiple input and multiple output system where:  
+     *  - the number of rows corresponds to the systems outputs
+     *  - and the number of columns corresponds to the systems inputs
+     * 
+     * @tparam T The data type of the matrix elements and transfer function parameters. (Usually `float` or `double`)
+     * @param Mtf A Matrix of transfer functions
+     * @return The state space representation of the matrix of transfer functions
+     */
+    template<class T, int NRows, int NCols, int Opts, int NMaxRows, int NMaxCols>
+    StateSpace<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::Dynamic> 
+    to_state_space(const Eigen::Matrix<TransferFunction<T, Eigen::Dynamic, Eigen::Dynamic>, NRows, NCols, Opts, NMaxRows, NMaxCols>& Mtf){
+        // count the number of states for matrix pre-allocation
+        int states = 0;
+        for(int row = 0; row < Mtf.rows(); ++row){
+            for(int col = 0; col < Mtf.cols(); ++col){
+                states += Mtf.at(row, col).den().order();
+            }
+        }
+
+        int inputs = Mtf.cols();
+        int outputs = Mtf.rows();
+
+        // allocate matrices
+        Eigen::Matrix<T, Eigen::Dynamic,  Eigen::Dynamic> A(states, states); A.setZero();
+        Eigen::Matrix<T, Eigen::Dynamic,  Eigen::Dynamic> B(states, inputs); B.setZero();
+        Eigen::Matrix<T, Eigen::Dynamic,  Eigen::Dynamic> C(outputs, states); C.setZero();
+        Eigen::Matrix<T, Eigen::Dynamic,  Eigen::Dynamic> D(outputs, inputs); D.setZero();
+
+        // turn each transfer function into its state space representation and build the total system
+        int state_itr = 0;
+        for(int row = 0; row < Mtf.rows(); ++row){
+            for(int col = 0; col < Mtf.cols(); ++col){
+                const StateSpace<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::Dynamic> ss = to_state_space(Mtf(row, col));
+                A.block(state_itr, state_itr, ss.states(), ss.states()) = ss.A();
+                B.block(state_itr, col, ss.states(), 1) = ss.B();
+                C.block(row, state_itr, 1, ss.states()) = ss.C();
+                D.block(row, col, 1, 1) = ss.D();
+                state_itr += ss.states();
+            }
+        }
+        return StateSpace<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::Dynamic>(A, B, C, D);
+    }
 
     /**
      * \brief transforms a continuous state space system representation to a transfer function representation
@@ -289,4 +333,4 @@ namespace controlpp
         // TODO:
     }
 */
-} // namespace controlpp
+} // nam
