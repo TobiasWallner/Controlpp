@@ -33,8 +33,8 @@ namespace controlpp
             template<int NumOrder2, int DenOrder2>
             requires(((NumOrder2 < NumOrder) || (DenOrder2 < DenOrder)) && (NumOrder2 <= NumOrder) && (DenOrder2 <= DenOrder))
             TransferFunction& operator=(const TransferFunction<T, NumOrder2, DenOrder2>& other){
-                this->tf_.num() = other.num();
-                this->tf_.den() = other.den();
+                this->num() = other.num();
+                this->den() = other.den();
                 return *this;
             }
 
