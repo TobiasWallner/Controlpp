@@ -61,6 +61,22 @@ namespace controlpp{
             return y;
         }
 
+        const Eigen::Vector<T, NStates_>& states() const {
+            return this->states_;
+        }
+
+        Eigen::Vector<T, NStates_>& states() {
+            return this->states_;
+        }
+
+        const T& states(int i) const {
+            return this->states_(i);
+        }
+
+        T& states(int i) {
+            return this->states_(i);
+        }
+
         /**
          * \brief input a new value to advance the internal state and calculate the new output
          * \returns  

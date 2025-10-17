@@ -4,7 +4,7 @@
 #include <Eigen/Eigenvalues> 
 
 namespace controlpp{
-	
+
 	/**
 	 * \brief Calculates the product of all numbers in the closed open range [from, to)
 	 * \returns An integer
@@ -329,7 +329,13 @@ namespace controlpp{
 
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
 	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> identity_like([[maybe_unused]]const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& unused){
-		return Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>::Identity();
+		if constexpr (Rows != Eigen::Dynamic && Cols != Eigen::Dynamic){
+			return Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>::Identity();
+		}else{
+			Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> result;
+			result.setIdentity();
+			return result;
+		}
 	}
 
 	template<class T, int LSize, int RSize>
@@ -779,14 +785,18 @@ namespace controlpp{
 		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
 		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R
 	){
-		const Eigen::Matrix<T, NStates, NStates> brb = -B * R.llt().solve(B.transpose());
-		const Eigen::Matrix<T, NStates, NStates> aq = A.transpose().colPivHouseholderQr().solve(Q);
+		const Eigen::Matrix<T, NStates, NStates> brb = B * R.llt().solve(B.transpose());
+		Eigen::ColPivHouseholderQR<Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>> At_qr(A.transpose());
+		const Eigen::Matrix<T, NStates, NStates> aq = At_qr.solve(Q);
 
 		Eigen::Matrix<T, 2*NStates, 2*NStates> S;
-		S.topLeftCorner(NStates, NStates) = A - brb * aq;
-		S.topRightCorner(NStates, NStates) =  - A.colPivHouseholderQr().solve(brb.transpose()).transpose();
-		S.bottomLeftCorner(NStates, NStates) = aq;
-		S.bottomRightCorner(NStates, NStates) = -A;
+		S.topLeftCorner(NStates, NStates) = A + brb * aq;
+		S.topRightCorner(NStates, NStates) = A.colPivHouseholderQr().solve(brb.transpose()).transpose();
+		S.bottomLeftCorner(NStates, NStates) = - aq;
+		S.bottomRightCorner(NStates, NStates) = At_qr.solve(identity_like(A));
+
+		std::cout << "S:\n  " << S << std::endl;
+
 		return symplectic_solver(S);
 	}
 
@@ -855,7 +865,7 @@ namespace controlpp{
 		H.topRightCorner(NStates, NStates) =  - B * R.ldlt().solve(B.transpose());
 		H.bottomLeftCorner(NStates, NStates) = - (Q - N * R_inv_DT_C);
 		H.bottomRightCorner(NStates, NStates) = -A_.transpose();
-		return solve_hamilton(H);
+		return hamilton_solver(H);
 	}
 
 }
