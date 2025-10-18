@@ -72,7 +72,7 @@ if (CONTROLPP_COMPILE_TEST)
             -Werror
             -Wno-array-bounds # Gets triggered by SIMD
             -Wno-maybe-uninitialized
-            -fmax-errors=1
+            #-fmax-errors=1
         )
     endif()
 
