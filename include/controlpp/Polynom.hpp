@@ -176,22 +176,22 @@ namespace controlpp
             /// @brief Access elements at the i-th position
             /// @param i the value index to be accessed. Indices correspond to the order of the parameter
             /// @return an immutable reference to the element
-            const T& operator[](size_t i) const {return this->vector_[i];}
-
-            /// @brief Access elements at the i-th position
-            /// @param i the value index to be accessed. Indices correspond to the order of the parameter
-            /// @return a mutable reference to the element
-            T& operator[](size_t i) {return this->vector_[i];}
-
-            /// @brief Access elements at the i-th position
-            /// @param i the value index to be accessed. Indices correspond to the order of the parameter
-            /// @return an immutable reference to the element
             const T& at(size_t i) const {return this->vector_[i];}
 
             /// @brief Access elements at the i-th position
             /// @param i the value index to be accessed. Indices correspond to the order of the parameter
             /// @return a mutable reference to the element
             T& at(size_t i) {return this->vector_[i];}
+
+            /// @brief Access elements at the i-th position
+            /// @param i the value index to be accessed. Indices correspond to the order of the parameter
+            /// @return an immutable reference to the element
+            const T& operator[](size_t i) const {return this->at(i);}
+
+            /// @brief Access elements at the i-th position
+            /// @param i the value index to be accessed. Indices correspond to the order of the parameter
+            /// @return a mutable reference to the element
+            T& operator[](size_t i) {return this->at(i);}
 
             /// @brief Returns the underlying vector that holds the values
             /// @return A mutable reference to an Eigen::Vector object holding the values
@@ -425,13 +425,13 @@ namespace controlpp
 
             template<std::convertible_to<T> U>
             Polynom& operator*=(const U& num){
-                this->vector() *= num;
+                this->vector() *= static_cast<T>(num);
                 return *this;
             }
 
             template<std::convertible_to<T> U>
             Polynom& operator/=(const U& num){
-                this->vector() /= num;
+                this->vector() /= static_cast<T>(num);
                 return *this;
             }
     };

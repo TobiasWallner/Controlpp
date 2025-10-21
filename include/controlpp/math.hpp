@@ -522,10 +522,11 @@ namespace controlpp{
 
 		// in a 2n hamilton matrix are exactly n stable ones
 		Eigen::Matrix<std::complex<T>, N, N/2> StableEigenVecs;
+		StableEigenVecs.setZero();
 		int si = 0; // stable eigenvalue iterator
 		int ei = 0; // eigen value iterator
 		for(; (si < N/2) && (ei < N); ++ei){
-			if(std::abs(eigvals(ei)) < 1){// only stable ones
+			if(std::abs(eigvals(ei)) <= 1){// only stable ones
 				StableEigenVecs.col(si) = eigvecs.col(ei);
 				++si;
 			}
@@ -543,6 +544,7 @@ namespace controlpp{
 
         // force the result X to be symetric to combat small numerical errors
         const Eigen::Matrix<T, N/2, N/2> result = static_cast<T>(0.5) * (realX + realX.transpose());
+
 		return result;
 	}
 
@@ -788,15 +790,11 @@ namespace controlpp{
 		const Eigen::Matrix<T, NStates, NStates> brb = B * R.llt().solve(B.transpose());
 		Eigen::ColPivHouseholderQR<Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>> At_qr(A.transpose());
 		const Eigen::Matrix<T, NStates, NStates> aq = At_qr.solve(Q);
-
 		Eigen::Matrix<T, 2*NStates, 2*NStates> S;
 		S.topLeftCorner(NStates, NStates) = A + brb * aq;
-		S.topRightCorner(NStates, NStates) = A.colPivHouseholderQr().solve(brb.transpose()).transpose();
+		S.topRightCorner(NStates, NStates) = -A.colPivHouseholderQr().solve(brb.transpose()).transpose();
 		S.bottomLeftCorner(NStates, NStates) = - aq;
 		S.bottomRightCorner(NStates, NStates) = At_qr.solve(identity_like(A));
-
-		std::cout << "S:\n  " << S << std::endl;
-
 		return symplectic_solver(S);
 	}
 

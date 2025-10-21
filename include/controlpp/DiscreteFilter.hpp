@@ -81,7 +81,7 @@ namespace controlpp{
          * \brief input a new value to advance the internal state and calculate the new output
          * \returns  
          */
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ > 1)
         Eigen::Vector<T, NOutputs_> input(const U& u){
             const auto [x, y] = this->dss_.eval(this->states_, u);
@@ -93,18 +93,18 @@ namespace controlpp{
          * \brief input a new value to advance the internal state and calculate the new output
          * \returns  
          */
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ == 1)
         T input(const U& u){
-            const auto [x, y] = this->dss_.eval(this->states_, u);
+            const auto [x, y] = this->dss_.eval(this->states_, static_cast<T>(u));
             this->states_ = x;
             return y;
         }
 
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ == 1)
         T operator() (const U& u){
-            return this->input(u);
+            return this->input(static_cast<T>(u));
         }
 
         /**

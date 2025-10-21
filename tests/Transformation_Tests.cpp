@@ -13,17 +13,17 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     
     // expected values
     const Eigen::Matrix<double, 2, 2> expected_A({
-        {0.99995, 0.00995},
-        {-0.00995, 0.99}
+        {0.99995, -0.00995},
+        {0.00995, 0.99}
     });
 
     const Eigen::Matrix<double, 2, 1> expected_B({
-        {4.98333e-05},
-        {0.00995}
+        {0.009999},
+        {4.983333e-05}
     });
 
     const Eigen::Matrix<double, 1, 2> expected_C({
-        {1, 0},
+        {0, 1},
     });
 
     const Eigen::Matrix<double, 1, 1> expected_D({
@@ -36,8 +36,8 @@ TEST(Transformation, continuous_ss_to_discrete_ss){
     // check
     ASSERT_TRUE(Sys_z.A().isApprox(expected_A, 0.001)) << "Sys_z.A():\n" << Sys_z.A() << "\n" << "expected_A\n" << expected_A;
     ASSERT_TRUE(Sys_z.B().isApprox(expected_B, 0.001)) << "Sys_z.B():\n" << Sys_z.B() << "\n" << "expected_B\n" << expected_B;
-    ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.001));
-    ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.001));
+    ASSERT_TRUE(Sys_z.C().isApprox(expected_C, 0.001)) << "Sys_z.C():\n" << Sys_z.C() << "\n" << "expected_C\n" << expected_C;;
+    ASSERT_TRUE(Sys_z.D().isApprox(expected_D, 0.001)) << "Sys_z.D():\n" << Sys_z.D() << "\n" << "expected_D\n" << expected_D;;
 }
 
 TEST(Transformation, state_space_to_transfer_function){

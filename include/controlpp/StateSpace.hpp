@@ -91,10 +91,10 @@ namespace controlpp
              * auto [new_internal_states, new_output] = ss(NStates, input);
              * ```
              */
-            template<std::same_as<T> U>
+            template<std::convertible_to<T> U>
                 requires(NInputs == 1 && NOutputs != 1)
             std::tuple<Eigen::Vector<U, NStates>, Eigen::Vector<U, NOutputs>> eval(const Eigen::Vector<U, NStates>& x, const U& u_scalar) const {
-                const Eigen::Vector<T, 1> u(u_scalar);
+                const Eigen::Vector<T, 1> u(static_cast<T>(u_scalar));
                 return this->eval(x, u);
             }
 
@@ -110,10 +110,10 @@ namespace controlpp
              * auto [new_internal_states, new_output] = ss(NStates, input);
              * ```
              */
-            template<std::same_as<T> U>
+            template<std::convertible_to<T> U>
                 requires(NInputs == 1 && NOutputs == 1)
             std::tuple<Eigen::Vector<U, NStates>, U> eval(const Eigen::Vector<U, NStates>& x, const U& u_scalar) const {
-                const Eigen::Vector<T, 1> u(u_scalar);
+                const Eigen::Vector<T, 1> u(static_cast<T>(u_scalar));
                 const auto [new_x, y] = this->eval(x, u);
                 return {new_x, y(0)};
             }
@@ -138,7 +138,7 @@ namespace controlpp
     };
 
     /**
-     * \brief calculates the state space representation from a rational polynomial
+     * \brief calculates the control-normed state space representation from a rational polynomial
      * 
      * The transfer function:
      * 
@@ -197,47 +197,99 @@ namespace controlpp
      * 
      */
     template<class T, int NumOrder, int DenOrder>
-    StateSpace<T, DenOrder, 1, 1> to_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
-        constexpr int number_of_states = DenOrder;
-        StateSpace<T, number_of_states, 1, 1> result;
+    StateSpace<T, DenOrder, 1, 1> to_state_space_controller_norm(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        StateSpace<T, DenOrder, 1, 1> result;
         const T a_n = rp.den()[rp.den().order()];
 
         // normalise
         const Polynom<T, DenOrder> a = -(rp.den() / a_n);
         const Polynom<T, NumOrder> b = rp.num() / a_n;
         
-        const T bn = b.at(b.size()-1);
+        const T bn = (DenOrder > 0 && a.order() == b.order()) ? b.at(b.size()-1) : static_cast<T>(0);
 
         // write A matrix
-        if constexpr (number_of_states > 0){
-            const auto I = Eigen::Matrix<T, number_of_states-1, number_of_states-1>::Identity();
-            result.A().template block<number_of_states-1, number_of_states-1>(0, 1) = I; 
-            result.A().col(0).head(number_of_states-1).setZero(); 
-            result.A().row(number_of_states-1) = a.vector().head(a.vector().size()-1);
+        if constexpr (DenOrder > 0){
+            const auto I = Eigen::Matrix<T, DenOrder-1, DenOrder-1>::Identity();
+            result.A().template block<DenOrder-1, DenOrder-1>(0, 1) = I; 
+            result.A().col(0).head(DenOrder-1).setZero(); 
+            result.A().row(DenOrder-1) = a.vector().head(a.vector().size()-1);
         }
 
         // write B matrix
-        if constexpr (number_of_states > 0){
-            result.B().col(0).head(number_of_states-1).setZero();
-            result.B()(number_of_states-1, 0) = T(1);
+        if constexpr (DenOrder > 0){
+            result.B().col(0).head(DenOrder-1).setZero();
+            result.B()(DenOrder-1, 0) = T(1);
         }
         
         // write C matrix
-        if constexpr (number_of_states > 0){
-            const int l = (b.size() < number_of_states) ? b.size() : number_of_states;
-            if(b.size() > (number_of_states)){
+        if constexpr (DenOrder > 0){
+            const int l = (b.size() < DenOrder) ? b.size() : DenOrder;
+            if(b.size() > (DenOrder)){
                 result.C().row(0).head(l) = b.vector().head(l) + a.vector().head(l) * bn;
             }else{
                 result.C().row(0).head(l) = b.vector().head(l);
-                result.C().row(0).tail(number_of_states - b.size()).setZero();
+                result.C().row(0).tail(DenOrder - b.size()).setZero();
             }
         }
         
         // write D matrix
-        result.D()(0, 0) = (b.size() > (number_of_states)) ? bn : T(0);
+        result.D()(0, 0) = (b.size() > (DenOrder)) ? bn : T(0);
         return result;
     }
 
+    /**
+     * \brief calculates the observer-normed state space representation from a rational polynomial
+     * 
+     */
+    template<class T, int NumOrder, int DenOrder>
+    StateSpace<T, DenOrder, 1, 1> to_state_space_observer_norm(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        StateSpace<T, DenOrder, 1, 1> result;
+        const T a_n = rp.den()[rp.den().order()];
+
+        // normalise
+        const Polynom<T, DenOrder> a = -(rp.den() / a_n);
+        const Polynom<T, NumOrder> b = rp.num() / a_n;
+        
+        const T bn = (DenOrder > 0 && a.order() == b.order()) ? b.at(b.size()-1) : static_cast<T>(0);
+
+        // write A matrix
+        if constexpr (DenOrder > 0){
+            const auto I = Eigen::Matrix<T, DenOrder-1, DenOrder-1>::Identity();
+            result.A().template block<DenOrder-1, DenOrder-1>(1, 0) = I; 
+            result.A().row(0).head(DenOrder-1).setZero(); 
+            result.A().col(DenOrder-1) = a.vector().head(a.vector().size()-1);
+        }
+
+        // write C matrix
+        if constexpr (DenOrder > 0){
+            result.C().row(0).head(DenOrder-1).setZero();
+            result.C()(0, DenOrder-1) = T(1);
+        }
+        
+        // write B matrix
+        if constexpr (DenOrder > 0){
+            const int l = (b.size() < DenOrder) ? b.size() : DenOrder;
+            if(b.size() > (DenOrder)){
+                result.B().col(0).head(l) = b.vector().head(l) + a.vector().head(l) * bn;
+            }else{
+                result.B().col(0).head(l) = b.vector().head(l);
+                result.B().col(0).tail(DenOrder - b.size()).setZero();
+            }
+        }
+        
+        // write D matrix
+        result.D()(0, 0) = (b.size() > (DenOrder)) ? bn : T(0);
+        return result;
+    }
+
+    /**
+     * \brief calculates the observer-normed state space representation from a rational polynomial
+     * 
+     */
+    template<class T, int NumOrder, int DenOrder>
+    StateSpace<T, DenOrder, 1, 1> to_state_space(const TransferFunction<T, NumOrder, DenOrder>& rp){
+        return to_state_space_observer_norm(rp);
+    }
 
     /**
      * @brief Generates the block diagonal state space representation of the system of transfer functions

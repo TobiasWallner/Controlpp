@@ -86,20 +86,20 @@ namespace controlpp
              * \brief calculates the next states and calculates the output from the previous states and new inputs
              * \returns a tuple of `[nest_states, output]`
              */
-            template<std::same_as<ValueType> U>
+            template<std::convertible_to<ValueType> U>
                 requires(inputs == 1 && outputs != 1)
             std::tuple<Eigen::Vector<U, internal_states>, Eigen::Vector<U, outputs>> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                return this->_state_space.eval(x, u_scalar);
+                return this->_state_space.eval(x, static_cast<ValueType>(u_scalar));
             }
 
             /**
              * \brief calculates the next states and calculates the output from the previous states and new inputs
              * \returns a tuple of `[nest_states, output]`
              */
-            template<std::same_as<ValueType> U>
+            template<std::convertible_to<ValueType> U>
                 requires(inputs == 1 && outputs == 1)
             std::tuple<Eigen::Vector<U, internal_states>, U> eval(const Eigen::Vector<U, internal_states>& x, const U& u_scalar) const {
-                return this->_state_space.eval(x, u_scalar);
+                return this->_state_space.eval(x, static_cast<ValueType>(u_scalar));
             }
             
             

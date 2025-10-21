@@ -1,0 +1,10 @@
+/**
+
+@page siso_feed_forward SISO Feed Forward
+
+This page explains how to calculate the feed-forward gains of a typical 
+single input single output (SISO) control loop.
+
+
+
+*/

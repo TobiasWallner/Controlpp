@@ -59,7 +59,10 @@ int main(){
     const float f = 1000;
     const float omega = 2 * 3.1415 * f;
     const float D = 0.3;
-    const auto PT2_s = 1 / (1 + 2 * D * s / omega + (s * s) / (omega * omega));
+    const auto PT2_s = 
+                               1 
+      / //-------------------------------------------------
+      (1 + (2 * D * s / omega) + (s * s) / (omega * omega));
 
     // convert from transfer function to state space
     const auto PT2_ss = to_state_space(PT2_s);
@@ -70,6 +73,14 @@ int main(){
 }
 
 ```
+
+---- 
+
+### Known Issues:
+- `-W-array-bounds`
+  might get triggered by Eigen's use of SIMD instructions. The operations are all safe and heavily tested by Eigen. It might occur when for example a vector with a size of 3 is being used with a SIMD instruction that uses 4 values. To get rid of the warning, use: `-Wno-array-bounds`
+- `-W-maybe-uninitialized`
+  Might get triggered by Eigen's solvers if the compiler fails to proove that an uninitialised value is not used. To get rid of the warning, use: `-Wno-maybe-uninitialized`
 
 ----
 
