@@ -154,6 +154,34 @@ namespace controlpp
     }
 
     /**
+     * @brief Calculates the bode response for a pre defined frequency vector
+     * @tparam T The value type of the transfer function
+     * @tparam NumOrder The numerator order
+     * @tparam DenOrder The denominator order
+     * @tparam NSize The number of elements in the frequency vector (may also be `Eigen::Dynamic`)
+     * @param tf The continuous transfer function to analyse
+     * @param freqs_Hz The frequency vector at which to evaluate the transfer function
+     * @returns The bode result as a `Bode` struct
+     * @see ContinuousTransferFunction
+     * @see Bode
+     */
+    template<class T, int NumOrder, int DenOrder, int NSize>
+    Bode<T, NSize> bode(
+            const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, 
+            const Eigen::Vector<T, NSize>& freqs_Hz
+    ){
+        const Eigen::Vector<std::complex<T>, NSize> complex_magnitudes = tf.eval_frequencies_Hz(freqs_Hz);
+        
+        Bode<T, NSize> result;
+        result.frequencies = freqs_Hz;
+        result.magnitudes = complex_magnitudes.array().abs().log10() * static_cast<T>(20);
+        result.phases = complex_magnitudes.array().arg() * static_cast<T>(180 / std::numbers::pi_v<T>);
+        result.phases = unwrap_deg(result.phases);
+        
+        return result;
+    }
+
+    /**
      * \brief Calculates the bode response of a transfer function
      * \param slowest_freq_Hz The slowest/lowest frequency in Hz from which to calculate frequency responses
      * \param fastest_freq_Hz The fastest/highest frequency in Hz to which to calculate the frequency response
@@ -163,26 +191,18 @@ namespace controlpp
      * \see ContinuousTransferFunction::eval_frequencies
      * \see bode(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, const int samples_per_decade)
      */
-    template<class T, int NumOrder, int DenOrder>
+    template<class T, int NumOrder, int DenOrder, std::convertible_to<T> T1, std::convertible_to<T> T2>
     Bode<T, Eigen::Dynamic> bode(
             const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, 
-            const T& slowest_freq_Hz, 
-            const T& fastest_freq_Hz, 
+            const T1& slowest_freq_Hz, 
+            const T2& fastest_freq_Hz, 
             const int samples_per_decade=100
     ){
         const T decades = std::log10(fastest_freq_Hz) - std::log10(slowest_freq_Hz);
         const T samples = samples_per_decade * decades;
 
         const Eigen::Vector<T, Eigen::Dynamic> freqs_Hz = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(samples, std::log(slowest_freq_Hz), std::log(fastest_freq_Hz)).array().exp();
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> complex_magnitudes = tf.eval_frequencies_Hz(freqs_Hz);
-        
-        Bode<T, Eigen::Dynamic> result;
-        result.frequencies = freqs_Hz;
-        result.magnitudes = complex_magnitudes.array().abs().log10() * static_cast<T>(20);
-        result.phases = complex_magnitudes.array().arg() * static_cast<T>(180 / std::numbers::pi_v<T>);
-        result.phases = unwrap_deg(result.phases);
-        
-        return result;
+        return bode<T, NumOrder, DenOrder, Eigen::Dynamic>(tf, freqs_Hz);
     }
 
     /**

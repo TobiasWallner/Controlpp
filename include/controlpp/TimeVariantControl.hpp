@@ -11,101 +11,110 @@
 #include <algorithm>
 #include <limits>
 
-#include <controlpp/ContinuousTransferFunction.hpp>
-#include <controlpp/ContinuousStateSpace.hpp>
-#include <controlpp/DiscreteTransferFunction.hpp>
-#include <controlpp/DiscreteStateSpace.hpp>
-#include <controlpp/transformations.hpp>
+#include <Eigen/Dense>
 
 namespace controlpp
 {
-    /**
-     * \brief A P (Proportional) controller
-     * 
-     * has the following transfer function
-     * 
-     * \f[
-     * y_k = k_p u_k
-     * \f]
-     * 
-     * where:
-     * 
-     * - \f$y_k\f$ is the output of the controller of the data sample k
-     * - \f$u_k\f$ is the k-th input sample
-     * - \f$k_p\f$ is the controller gain
-     * 
-     * \tparam T the data type the controller uses, like `float` or `double`
-     */
-    template<class T>
-    class PControl{
-        public:
-        using value_type = T;
-        private:
 
-        T kp_;
+    /// @brief Namespace that contains sample-time variant controllers  
+    namespace timevar{
 
-        public:
-
-        /// @brief Default copy constructor
-        constexpr PControl(const PControl&) = default;
+        template<class T>
+        struct ValueSampletimePair{
+            T value;
+            T sample_time;
+        };
 
         /**
-         * \brief Construct a P (Proportional) controller with a constant gain
-         * \param kp the proportional gain of the controller
-         */
-        constexpr PControl(const T& kp) : kp_(kp){}
-
-        /**
-         * \brief sets the proportional gain
-         * \param kp the new proportional gain for the next sample value
-         */
-        constexpr void kp(const T& kp){this->kp_ = kp;}
-
-        /**
-         * \brief returns the current gain
-         */
-        [[nodiscard]] constexpr const T& kp() const {return this->kp_;}
-
-        /**
-         * \brief Adds a new sample
-         * \param u the new sample input
-         * \returns the new output based on the input
-         */
-        constexpr T input(const T& u) {return u * this->kp_;}
-
-        /**
-         * \brief Adds a new sample
-         * \param u the new sample input
-         * \param Ts sample time (unused - there for compatibility)
-         * \returns the new output based on the input
-         */
-        constexpr T input(const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
-
-        /**
-         * \brief Adds a new sample
-         * \param u the new sample input
-         * \returns the new output based on the input
-         */
-        constexpr T operator() (const T& u) {return this->input(u);}
-
-        /**
-         * \brief Adds a new sample
-         * \param u the new sample input
-         * \param Ts sample time (unused - there for compatibility)
-         * \returns the new output based on the input
-         */
-        constexpr T operator() (const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
-
-        /**
-         * \brief resets the internal states of the filter
+         * \brief A P (Proportional) controller
          * 
-         * For P control elements this is a no-op.
+         * has the following transfer function
+         * 
+         * \f[
+         * y_k = k_p u_k
+         * \f]
+         * 
+         * where:
+         * 
+         * - \f$y_k\f$ is the output of the controller of the data sample k
+         * - \f$u_k\f$ is the k-th input sample
+         * - \f$k_p\f$ is the controller gain
+         * 
+         * \tparam T the data type the controller uses, like `float` or `double`
          */
-        constexpr void reset() {/*no operation*/}
-    };
+        template<class T>
+        class PControl{
+            public:
+            using value_type = T;
+            private:
 
-        /// @brief Namespace that contains sample-time variant controllers  
-        namespace timevar{
+            T kp_;
+
+            public:
+
+            /// @brief Default copy constructor
+            constexpr PControl(const PControl&) = default;
+
+            /**
+             * \brief Construct a P (Proportional) controller with a constant gain
+             * \param kp the proportional gain of the controller
+             */
+            constexpr PControl(const T& kp) : kp_(kp){}
+
+            /**
+             * \brief sets the proportional gain
+             * \param kp the new proportional gain for the next sample value
+             */
+            constexpr void kp(const T& kp){this->kp_ = kp;}
+
+            /**
+             * \brief returns the current gain
+             */
+            [[nodiscard]] constexpr const T& kp() const {return this->kp_;}
+
+            /**
+             * \brief Adds a new sample
+             * \param u the new sample input
+             * \returns the new output based on the input
+             */
+            constexpr T input(const T& u) {return u * this->kp_;}
+
+            /**
+             * \brief Adds a new sample
+             * \param u the new sample input
+             * \param Ts sample time (unused - there for compatibility)
+             * \returns the new output based on the input
+             */
+            constexpr T input(const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
+
+            /**
+             * \brief Adds a new sample
+             * \param u the new sample input
+             * \returns the new output based on the input
+             */
+            constexpr T operator() (const T& u) {return this->input(u);}
+
+            /**
+             * \brief Adds a new sample
+             * \param u the new sample input
+             * \param Ts sample time (unused - there for compatibility)
+             * \returns the new output based on the input
+             */
+            constexpr T operator() (const T& u, [[maybe_unused]]const T& Ts) {return this->input(u);}
+
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
+            /**
+             * \brief resets the internal states of the filter
+             * 
+             * For P control elements this is a no-op.
+             */
+            constexpr void reset() {/*no operation*/}
+        };
+
+        
         /**
          * \brief An I (Integrator) controller, with varying smaple-time
          * 
@@ -191,6 +200,10 @@ namespace controlpp
              * \see controlpp::I::input(const T& u, const T& Ts)
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, IControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
         };
 
         /**
@@ -346,6 +359,10 @@ namespace controlpp
              * \see controlpp::I::input(const T& u, const T& Ts)
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
+
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, IAntiWindup& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
         };
 
         /**
@@ -391,41 +408,58 @@ namespace controlpp
         template<class T>
         class DControl{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            T kd_;
+            T omega_;
+            T x_ = static_cast<T>(0);
 
             public:
 
             /**
              * \brief Construct a D control element
-             * \param k_d The differential gain
+             * \param kd The differential gain
              * \param omega The bandwidth of the low-pass filter in radians per second
              */
-            constexpr DControl(const T& k_d, const T& omega){
-                this->set_params(k_d, omega);
-            }
+            constexpr DControl(const T& kd, const T& omega)
+                : kd_(kd)
+                , omega_(omega){}
 
             /// @brief default copy constructor 
             constexpr DControl(const DControl&) = default;
 
-            constexpr void set_params(const T& k_d, const T& omega){
-                const ContinuousTransferFunction<T, 1, 1> tf(
-                    Eigen::Vector<T, 2>(static_cast<T>(0), k_d), 
-                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega));
-                this->css_ = to_state_space(tf);
-            }
-
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                const T V = 2 * kd_ * omega_;
+                
+                const T b0 = 1;
+                const T b1 = -1;
+
+                const T omega_Ts = omega_ * Ts;
+                const T a0 = omega_Ts + 2;
+                const T a1 = omega_Ts - 2;
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+
+                const T a1_ = a1 / a0;
+
+                const T A = -a1_;
+                const T C = b1_ - a1_ * b0_;
+                const T D = b0_;
+
+                const T new_x = A * x_ + u;
+                const T y = C * x_ + D * u;
+
+                this->x_ = new_x;
+                return y * V;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, DControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
-                this->states_.setZero();
+                this->x_ = static_cast<T>(0);
             }
         };
 
@@ -511,6 +545,10 @@ namespace controlpp
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PT1Control& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
                 this->_x = static_cast<T>(0);
             }
@@ -560,8 +598,10 @@ namespace controlpp
         template<class T>
         class PT2Control{
             private:
-            ContinuousStateSpace<T, 2> css_;
-            Eigen::Vector<T, 2> states_ = Eigen::Vector<T, 2>::Zero();
+            T K_; ///< the gain of the filter
+            T D_; ///< the dampening of the filter resonance frequency
+            T omega_; ///< the characteristic frequency (rad/s) of the filter
+            Eigen::Vector<T, 2> x_ = Eigen::Vector<T, 2>::Zero(); ///< internal states
 
             public:
             PT2Control(const PT2Control&) = default;
@@ -572,32 +612,68 @@ namespace controlpp
              * \param D Then dampening factor of the filter
              * \param omega The characteristic frequency of the filter (bandwidth)
              */
-            PT2Control(const T& K, const T& D, const T& omega){
-                this->set_params(K, D, omega);
-            }
-
-            constexpr void set_params(const T& K, const T& D, const T& omega){
-                const ContinuousTransferFunction<T, 0, 2> tf(
-                    Eigen::Vector<T, 1>(K), 
-                    Eigen::Vector<T, 3>(static_cast<T>(1), static_cast<T>(2) * D / omega, static_cast<T>(1)/(omega * omega)));
-                this->css_ = to_state_space(tf);
-            }
+            PT2Control(const T& K, const T& D, const T& omega)
+                : K_(K)
+                , D_(D)
+                , omega_(omega){}
 
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                // calculate params of the tustin transformed transfer function
+                const T b0 = static_cast<T>(1);
+                const T b1 = static_cast<T>(2);
+                const T b2 = static_cast<T>(1);
+
+                const T omega_Ts_sqr = this->omega_ * this->omega_ * Ts * Ts;
+                const T _4_DomegaTs = 4 * this->D_ * this->omega_ * Ts;
+
+                const T V = this->K_ * omega_Ts_sqr;
+                const T a0 = omega_Ts_sqr + _4_DomegaTs + 4;
+                const T a1 = 2 * omega_Ts_sqr - 8;
+                const T a2 = omega_Ts_sqr - _4_DomegaTs + 4;
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+                const T b2_ = b2 / a0;
+
+                const T a1_ = a1 / a0;
+                const T a2_ = a2 / a0;
+
+                // turn it into state space form
+                Eigen::Matrix<T, 2, 2> A({
+                    {-a1_, -a2_},
+                    {static_cast<T>(1), static_cast<T>(0)}
+                });
+
+                const Eigen::Matrix<T, 2, 1> B({
+                    static_cast<T>(1),
+                    static_cast<T>(0)
+                });
+
+                const Eigen::Matrix<T, 1, 2> C({
+                    (b1_ - a1_ * b0_), (b2_ - a2_ * b0_)
+                });
+
+                const T D = b0_;
+
+                // calculate the state space system response
+                const Eigen::Vector<T, 2> new_x = A * this->x_ + B * u;
+                const T y = C * this->x_ + D * u;
+
+                // update states and output result
+                this->x_ = new_x;
+                return y * V;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PT2Control& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
-                this->states_.setZero();
+                this->x_.setZero();
             }
         };
-        template<class T>
-        using LowPassO2 = PT2Control<T>;
 
         /**
          * \brief A PI (Proportional Integral) controller with varying sample-times
@@ -640,8 +716,8 @@ namespace controlpp
         template<class T>
         class PIControl{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            PControl<T> P_;
+            IControl<T> I_;
 
             public:
 
@@ -649,30 +725,26 @@ namespace controlpp
              * \param ki The integral gain
              * \param kp The proportional gain
              */
-            PIControl(const T& kp, const T& ki){
-                this->set_params(kp, ki);
-            }
+            PIControl(const T& kp, const T& ki)
+                : P_(kp)
+                , I_(ki){}
 
             PIControl(const PIControl&) = default;
 
-            constexpr void set_params(const T& kp, const T& ki){
-                const ContinuousTransferFunction<T, 1, 1> tf(
-                    Eigen::Vector<T, 2>(ki, kp), 
-                    Eigen::Vector<T, 2>(static_cast<T>(0), static_cast<T>(1)));
-                this->css_ = to_state_space(tf);
-            }
-
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
+                const T y = P_(u, Ts) + I_(u, Ts);
                 return y;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PIControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
-                this->states_.setZero();
+                this->P_.reset();
+                this->I_.reset();
             }
         };
 
@@ -826,6 +898,10 @@ namespace controlpp
              */
             constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PIAntiWindup& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$y_{k-1}\f$) to zero
@@ -931,6 +1007,10 @@ namespace controlpp
              */
             constexpr T operator()(const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PT1IControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
@@ -1027,6 +1107,10 @@ namespace controlpp
              */
             constexpr T operator() (const T& u, const T& Ts){return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, PIDControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             /**
              * \brief resets (clears) the internal states
              * resets the internal states (\f$u_{k-1}\f$, \f$u_{k-2}\f$, \f$y_{k-1}\f$ and \f$y_{k-2}\f$) to zero
@@ -1069,35 +1153,48 @@ namespace controlpp
         template<class T>
         class LeadLagControl{
             private:
-            ContinuousStateSpace<T, 1> css_;
-            Eigen::Vector<T, 1> states_ = Eigen::Vector<T, 1>::Zero();
+            T omega1_; 
+            T omega2_;
+            T x_ = static_cast<T>(0);
 
             public:
 
-            constexpr LeadLagControl(const T& omega1, const T& omega2){
-                this->set_params(omega1, omega2);
-            }
-
-            constexpr void set_params(const T& omega1, const T& omega2){
-                const ContinuousTransferFunction<T, 1, 1> tf(
-                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega1), 
-                    Eigen::Vector<T, 2>(static_cast<T>(1), static_cast<T>(1) / omega2));
-                
-                this->css_ = to_state_space(tf);
-            }
+            constexpr LeadLagControl(const T& omega1, const T& omega2)
+                : omega1_(omega1)
+                , omega2_(omega2){}
 
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
-                return y;
+                const T V = this->omega2_ / this->omega1_;
+                
+                const T b0 = Ts * this->omega1_ + static_cast<T>(2);
+                const T b1 = Ts * this->omega1_ - static_cast<T>(2);
+
+                const T a0 = Ts * this->omega2_ + static_cast<T>(2);
+                const T a1 = Ts * this->omega2_ - static_cast<T>(2);
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+
+                const T a1_ = a1 / a0;
+
+                const T A = -a1_;
+                const T C = b1_ - a1_ * b0_;
+                const T D = b0_;
+
+                const T new_x = A * x_ + u;
+                const T y = C * x_ + D * u;
+
+                this->x_ = new_x;
+                return y * V;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
-            constexpr void reset(){
-                this->states_.setZero();
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, LeadLagControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
             }
+
+            constexpr void reset(){this->x_ = static_cast<T>(0);}
         };
 
         /**
@@ -1119,8 +1216,10 @@ namespace controlpp
         template<class T>
         class NotchControl{
             private:
-            ContinuousStateSpace<T, 2> css_;
-            Eigen::Vector<T, 2> states_ = Eigen::Vector<T, 2>::Zero();
+            T w_; ///< width of the notch
+            T g_min_; ///< gain at the notch peak
+            T omega_; ///< The frequency of the notch
+            Eigen::Vector<T, 2> x_ = Eigen::Vector<T, 2>::Zero();
 
             public:
 
@@ -1129,32 +1228,69 @@ namespace controlpp
              * \param w The width of the noth. 
              *      - \f$w > 0\f$: Larger value \f$\Rightarrow\f$ wider notch
              *      - \f$w = 0\f$: Needle
-             * \param g_min The value at the notch peak
+             * \param g_min The gain at the notch peak
              * \param omega the frequency (rad/s) of the notch peak
              */
-            constexpr NotchControl(const T& w, const T& g_min, const T& omega){
-                this->set_params(w, g_min, omega);
-            }
-
-            constexpr void set_params(const T& w, const T& g_min, const T& omega){
-                const ContinuousTransferFunction<T, 2, 2> tf(
-                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * g_min * w * omega, static_cast<T>(1)), 
-                    Eigen::Vector<T, 3>((omega * omega), static_cast<T>(2) * w * omega, static_cast<T>(1)));
-                
-                this->css_ = to_state_space(tf);
-            }
+            constexpr NotchControl(const T& w, const T& g_min, const T& omega)
+                : w_(w)
+                , g_min_(g_min)
+                , omega_(omega){}
 
             constexpr T input(const T& u, const T& Ts){
-                const DiscreteStateSpace dss = discretise_tustin(this->css_, Ts);
-                const auto [x, y] = dss.eval(this->states_, u);
-                this->states_ = x;
+                const T Ts_omega_sqr = Ts * Ts * this->omega_ * this->omega_;
+                const T Ts_omega_sqr_plus_4 = Ts_omega_sqr + 4;
+                const T _4_Ts_w_omega = 4 * Ts * this->w_ * this->omega_;
+                const T _4_Ts_w_omega_g = _4_Ts_w_omega * this->g_min_;
+
+                const T b0 = Ts_omega_sqr_plus_4 + _4_Ts_w_omega_g;
+                const T b1 = 2 * (Ts_omega_sqr - 4);
+                const T b2 = Ts_omega_sqr_plus_4 - _4_Ts_w_omega_g;
+                
+                const T a0 = Ts_omega_sqr_plus_4 + _4_Ts_w_omega;
+                const T a1 = b1;
+                const T a2 = Ts_omega_sqr_plus_4 - _4_Ts_w_omega;
+
+                const T b0_ = b0 / a0;
+                const T b1_ = b1 / a0;
+                const T b2_ = b2 / a0;
+
+                const T a1_ = a1 / a0;
+                const T a2_ = a2 / a0;
+
+                // turn it into state space form
+                Eigen::Matrix<T, 2, 2> A({
+                    {-a1_, -a2_},
+                    {static_cast<T>(1), static_cast<T>(0)}
+                });
+
+                const Eigen::Matrix<T, 2, 1> B({
+                    static_cast<T>(1),
+                    static_cast<T>(0)
+                });
+
+                const Eigen::Matrix<T, 1, 2> C({
+                    (b1_ - a1_ * b0_), (b2_ - a2_ * b0_)
+                });
+
+                const T D = b0_;
+
+                // calculate the state space system response
+                const Eigen::Vector<T, 2> new_x = A * this->x_ + B * u;
+                const T y = C * this->x_ + D * u;
+
+                // update states and output result
+                this->x_ = new_x;
                 return y;
             }
 
             constexpr T operator() (const T& u, const T& Ts) {return this->input(u, Ts);}
 
+            friend constexpr ValueSampletimePair<T> operator>> (const ValueSampletimePair<T>& p, NotchControl& c){
+                return ValueSampletimePair<T>{c.input(p.value, p.sample_time), p.sample_time};
+            }
+
             constexpr void reset(){
-                this->states_.setZero();
+                this->x_.setZero();
             }
         };
 

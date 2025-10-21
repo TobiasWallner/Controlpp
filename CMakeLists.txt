@@ -41,7 +41,10 @@ if (CONTROLPP_COMPILE_TEST)
 
     add_executable(controlpp_tests
         tests/main.cpp
+
         #tests/H2Controller_Tests.cpp
+        tests/LQRController_Tests.cpp
+        
         tests/Pade_Tests.cpp
         tests/TimeVariantControl_Test.cpp
         tests/KalmanFilter_Tests.cpp
@@ -52,6 +55,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/math_Tests.cpp
         tests/analysis_Tests.cpp
         tests/Generator_Tests.cpp
+
     )
 
     set_target_properties(controlpp_tests PROPERTIES LINKER_LANGUAGE CXX)
@@ -66,8 +70,15 @@ if (CONTROLPP_COMPILE_TEST)
             -Wall
             -Wextra
             -Werror
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(controlpp_tests PUBLIC
+            -Wno-maybe-uninitialized
             -Wno-array-bounds # Gets triggered by SIMD
-            #-fmax-errors=2
+            -Wno-maybe-uninitialized
+            #-fmax-errors=1
         )
     endif()
 

@@ -2,15 +2,20 @@
 
 #include <ostream>
 
+#include "ContinuousTransferFunction.hpp"
+#include "ContinuousStateSpace.hpp"
 #include "DiscreteTransferFunction.hpp"
 #include "DiscreteStateSpace.hpp"
+#include "transformations.hpp"
 
 namespace controlpp{
+
+    
 
     /**
      * \brief Controller from a discrete state space
      */
-    template<class T, int NStates_, int NInputs_, int NOutputs_>
+    template<class T, int NStates_, int NInputs_=1, int NOutputs_=1>
     class DssFilter{
         private:
         
@@ -29,8 +34,26 @@ namespace controlpp{
          * A filter will also internally track 
          */
         DssFilter(const DiscreteStateSpace<T, NStates_, NInputs_, NOutputs_>& dss)
-            : dss_(dss)
-        {}
+            : dss_(dss){}
+
+        template<int N>
+        DssFilter(const DiscreteTransferFunction<T, N, NStates_>& dtf)
+            : DssFilter(to_state_space(dtf)){}
+
+        DssFilter(
+            const ContinuousStateSpace<T, NStates_, NInputs_, NOutputs_>& css, 
+            double Ts, 
+            EDiscretisation method = EDiscretisation::tustin
+        )
+            : DssFilter(discretise(css, Ts, method)){}
+
+        template<int N>
+        DssFilter(
+            const ContinuousTransferFunction<T, N, NStates_>& ctf,
+            double Ts,
+            EDiscretisation method = EDiscretisation::tustin
+        )
+            : DssFilter(to_state_space(ctf), Ts, method){}
 
         Eigen::Vector<T, NOutputs_> input(const Eigen::Vector<T, NInputs_>& u){
             const auto [x, y] = this->dss_.eval(this->states_, u);
@@ -38,11 +61,27 @@ namespace controlpp{
             return y;
         }
 
+        const Eigen::Vector<T, NStates_>& states() const {
+            return this->states_;
+        }
+
+        Eigen::Vector<T, NStates_>& states() {
+            return this->states_;
+        }
+
+        const T& states(int i) const {
+            return this->states_(i);
+        }
+
+        T& states(int i) {
+            return this->states_(i);
+        }
+
         /**
          * \brief input a new value to advance the internal state and calculate the new output
          * \returns  
          */
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ > 1)
         Eigen::Vector<T, NOutputs_> input(const U& u){
             const auto [x, y] = this->dss_.eval(this->states_, u);
@@ -54,18 +93,18 @@ namespace controlpp{
          * \brief input a new value to advance the internal state and calculate the new output
          * \returns  
          */
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ == 1)
         T input(const U& u){
-            const auto [x, y] = this->dss_.eval(this->states_, u);
+            const auto [x, y] = this->dss_.eval(this->states_, static_cast<T>(u));
             this->states_ = x;
             return y;
         }
 
-        template<std::same_as<T> U>
+        template<std::convertible_to<T> U>
         requires(NInputs_ == 1 && NOutputs_ == 1)
         T operator() (const U& u){
-            return this->input(u);
+            return this->input(static_cast<T>(u));
         }
 
         /**
@@ -104,7 +143,7 @@ namespace controlpp{
      * \brief Controller from a discrete transfer function
      */
     template<class T, int NumOrder, int DenOrder>
-    class DftFilter{
+    class DtfFilter{
         private:
         
         Eigen::Vector<T, NumOrder> uk_ = Eigen::Vector<T, NumOrder>::Zero();
@@ -117,7 +156,7 @@ namespace controlpp{
          * 
          * A filter will also internally track 
          */
-        DftFilter(const DiscreteTransferFunction<T, NumOrder, DenOrder>& dtf)
+        DtfFilter(const DiscreteTransferFunction<T, NumOrder, DenOrder>& dtf)
             : dtf_(dtf)
         {}
 

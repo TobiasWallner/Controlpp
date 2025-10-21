@@ -1,0 +1,19 @@
+/**
+
+@page lqr_controller LQR Controller
+
+@section How to select Q and R
+
+@subsection Bryson's rule
+
+Pic allowable magnitudes for \$x_\text{max}\$ (plant states) and \$u_\text{max}\$ (control outputs).
+
+\f[
+    Q = \left(1/x_{1,\text{max}}^2 1/x_{2,\text{max}^\top}^2\right) \\
+    R = u\text{max} u\text{max}^\top
+\f]
+
+
+
+
+*/

@@ -33,12 +33,12 @@ namespace controlpp
         // State feedback
         // A^\top X + X A - X B_u R^{-1} B_u^\top X + Q = 0
         const Eigen::Matrix<T, NStates, NInputs> N1 = Cz.transpose() * Duz;
-        const Eigen::Matrix<T, NStates, NStates> X = controlpp::care_solver(A, Bu, R, Q, N1);
+        const Eigen::Matrix<T, NStates, NStates> X = controlpp::care_solver(A, Bu, Q, R, N1);
 
         // Estimator Feedback
         // A Y + Y A^\top - Y C_y^\top S^{-1} C_y Y + W = 0
         const Eigen::Matrix<T, NStates, NMeasOutputs> N2 = Bw * Dwy.transpose();
-        const Eigen::Matrix<T, NStates, NStates> Y = controlpp::care_solver(A.transpose().eval(), Cy.transpose().eval(), S, W, N2);
+        const Eigen::Matrix<T, NStates, NStates> Y = controlpp::care_solver(A.transpose().eval(), Cy.transpose().eval(), W, S, N2);
 
         // State gain
         // F = -R^{-1} \left( B_u^\top X + D_{1u}^\top C_z \right)

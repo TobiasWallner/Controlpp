@@ -17,6 +17,12 @@
 
 namespace controlpp
 {
+
+    enum class EDiscretisation{
+        zero_order_hold,
+        tustin
+    };
+
     /**
      * \brief transform s-domain into z-domain using zero-order-hold
      * 
@@ -132,6 +138,19 @@ namespace controlpp
         return result;
     }
 
+
+    template<class T, int NStates>
+    DiscreteStateSpace<T, NStates, 1, 1> discretise(
+        const ContinuousStateSpace<T, NStates, 1, 1>& sys, 
+        const T& sample_time,
+        EDiscretisation method
+    ){
+        if(method == EDiscretisation::zero_order_hold){
+            return discretise_zoh(sys, sample_time);
+        }else{
+            return discretise_tustin(sys, sample_time);
+        }
+    }
     
 } // namespace controlpp
 
