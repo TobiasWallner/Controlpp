@@ -84,46 +84,63 @@ namespace controlpp{
      * 
      * The weights Q (state penalty) and R (control penalty) are chosen automatically.
      * 
-     * TODO: explain how Q and R are chosen
+     * How Q is chosen:
+     * \f[
+     *   Q_1 = C^\top C;
+     *   Q = Q_1 + I \| Q_1 \|  \text{eps}^2;
+     * \f]
      * 
+     * How R is chosen:
+     * \f[
+     *  R = I * r
+     * \f]
      * 
      * @tparam T The value type of the parameters
      * @tparam NStates The number of states of the plant
      * @tparam NInputs The number of inputs of the plant
      * @tparam NOutputs The number of outputs of the plant
      * @param Gss The state space description of the plant
-     * @param p
+     * @param r The control penalty (See r in the equations)
+     * @param eps Makes sure to also penalises states that do not contribute to the output (see eps in the equations)
      * @returns The LQR gain matrix as an `Eigen::Matrix`
      * 
      * @see lqr_feed_forward
      */
-    template<class T, int NStates, int NInputs, int NOutputs, std::convertible_to<T> U1 = T, std::convertible_to<T> U2 = T>
+    template<
+        class T, int NStates, int NInputs, int NOutputs, 
+        std::convertible_to<T> U1 = T, std::convertible_to<T> U2 = T>
     Eigen::Matrix<T, NInputs, NStates> lqr(
-        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss
+        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
+        const U1& r = static_cast<U1>(1),
+        const U2& eps = static_cast<U2>(0.001)
     ){
         const Eigen::Matrix<T, NStates, NStates> Iq = Eigen::Matrix<T, NStates, NStates>::Identity(); 
         const Eigen::Matrix<T, NStates, NStates> Q1 = Gss.C().transpose() * Gss.C();
-        const Eigen::Matrix<T, NStates, NStates> Q = Q1 + Iq * (Q1.norm() * 0.000001);
-
-        const Eigen::Matrix<T, NInputs, NInputs> R = Eigen::Matrix<T, NInputs, NInputs>::Ones()
-        
+        const Eigen::Matrix<T, NStates, NStates> Q = Q1 + Iq * (Q1.norm() * (eps * eps));
+        const Eigen::Matrix<T, NInputs, NInputs> R = Eigen::Matrix<T, NInputs, NInputs>::Ones() * (r * r);
         return lqr_discrete(Gss.A(), Gss.B(), Q, R);
     }
 
     /**
-     * @brief Construcs a discrete LQR controller with automatic weights Q and R
+     * @brief Construcs a discrete LQR controller with weights trying to limit states and controller outputs
      * 
-     * The weights Q (state penalty) and R (control penalty) are chosen automatically.
+     * The weights Q (state penalty) and R (control penalty) are chosen automatically to 
+     * respect the limits \$x_\text{max}\$ (state limits) and \$u_\text{max}\$ (control output limits)
      * 
-     * TODO: explain how Q and R are chosen
+     * It is important to understand that those are not hard limits. The controller and the plant
+     * may overshoot the bounds - even by orders of magnitudes. It is just that a Q and R
+     * will be chosen where it is likely that the states and control signals stay within the bounds.
      * 
+     * Chooses \$Q\$ as the diagonal matrix of \$\frac{1}{x_\text{max}^2}\$ 
+     * and \$R\$ as \$\frac{1}{u_\text{max}^2}\$ 
      * 
      * @tparam T The value type of the parameters
      * @tparam NStates The number of states of the plant
      * @tparam NInputs The number of inputs of the plant
      * @tparam NOutputs The number of outputs of the plant
      * @param Gss The state space description of the plant
-     * @param p
+     * @param x_max
+     * @param u_max
      * @returns The LQR gain matrix as an `Eigen::Matrix`
      * 
      * @see lqr_feed_forward
@@ -131,17 +148,17 @@ namespace controlpp{
     template<class T, int NStates, int NInputs, int NOutputs, std::convertible_to<T> U1 = T, std::convertible_to<T> U2 = T>
     Eigen::Matrix<T, NInputs, NStates> lqr(
         const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
-        const Eigen::Vector<T, NOutputs>& y_max
+        const Eigen::Vector<T, NOutputs>& x_max,
         const Eigen::Vector<T, NInputs>& u_max
     ){
         
-        const Eigen::Vector<T, NOutputs> q = static_cast<T>(1) / y_max.array().square();
+        const Eigen::Vector<T, NOutputs> q = static_cast<T>(1) / x_max.array().square();
         const Eigen::Matrix<T, NStates, NStates> Iq = Eigen::Matrix<T, NStates, NStates>::Identity(); 
         const Eigen::Matrix<T, NStates, NStates> Q1 = Gss.C().transpose() * q.asDiagonal() * Gss.C();
         const Eigen::Matrix<T, NStates, NStates> Q = Q1 + Iq * (Q1.norm() * 0.000001);
 
         const Eigen::Vector<T, NOutputs> r = static_cast<T>(1) / u_max.array().square();
-        const Eigen::Matrix<T, NInputs, NInputs> R = r.asDiagonal()
+        const Eigen::Matrix<T, NInputs, NInputs> R = r.asDiagonal();
         
         return lqr_discrete(Gss.A(), Gss.B(), Q, R);
     }

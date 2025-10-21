@@ -72,13 +72,14 @@ if (CONTROLPP_COMPILE_TEST)
             -Werror
             -Wno-array-bounds # Gets triggered by SIMD
             -Wno-maybe-uninitialized
-            -fmax-errors=1
+            
         )
     endif()
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(controlpp_tests PUBLIC
             -Wno-maybe-uninitialized
+            #-fmax-errors=1
         )
     endif()
 
