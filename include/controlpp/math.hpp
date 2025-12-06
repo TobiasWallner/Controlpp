@@ -271,8 +271,6 @@ namespace controlpp{
 			}
 		}
 		odd *= A;
-		
-		std::cout << std::endl;
 
 		const Eigen::Matrix<T, N, N> num = even + odd;
 		const Eigen::Matrix<T, N, N> den = even - odd;
@@ -865,5 +863,5 @@ namespace controlpp{
 		H.bottomRightCorner(NStates, NStates) = -A_.transpose();
 		return hamilton_solver(H);
 	}
-
+	
 }

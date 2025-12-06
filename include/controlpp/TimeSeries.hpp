@@ -30,11 +30,11 @@ namespace controlpp
      * \tparam T The datatype used for the `times` and `values` vectors
      * \tparam N The size of the timeseries. Can be a static size or `Eigen::Dynamic` to determine the size at runtime.
      */
-    template<class T>
-    class TimeSeries<T, Eigen::Dynamic>{
+    template<class T, int N = Eigen::Dynamic>
+    class TimeSeries<T, N>{
     public:
-        Eigen::Vector<T, Eigen::Dynamic> times;
-        Eigen::Vector<T, Eigen::Dynamic> values;
+        Eigen::Vector<T, N> times;
+        Eigen::Vector<T, N> values;
 
         /// @brief Constructor that sets the size of the timeseries
         /// @param size The size being allocated for the `times` and `values` vectors
