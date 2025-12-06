@@ -1,0 +1,37 @@
+/**
+
+@page loop_shaping_from_data Loop shaping from data
+
+The library has a `Bode` class that allows to perform calculations with continuous transfer functions.
+
+For example given some bode data from a measurement
+
+\code{.cpp}
+Bode Gb(frequencies, magnitudes);
+\endcode
+
+You can design your controller as a transfer function
+
+\code{.cpp}
+const controlpp::ContinuousTransferFunction s = controlpp::tf::s<double>;
+
+// PI Controller
+controlpp::ContinuousTransferFunction Rs = 0.5 + 2 / s;
+\endcode
+
+And then perform arithmetic operations on the measured bode data.
+
+\code{.cpp}
+// open loop
+controlpp::Bode L = Gb * Rs;
+
+// closed loop: input to output transfer dynamic
+controlpp::Bode Try = L / (1 + L);
+
+// closed loop: disturbance to output transfer dynamic
+std::ofstream("bode_Tdy.csv") << Tdy;
+\endcode
+
+This allows easy controller design and loop shaping on real world data. 
+
+*/

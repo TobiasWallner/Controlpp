@@ -1,7 +1,4 @@
 config = Release
-CC = gcc
-CXX = g++
-G = "Ninja"
 
 
 build/$(config)/config.timestampfile: CMakeLists.txt

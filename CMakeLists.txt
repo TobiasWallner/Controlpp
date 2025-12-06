@@ -55,6 +55,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/math_Tests.cpp
         tests/analysis_Tests.cpp
         tests/Generator_Tests.cpp
+        tests/Bode_Tests.cpp
 
     )
 

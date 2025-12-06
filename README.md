@@ -14,10 +14,8 @@ Features:
   Supports [Vectorisation](https://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization) for: SSE2, SSE3, SSE4, AVX, AVX2, AVX512, AltiVec/VSX, ARM NEON and now S390x SIMD (ZVector) through the [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library.
 - **Classical Control, Transfer Functions and State Space**  
   Work directly with continuous and discrete transfer functions, numerator/denominator polynomials, zeros/poles, and conversions from and to state space realisations.
-  Switch domains as needed with zero order hold or tustin in a type save manner:  
-  s -- zero-order hold --> z -- inverser-bilinear (tustin) --> q -- bilinear (tustin) --> z
 - **Time-Variant Controllers**  
-  Have high jitter or changing sampling rates? E.g.: Controlling with a sensor (e.g.: camera) that changes its and sampling rate (ROI)?
+  Have high jitter or changing sampling rates? E.g.: Controlling with a sensor (e.g.: camera) that changes its frame rate?
   The time variant controllers offer you two inputs: the value and the sample-time.
 - **Modern Controllers & Optimal Control**  
   Includes linear-quadratic controller support and estimation tooling (LQR / Kalman), with room to extend into H2/H-inf synthesis.
@@ -37,7 +35,7 @@ Read more about [CMake](https://cmake.org/) (build file generator) [CPM.cmake](h
 include(cmake/CPM.cmake)
 
 # add the package
-CPMAddPackage("gh:TobiasWallner/Controlpp#main")
+CPMAddPackage("gh:TobiasWallner/Controlpp#v1.2.0")
 
 # create your project executable
 add_executable(my_app src/main.cpp)
@@ -53,7 +51,7 @@ Example:
 #include <controlpp.hpp>
 
 int main(){
-    const auto s controlpp::tf::s<float>;
+    const auto s = controlpp::tf::s<float>;
 
     // define a PT2 element:
     const float f = 1000;
@@ -111,13 +109,13 @@ likely path: `C:\mingw64\bin\` or `C:\Program Files\LLVM\bin\`.
 #### On Linux:
 Add to `~/.bashrc`, `~/.zshrc` or the config script of your terminal:
 ```
-export CMAKE_GENERATOR="Ninja Multi-Config"
+export CMAKE_GENERATOR="Ninja"
 ```
 
 #### On Windows:
 Add the environment variable
 ```
-setx CMAKE_GENERATOR "Ninja Multi-Config"
+setx CMAKE_GENERATOR "Ninja"
 ```
 
 ----

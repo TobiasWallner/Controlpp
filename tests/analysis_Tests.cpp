@@ -48,9 +48,12 @@ TEST(analysis, bode_PT2){
     const double expected_mags[] = {0.0432094, 0.0699347, 0.112945, 0.181725, 0.290427, 0.458256, 0.704278, 1.0185, 1.24777, 0.803529, -1.30173, -5.06802, -9.50781, -14.0326, -18.4891, -22.8675, -27.1867, -31.466, -35.7195, -39.9568};
     const double expected_phases[] = {-5.76789, -7.38047, -9.46836, -12.1979, -15.8208, -20.7434, -27.6645, -37.8382, -53.3782, -76.3434, -103.657, -126.622, -142.162, -152.335, -159.257, -164.179, -167.802, -170.532, -172.62, -174.232};
 
-    for(int i = 0; i < G_bode.frequencies.size(); ++i){
-        ASSERT_NEAR(G_bode.frequencies(i), expected_freqs[i], 1e-3) << "at index: " << i;
-        ASSERT_NEAR(G_bode.magnitudes(i), expected_mags[i], 1e-3) << "at index: " << i;
-        ASSERT_NEAR(G_bode.phases(i), expected_phases[i], 1e-3) << "at index: " << i;
+    const auto freqs = G_bode.frequencies();
+    const auto mags = G_bode.magnitudes_dB();
+    const auto phases = G_bode.phases_deg();
+    for(size_t i = 0; i < G_bode.size(); ++i){
+        ASSERT_NEAR(freqs(i), expected_freqs[i], 1e-3) << "at index: " << i;
+        ASSERT_NEAR(mags(i), expected_mags[i], 1e-3) << "at index: " << i;
+        ASSERT_NEAR(phases(i), expected_phases[i], 1e-3) << "at index: " << i;
     }
 }
