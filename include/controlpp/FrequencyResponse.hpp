@@ -177,52 +177,6 @@ namespace controlpp{
                 return this->values_;
             }
 
-            Eigen::Vector<T, Eigen::Dynamic> real() const {
-                return this->values_.real();
-            }
-
-            Eigen::Vector<T, Eigen::Dynamic> imag() const {
-                return this->values_.imag();
-            }
-
-            /**
-             * @brief Creates a vector containing the absolute magnitudes
-             * 
-             * Calculates the absolute magnitudes from the complex magnitudes 
-             */
-            Eigen::Vector<T, Eigen::Dynamic> magnitudes() const {
-                return this->values_.array().abs();
-            }
-
-            /**
-             * @brief Creates a vector of magnitudes in dB
-             * 
-             * Calculates the magnitudes from the complex magnitudes 
-             */
-            Eigen::Vector<T, Eigen::Dynamic> magnitudes_dB() const {
-                return static_cast<T>(20) * this->values_.array().abs().log10();
-            }
-
-            /**
-             * @brief Creates a vector of phases in rad
-             * 
-             * Calculates the phases from the complex magnitudes
-             */
-            Eigen::Vector<T, Eigen::Dynamic> phases() const {
-                Eigen::Vector<T, Eigen::Dynamic> result = this->values_.array().arg();
-                return unwrap(result);
-            }
-
-            /**
-             * @brief Creates a vector of phases in degree
-             * 
-             * Calculates the phases from the complex magnitudes
-             */
-            Eigen::Vector<T, Eigen::Dynamic> phases_deg() const {
-                Eigen::Vector<T, Eigen::Dynamic> result = this->values_.array().arg() * static_cast<T>(180) / std::numbers::pi_v<T>;
-                return unwrap_deg(result);
-            }
-
             /**
              * @brief Sets the magnitude vector of complex magnitudes
              * @param mags The magnitude vector of complex magnitudes
@@ -267,6 +221,58 @@ namespace controlpp{
             bool empty() const {return this->size() == 0;}
     };
 
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> real(const FrequencyResponse<T>& bode){
+        return bode.values().real();
+    }
+
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> imag(const FrequencyResponse<T>& bode){
+        return bode.values().imag();
+    }
+
+    /**
+     * @brief Creates a vector containing the absolute magnitudes
+     * 
+     * Calculates the absolute magnitudes from the complex magnitudes 
+     */
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> magnitudes(const FrequencyResponse<T>& bode) {
+        return bode.values().array().abs();
+    }
+
+    /**
+     * @brief Creates a vector of magnitudes in dB
+     * 
+     * Calculates the magnitudes from the complex magnitudes 
+     */
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> magnitudes_dB(const FrequencyResponse<T>& bode) {
+        return static_cast<T>(20) * bode.values().array().abs().log10();
+    }
+
+    /**
+     * @brief Creates a vector of phases in rad
+     * 
+     * Calculates the phases from the complex magnitudes
+     */
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> phases(const FrequencyResponse<T>& bode) {
+        Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg();
+        return unwrap(result);
+    }
+
+    /**
+     * @brief Creates a vector of phases in degree
+     * 
+     * Calculates the phases from the complex magnitudes
+     */
+    template<class T>
+    Eigen::Vector<T, Eigen::Dynamic> phases_deg(const FrequencyResponse<T>& bode) {
+        Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg() * static_cast<T>(180) / std::numbers::pi_v<T>;
+        return unwrap_deg(result);
+    }
+
     /**
      * @brief Calculates the impulse-response of frequency data.
      * 
@@ -279,20 +285,21 @@ namespace controlpp{
      * 
      * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
      * @param bode The frequency response data (assumed to only contain the one sided positive frequencies)
-     * @param time_step 
-     * @param number_of_samples 
-     * @return 
+     * @param time_step The timestep for the integration
+     * @param simulation_time The simulation time over which to simulate. This is the minimal simulation time and may be overstepped by one timestep.
+     * @return A timeseries containing the impulse frequency response of the bode data
      */
     template<class T>
-    TimeSeries<T> to_time_series(const FrequencyResponse<T>& bode, const T time_step, const int number_of_samples){
+    TimeSeries<T> impulse(const FrequencyResponse<T>& bode, const T& time_step, const T& simulation_time){
         assert(bode.empty() == false);
-        assert(number_of_samples > 0);
+        assert(simulation_time > T(0));
+        assert(time_step > T(0));
 
         const T pi = std::numbers::pi_v<T>;
         const std::complex<T> j(0, 1);
 
         const T start_time = 0.0;
-        const T simulation_time = time_step * (number_of_samples-1);
+        const size_t number_of_samples = static_cast<size_t>(simulation_time / time_step + T(0.5));
         Eigen::Vector<T, Eigen::Dynamic> times = Eigen::Vector<T, Eigen::Dynamic>::LinSpaced(number_of_samples, start_time, simulation_time);
         Eigen::Vector<T, Eigen::Dynamic> values(number_of_samples);
         values.setZero();
@@ -386,23 +393,109 @@ namespace controlpp{
     /**
      * \brief Calculates the time-series of a frequency response
      * 
-     * Allows for arbitrary number, spacing and density-changes of samples
+     * Allows for arbitrary number, spacing and density-changes of samples.
+     * 
+     * Automatically estimates time-steps and the simulation time from the bode data.
+     * 
+     * Tip: For step responses do not do:
+     * \code{.cpp}
+     * stp = impulse(bode * 1/s);
+     * \endcode
+     * instead use the step function
+     * \code{.cpp}
+     * stp = step(bode * 1/s);
+     * \endcode
      * 
      * \param bode A frequency response or bode plot/measurement
      * 
-     * \returns a tuple of [times, values]
+     * \returns a time series
+     * 
+     * \see template<class T> TimeSeries<T> step(const FrequencyResponse<T>& bode)
      */
     template<class T>
-    TimeSeries<T> to_time_series(const FrequencyResponse<T>& bode){
+    TimeSeries<T> impulse(const FrequencyResponse<T>& bode){
         const T max_freq = bode.frequencies()[bode.frequencies().size()-1];
         const T min_freq = bode.frequencies()[0];
 
-        const T time_step = static_cast<T>(1) / (static_cast<T>(2)*max_freq);
-        const T total_time = static_cast<T>(1) / min_freq;
+        const T time_step = static_cast<T>(1) / (T(2 * 4) * max_freq); // oversample 4 times
+        const T total_time = static_cast<T>(1) / (T(4) * min_freq); // only use a quarter of the slowest frequency
 
-        const int samples = static_cast<int>(total_time / time_step + static_cast<T>(0.5));
+        return impulse(bode, time_step, total_time);
+    }
 
-        return to_time_series(bode, time_step, samples);
+    /**
+     * @brief Integrates the time series and writes it to out
+     * 
+     * Resizes `out` accordingly
+     * 
+     * `out` and `in` may be the same time-series object
+     * 
+     * @tparam T The value type
+     * @param out The output time-series where the result will be written to
+     * @param in The input time-series that will be integrated over
+     * @param v0 The start of the integration. Integration constant C in other nomiclatures.
+     */
+    template<class T>
+    void integrate(TimeSeries<T>& out, const TimeSeries<T>& in, const T& v0 = T(0)){
+        T prev_value = in.values(0);
+        T sum = 0;
+        out.resize(in.size());
+        out.values(0) = v0;
+        for(size_t i = 1; i < in.size(); ++i){
+            // first order integration
+            const T sum_i = (in.values(i) + prev_value) * (in.times(i) - in.times(i-1)) * T(0.5);
+            prev_value = in.values(i);
+            sum += sum_i;
+            out.values(i) = sum;
+        }
+    }
+
+    /**
+     * @brief Integrates the time series and writes it to out
+     * @tparam T The value type
+     * @param in The input time-series that will be integrated over
+     * @param v0 The start of the integration. Integration constant C in other nomiclatures.
+     * @returns The integated time-series
+     */
+    template<class T>
+    TimeSeries<T> integrate(const TimeSeries<T>& in, const T& v0 = T(0)){
+        TimeSeries<T> out;
+        return integrate(out, in, v0);
+    }
+
+    /**
+     * @brief Calculates the step response time-value pairs from frequency-value data
+     * 
+     * Internally this will calculate the impulse response first and then integrates in 
+     * the time domain. This way is numerically more stable than integrating in the frequency
+     * domain by `1/s` multiplication and transforming that.
+     * 
+     * Automatically estimates the time-step and simulation time from the bode/frequency-response data.
+     * 
+     * @tparam T The data type. Typically `float` or `double`.
+     * @param bode The step response of the system
+     * @return A TimeSeries containing time-value pairs
+     */
+    template<class T>
+    TimeSeries<T> step(const FrequencyResponse<T>& bode){
+        TimeSeries<T> imp = impulse(bode);
+        integrate<T>(imp, imp);
+        return imp;
+    }
+
+    /**
+     * @brief Calculates the step response time-value pairs from frequency-value data
+     * @tparam T The data type. Typically `float` or `double`.
+     * @param bode The step response of the system
+     * @param time_step The time step used for the time series data
+     * @param simulation_time The time until the step response will be calculated (+1 for rounding).
+     * @return The TimeSeries step response of the bode data
+     */
+    template<class T>
+    TimeSeries<T> step(const FrequencyResponse<T>& bode, const T& time_step, const T& simulation_time){
+        TimeSeries<T> imp = impulse(bode, time_step, simulation_time);
+        integrate<T>(imp, imp);
+        return imp;
     }
 
     // operator +
@@ -575,10 +668,10 @@ namespace controlpp{
     std::ostream& operator<< (std::ostream& stream, const FrequencyResponse<T>& bode){
         stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
         const auto frequs = bode.frequencies();
-        const auto real = bode.real();
-        const auto imag = bode.imag();
-        const auto mags = bode.magnitudes_dB();
-        const auto phases = bode.phases_deg();
+        const auto real = controlpp::real(bode);
+        const auto imag = controlpp::imag(bode);
+        const auto mags = controlpp::magnitudes_dB(bode);
+        const auto phases = controlpp::phases_deg(bode);
         const int n = std::min({frequs.size(), mags.size(), phases.size()});
         for(int i = 0; i < n; ++i){
             stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);

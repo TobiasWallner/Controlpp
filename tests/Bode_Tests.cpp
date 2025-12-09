@@ -32,9 +32,11 @@ TEST(FrequencyResponse, Calculation){
     controlpp::FrequencyResponse Tdy = 1 / (1 + L);
     std::ofstream("bode_Tdy.csv") << Tdy; // test by comparison
 
-    controlpp::TimeSeries ImpulseResponse = to_time_series(Gb);
+    controlpp::TimeSeries ImpulseResponse = controlpp::impulse(Gb);
     std::ofstream("ImpulseResponse.csv") << ImpulseResponse;
 
-    controlpp::TimeSeries StepResponse = to_time_series(Gb * (1/s));
+    std::ofstream("G_1_s.csv") << (Gb * (1/s));
+
+    controlpp::TimeSeries StepResponse = controlpp::step(Gb);
     std::ofstream("StepResponse.csv") << StepResponse;
 }

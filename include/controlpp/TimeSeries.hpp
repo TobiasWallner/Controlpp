@@ -19,13 +19,23 @@ namespace controlpp
      */
     template<class T>
     class TimeSeries{
+    private:
+        Eigen::Vector<T, Eigen::Dynamic> times_;
+        Eigen::Vector<T, Eigen::Dynamic> values_;
+
     public:
-        Eigen::Vector<T, Eigen::Dynamic> times;
-        Eigen::Vector<T, Eigen::Dynamic> values;
 
         TimeSeries() = default;
 
-        TimeSeries(int size) : times(size), values(size){}
+        /**
+         * @brief Initialises an empty (= uninitialised) timeseries with a given allocation size (number of value-time pairs)
+         * 
+         * Only allocates the storage. You have to fill the storage yourself
+         * 
+         * @param size The number of value time pairs that this timeseries holds
+         * @see resize(size_t)
+         */
+        TimeSeries(int size) : times_(size), values_(size){}
 
         /**
          * @brief 
@@ -35,8 +45,8 @@ namespace controlpp
         TimeSeries(
             const Eigen::Vector<T, Eigen::Dynamic>& t, 
             const Eigen::Vector<T, Eigen::Dynamic>& v)
-            : times(t)
-            , values(v){}
+            : times_(t)
+            , values_(v){}
 
         /**
          * @brief 
@@ -46,20 +56,32 @@ namespace controlpp
         TimeSeries(
             Eigen::Vector<T, Eigen::Dynamic>&& t, 
             Eigen::Vector<T, Eigen::Dynamic>&& v)
-            : times(std::move(t))
-            , values(std::move(v)){}
+            : times_(std::move(t))
+            , values_(std::move(v)){}
 
         TimeSeries(
             const Eigen::Vector<T, Eigen::Dynamic>& t, 
             Eigen::Vector<T, Eigen::Dynamic>&& v)
-            : times(t)
-            , values(std::move(v)){}
+            : times_(t)
+            , values_(std::move(v)){}
 
         TimeSeries(
             Eigen::Vector<T, Eigen::Dynamic>&& t, 
             const Eigen::Vector<T, Eigen::Dynamic>& v)
-            : times(std::move(t))
-            , values(v){}
+            : times_(std::move(t))
+            , values_(v){}
+
+        Eigen::Vector<T, Eigen::Dynamic>& times() {return this->times_;}
+        const Eigen::Vector<T, Eigen::Dynamic>& times() const {return this->times_;}
+
+        T& times(size_t i){return this->times_(i);}
+        const T& times(size_t i) const {return this->times_(i);}
+
+        Eigen::Vector<T, Eigen::Dynamic>& values() {return this->values_;}
+        const Eigen::Vector<T, Eigen::Dynamic>& values() const {return this->values_;}
+
+        T& values(size_t i){return this->values_(i);}
+        const T& values(size_t i) const {return this->values_(i);}
 
         /// @brief Default copy constructor
         TimeSeries(const TimeSeries&) = default;
@@ -71,9 +93,11 @@ namespace controlpp
         TimeSeries& operator=(TimeSeries&&) = default;
 
         void resize(int n){
-            times.resize(n);
-            values.resize(n);
+            this->times_.resize(n);
+            this->values_.resize(n);
         }
+
+        size_t size() const {return std::min(this->times_.size(), this->values_.size());}
     };
 
     /// @brief Prints the timeseries as a `.csv` file
@@ -85,7 +109,7 @@ namespace controlpp
     template<class T>
     std::ostream& operator<< (std::ostream& stream, const TimeSeries<T>& timeseries){
         stream << "Times (s), Values\n";
-        for(int i = 0; (i < timeseries.times.size()) && (i < timeseries.values.size()); ++i){
+        for(size_t i = 0; (i < timeseries.size()) && (i < timeseries.size()); ++i){
             stream << timeseries.times(i) << ", " << timeseries.values(i) << "\n";
         }
         return stream;
