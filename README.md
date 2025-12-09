@@ -35,7 +35,7 @@ Read more about [CMake](https://cmake.org/) (build file generator) [CPM.cmake](h
 include(cmake/CPM.cmake)
 
 # add the package
-CPMAddPackage("gh:TobiasWallner/Controlpp#v1.2.0")
+CPMAddPackage("gh:TobiasWallner/Controlpp#v1.4.0")
 
 # create your project executable
 add_executable(my_app src/main.cpp)
