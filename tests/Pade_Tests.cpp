@@ -271,7 +271,7 @@ TEST(Pade, pade_3_4_step_response){
     // std::ofstream file("step.csv");
     // file << step << std::endl;
 
-    for(int i = 0; i < step.values.size(); ++i){
+    for(size_t i = 0; i < step.size(); ++i){
         ASSERT_NEAR(step.values(i), expected[i], 1e-3);
     }
 
