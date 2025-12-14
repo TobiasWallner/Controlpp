@@ -40,3 +40,16 @@ TEST(FrequencyResponse, Calculation){
     controlpp::TimeSeries StepResponse = controlpp::step(Gb);
     std::ofstream("StepResponse.csv") << StepResponse;
 }
+
+TEST(FrequencyResponse, set_magnitudes_dB_and_phases_deg){
+
+    Eigen::Vector<double, Eigen::Dynamic> mags_dB(3);
+    mags_dB << 1.0, 1.0, 1.0;
+
+    Eigen::Vector<double, Eigen::Dynamic> phases_deg(3);
+    phases_deg << 0.0, 1.0, 2.0;
+
+    controlpp::FrequencyResponse bode;
+    bode.set_magnitudes_dB_and_phases_deg(mags_dB, phases_deg);
+
+}

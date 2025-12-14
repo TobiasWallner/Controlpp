@@ -1,9 +1,14 @@
 
 TODO:
-- make a `discretize_zoh()` and a `discretize_tustin()` function for discretisation.
-- make a pade version for matrix exponentiation
+=====
 
-Hybrid Storage
+- Method to read bode data from *.csv data
+
+- Method to interpolate timestep and frequency response data
+
+- make a `discretize_zoh()` and a `discretize_tustin()` function for discretisation.
+
+Hybrid & Dynamic Storage
 --------------
 Max storage on stack with dynamic size
 - Adapt Polynomial to allow hybrid vectors

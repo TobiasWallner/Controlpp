@@ -46,27 +46,27 @@ namespace controlpp{
                 , values_(values)
             {
                 // assert same size
-                assert(this->freqs_.size() == this->values_.size());
+                assert(this->freqs_.size() != this->values_.size());
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < 0){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
             }
 
             FrequencyResponse(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
@@ -78,23 +78,23 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
             }
 
             FrequencyResponse(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
@@ -106,8 +106,8 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
@@ -116,7 +116,7 @@ namespace controlpp{
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
@@ -134,8 +134,8 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
@@ -144,7 +144,7 @@ namespace controlpp{
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
@@ -169,6 +169,10 @@ namespace controlpp{
                 this->freqs_ = frequs;
             }
 
+            void set_frequencies(Eigen::Vector<T, Eigen::Dynamic>&& frequs){
+                this->freqs_ = std::move(frequs);
+            }
+
             /**
              * \brief Returns a const-reference to the complex magnitued vector
              * \returns const-reference to an complex magnitude vector
@@ -183,8 +187,12 @@ namespace controlpp{
              * @see set_magnitudes_and_phases
              * @see set_magnitudes_dB_and_phases_deg
              */
-            void set_magnitudes(Eigen::Vector<std::complex<T>, Eigen::Dynamic>& mags) {
+            void set_magnitudes(const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& mags) {
                 this->values_ = mags;
+            }
+
+            void set_magnitudes(Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& mags) {
+                this->values_ = std::move(mags);
             }
 
             /**
@@ -193,7 +201,7 @@ namespace controlpp{
              * @param phases A vector of absolute phases in rad (not degree)
              * @see set_magnitudes_dB_and_phases_deg
              */
-            void set_magnitudes_and_phases(Eigen::Vector<T, Eigen::Dynamic>& mags, Eigen::Vector<T, Eigen::Dynamic>& phases) {
+            void set_magnitudes_and_phases(const Eigen::Vector<T, Eigen::Dynamic>& mags, const Eigen::Vector<T, Eigen::Dynamic>& phases) {
                 assert(mags.size() == phases.size());
                 auto real = mags.array() * phases.array().cos();
                 auto imag = mags.array() * phases.array().sin();
@@ -206,9 +214,9 @@ namespace controlpp{
              * @param mags_dB A vector of absolute magnitudes in dB
              * @param phases_deg A vector of absolute phases in degree
              */
-            void set_magnitudes_dB_and_phases_deg(Eigen::Vector<T, Eigen::Dynamic>& mags_dB, Eigen::Vector<T, Eigen::Dynamic>& phases_deg) {
+            void set_magnitudes_dB_and_phases_deg(const Eigen::Vector<T, Eigen::Dynamic>& mags_dB, const Eigen::Vector<T, Eigen::Dynamic>& phases_deg) {
                 assert(mags_dB.size() == phases_deg.size());
-                auto mags = (mags_dB.array() / T(20)).exp10();
+                auto mags = (mags_dB.array() / T(20) * static_cast<T>(std::log(10.))).exp();
                 auto phases = phases_deg.array() * std::numbers::pi_v<T> / static_cast<T>(180);
                 auto real = mags * phases.cos();
                 auto imag = mags * phases.sin();
@@ -504,7 +512,7 @@ namespace controlpp{
     template<class T>
     FrequencyResponse<T> operator+ (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + r.values().array();
         return FrequencyResponse<T>(l.frequencies(), result);
     }
@@ -547,7 +555,7 @@ namespace controlpp{
     template<class T>
     FrequencyResponse<T> operator- (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() - r.values().array();
         return FrequencyResponse<T>(l.frequencies(), result);
     }
@@ -590,7 +598,7 @@ namespace controlpp{
     template<class T>
     FrequencyResponse<T> operator* (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values() * r.values();
         return FrequencyResponse<T>(l.frequencies(), result);
     }
@@ -627,7 +635,7 @@ namespace controlpp{
     template<class T>
     FrequencyResponse<T> operator/ (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() / r.values().array();
         return FrequencyResponse<T>(l.frequencies(), result);
     }
