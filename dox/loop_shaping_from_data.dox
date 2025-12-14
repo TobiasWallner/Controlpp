@@ -2,12 +2,12 @@
 
 @page loop_shaping_from_data Loop shaping from data
 
-The library has a `FrequencyResponse` class that allows to perform calculations with continuous transfer functions.
+The library has a `Bode` class that allows to perform calculations with continuous transfer functions.
 
 For example given some bode data from a measurement
 
 \code{.cpp}
-FrequencyResponse Gb(frequencies, magnitudes);
+Bode Gb(frequencies, magnitudes);
 \endcode
 
 You can design your controller as a transfer function
@@ -23,10 +23,10 @@ And then perform arithmetic operations on the measured bode data.
 
 \code{.cpp}
 // open loop
-controlpp::FrequencyResponse L = Gb * Rs;
+controlpp::Bode L = Gb * Rs;
 
 // closed loop: input to output transfer dynamic
-controlpp::FrequencyResponse Try = L / (1 + L);
+controlpp::Bode Try = L / (1 + L);
 
 // closed loop: disturbance to output transfer dynamic
 std::ofstream("bode_Tdy.csv") << Tdy;

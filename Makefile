@@ -1,5 +1,7 @@
 config = Release
-
+G = "Ninja Multi-Config"
+CC = gcc
+GXX = g++
 
 build/$(config)/config.timestampfile: CMakeLists.txt
 	cmake -S . -B build/$(config)/ -G $(G) -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_BUILD_TYPE=$(config) -DCONTROLPP_COMPILE_TEST=ON

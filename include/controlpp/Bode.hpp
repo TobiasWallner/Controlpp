@@ -28,48 +28,48 @@ namespace controlpp{
      * \tparam T The data type of the class. Typically `float`, `double` or a custom fixpoint type
      */
     template<class T = double>
-    class FrequencyResponse{
+    class Bode{
         private:
             Eigen::Vector<T, Eigen::Dynamic> freqs_; // frequencies in Hz
             Eigen::Vector<std::complex<T>, Eigen::Dynamic> values_; // complex magnitudes
     
         public:
-            FrequencyResponse() = default;
+            Bode() = default;
 
             /**
              * @brief Constructs a bode from frequencies and complex magnitudes
              * @param freqs_Hz Ordered (ascending) frequency vector in Hz
              * @param mags Complex Magnitudes Vector that corresponds to the frequencies
              */
-            FrequencyResponse(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
+            Bode(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
                 : freqs_(freqs_Hz)
                 , values_(values)
             {
                 // assert same size
-                assert(this->freqs_.size() == this->values_.size());
+                assert(this->freqs_.size() != this->values_.size());
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < 0){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
             }
 
-            FrequencyResponse(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
+            Bode(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
                 : freqs_(std::move(freqs_Hz))
                 , values_(std::move(values))
             {
@@ -78,26 +78,26 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
                     }
                     return true;
-                });
+                }());
             }
 
-            FrequencyResponse(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
+            Bode(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
                 : freqs_(freqs_Hz)
                 , values_(std::move(values))
             {
@@ -106,8 +106,8 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
@@ -116,7 +116,7 @@ namespace controlpp{
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
@@ -125,7 +125,7 @@ namespace controlpp{
                 });
             }
 
-            FrequencyResponse(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
+            Bode(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
                 : freqs_(std::move(freqs_Hz))
                 , values_(values)
             {
@@ -134,8 +134,8 @@ namespace controlpp{
 
                 // assert only positive frequencies
                 assert([&](){
-                    for(size_t i = 0; i < freqs_.size(); ++i){
-                        if(freqs_(i) < 0){
+                    for(size_t i = 0; i < static_cast<size_t>(freqs_.size()); ++i){
+                        if(freqs_(i) < T(0)){
                             return false;
                         }
                     }
@@ -144,7 +144,7 @@ namespace controlpp{
 
                 // assert frequencies are ascending
                 assert([&](){
-                    for(size_t i = 1; i < freqs_.size(); ++i){
+                    for(size_t i = 1; i < static_cast<size_t>(freqs_.size()); ++i){
                         if(freqs_(i) < freqs_(i-1)){
                             return false;
                         }
@@ -169,6 +169,10 @@ namespace controlpp{
                 this->freqs_ = frequs;
             }
 
+            void set_frequencies(Eigen::Vector<T, Eigen::Dynamic>&& frequs){
+                this->freqs_ = std::move(frequs);
+            }
+
             /**
              * \brief Returns a const-reference to the complex magnitued vector
              * \returns const-reference to an complex magnitude vector
@@ -183,8 +187,12 @@ namespace controlpp{
              * @see set_magnitudes_and_phases
              * @see set_magnitudes_dB_and_phases_deg
              */
-            void set_magnitudes(Eigen::Vector<std::complex<T>, Eigen::Dynamic>& mags) {
+            void set_magnitudes(const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& mags) {
                 this->values_ = mags;
+            }
+
+            void set_magnitudes(Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& mags) {
+                this->values_ = std::move(mags);
             }
 
             /**
@@ -193,7 +201,7 @@ namespace controlpp{
              * @param phases A vector of absolute phases in rad (not degree)
              * @see set_magnitudes_dB_and_phases_deg
              */
-            void set_magnitudes_and_phases(Eigen::Vector<T, Eigen::Dynamic>& mags, Eigen::Vector<T, Eigen::Dynamic>& phases) {
+            void set_magnitudes_and_phases(const Eigen::Vector<T, Eigen::Dynamic>& mags, const Eigen::Vector<T, Eigen::Dynamic>& phases) {
                 assert(mags.size() == phases.size());
                 auto real = mags.array() * phases.array().cos();
                 auto imag = mags.array() * phases.array().sin();
@@ -206,9 +214,9 @@ namespace controlpp{
              * @param mags_dB A vector of absolute magnitudes in dB
              * @param phases_deg A vector of absolute phases in degree
              */
-            void set_magnitudes_dB_and_phases_deg(Eigen::Vector<T, Eigen::Dynamic>& mags_dB, Eigen::Vector<T, Eigen::Dynamic>& phases_deg) {
+            void set_magnitudes_dB_and_phases_deg(const Eigen::Vector<T, Eigen::Dynamic>& mags_dB, const Eigen::Vector<T, Eigen::Dynamic>& phases_deg) {
                 assert(mags_dB.size() == phases_deg.size());
-                auto mags = (mags_dB.array() / T(20)).exp10();
+                auto mags = (mags_dB.array() / T(20) * static_cast<T>(std::log(10.))).exp();
                 auto phases = phases_deg.array() * std::numbers::pi_v<T> / static_cast<T>(180);
                 auto real = mags * phases.cos();
                 auto imag = mags * phases.sin();
@@ -222,12 +230,12 @@ namespace controlpp{
     };
 
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> real(const FrequencyResponse<T>& bode){
+    Eigen::Vector<T, Eigen::Dynamic> real(const Bode<T>& bode){
         return bode.values().real();
     }
 
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> imag(const FrequencyResponse<T>& bode){
+    Eigen::Vector<T, Eigen::Dynamic> imag(const Bode<T>& bode){
         return bode.values().imag();
     }
 
@@ -237,7 +245,7 @@ namespace controlpp{
      * Calculates the absolute magnitudes from the complex magnitudes 
      */
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> magnitudes(const FrequencyResponse<T>& bode) {
+    Eigen::Vector<T, Eigen::Dynamic> magnitudes(const Bode<T>& bode) {
         return bode.values().array().abs();
     }
 
@@ -247,7 +255,7 @@ namespace controlpp{
      * Calculates the magnitudes from the complex magnitudes 
      */
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> magnitudes_dB(const FrequencyResponse<T>& bode) {
+    Eigen::Vector<T, Eigen::Dynamic> magnitudes_dB(const Bode<T>& bode) {
         return static_cast<T>(20) * bode.values().array().abs().log10();
     }
 
@@ -257,7 +265,7 @@ namespace controlpp{
      * Calculates the phases from the complex magnitudes
      */
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> phases(const FrequencyResponse<T>& bode) {
+    Eigen::Vector<T, Eigen::Dynamic> phases(const Bode<T>& bode) {
         Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg();
         return unwrap(result);
     }
@@ -268,7 +276,7 @@ namespace controlpp{
      * Calculates the phases from the complex magnitudes
      */
     template<class T>
-    Eigen::Vector<T, Eigen::Dynamic> phases_deg(const FrequencyResponse<T>& bode) {
+    Eigen::Vector<T, Eigen::Dynamic> phases_deg(const Bode<T>& bode) {
         Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg() * static_cast<T>(180) / std::numbers::pi_v<T>;
         return unwrap_deg(result);
     }
@@ -290,7 +298,7 @@ namespace controlpp{
      * @return A timeseries containing the impulse frequency response of the bode data
      */
     template<class T>
-    TimeSeries<T> impulse(const FrequencyResponse<T>& bode, const T& time_step, const T& simulation_time){
+    TimeSeries<T> impulse(const Bode<T>& bode, const T& time_step, const T& simulation_time){
         assert(bode.empty() == false);
         assert(simulation_time > T(0));
         assert(time_step > T(0));
@@ -410,10 +418,10 @@ namespace controlpp{
      * 
      * \returns a time series
      * 
-     * \see template<class T> TimeSeries<T> step(const FrequencyResponse<T>& bode)
+     * \see template<class T> TimeSeries<T> step(const Bode<T>& bode)
      */
     template<class T>
-    TimeSeries<T> impulse(const FrequencyResponse<T>& bode){
+    TimeSeries<T> impulse(const Bode<T>& bode){
         const T max_freq = bode.frequencies()[bode.frequencies().size()-1];
         const T min_freq = bode.frequencies()[0];
 
@@ -477,7 +485,7 @@ namespace controlpp{
      * @return A TimeSeries containing time-value pairs
      */
     template<class T>
-    TimeSeries<T> step(const FrequencyResponse<T>& bode){
+    TimeSeries<T> step(const Bode<T>& bode){
         TimeSeries<T> imp = impulse(bode);
         integrate<T>(imp, imp);
         return imp;
@@ -492,7 +500,7 @@ namespace controlpp{
      * @return The TimeSeries step response of the bode data
      */
     template<class T>
-    TimeSeries<T> step(const FrequencyResponse<T>& bode, const T& time_step, const T& simulation_time){
+    TimeSeries<T> step(const Bode<T>& bode, const T& time_step, const T& simulation_time){
         TimeSeries<T> imp = impulse(bode, time_step, simulation_time);
         integrate<T>(imp, imp);
         return imp;
@@ -502,159 +510,159 @@ namespace controlpp{
     //-----------------
 
     template<class T>
-    FrequencyResponse<T> operator+ (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator+ (const Bode<T>& l, const Bode<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + r.values().array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator+ (const FrequencyResponse<T>& l, const T2& r){
+    Bode<T> operator+ (const Bode<T>& l, const T2& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + static_cast<std::complex<T>>(l)(r);
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator+ (const T2& l, const FrequencyResponse<T>& r){
+    Bode<T> operator+ (const T2& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = static_cast<std::complex<T>>(l) + r.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     template<class T>
-    FrequencyResponse<T> operator+ (const FrequencyResponse<T>& b){
+    Bode<T> operator+ (const Bode<T>& b){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = +b.values().array();
-        return FrequencyResponse<T>(b.frequencies(), result);
+        return Bode<T>(b.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator+ (const FrequencyResponse<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
+    Bode<T> operator+ (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_Hz(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + r_mags.array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator+ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator+ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_Hz(r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() + l.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     // operator -
     //-----------------
 
     template<class T>
-    FrequencyResponse<T> operator- (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator- (const Bode<T>& l, const Bode<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() - r.values().array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator- (const FrequencyResponse<T>& l, const T2& r){
+    Bode<T> operator- (const Bode<T>& l, const T2& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() - static_cast<std::complex<T>>(r);
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator- (const T2& l, const FrequencyResponse<T>& r){
+    Bode<T> operator- (const T2& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = static_cast<std::complex<T>>(l) - r.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     template<class T>
-    FrequencyResponse<T> operator- (const FrequencyResponse<T>& b){
+    Bode<T> operator- (const Bode<T>& b){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = -b.values().array();
-        return FrequencyResponse<T>(b.frequencies(), result);
+        return Bode<T>(b.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator- (const FrequencyResponse<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
+    Bode<T> operator- (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_Hz(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() - r_mags.array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator- (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator- (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_Hz(r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() - l.values();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     // operator *
     //-----------------
 
     template<class T>
-    FrequencyResponse<T> operator* (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator* (const Bode<T>& l, const Bode<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values() * r.values();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator* (const FrequencyResponse<T>& l, const T2& r){
+    Bode<T> operator* (const Bode<T>& l, const T2& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() * static_cast<std::complex<T>>(r);
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator* (const T2& l, const FrequencyResponse<T>& r){
+    Bode<T> operator* (const T2& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = static_cast<std::complex<T>>(l) * r.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator* (const FrequencyResponse<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
+    Bode<T> operator* (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_Hz(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() * r_mags.array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator* (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator* (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_Hz(r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() * l.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     // operator /
     //-----------------
 
     template<class T>
-    FrequencyResponse<T> operator/ (const FrequencyResponse<T>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator/ (const Bode<T>& l, const Bode<T>& r){
         assert(l.size() == r.size());
-        assert(l.frequencies() == r.frequencies() && "Both operands need to have the same frequency vector");
+        assert(l.frequencies() == r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() / r.values().array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator/ (const FrequencyResponse<T>& l, const T2& r){
+    Bode<T> operator/ (const Bode<T>& l, const T2& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() / std::complex<T>(r);
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, std::convertible_to<T> T2>
-    FrequencyResponse<T> operator/ (const T2& l, const FrequencyResponse<T>& r){
+    Bode<T> operator/ (const T2& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = std::complex<T>(l) / r.values().array();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator/ (const FrequencyResponse<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
+    Bode<T> operator/ (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_Hz(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() / r_mags.array();
-        return FrequencyResponse<T>(l.frequencies(), result);
+        return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> operator/ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const FrequencyResponse<T>& r){
+    Bode<T> operator/ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.eval_frequencies_Hz(r.frequencies()) / l.values();
-        return FrequencyResponse<T>(r.frequencies(), result);
+        return Bode<T>(r.frequencies(), result);
     }
 
     /**
@@ -662,10 +670,10 @@ namespace controlpp{
      * \param stream The stream to be printed to
      * \param bode The bode container with the frequencies, magnitudes and phases
      * \returns A reference to the stream object for operation chaining.
-     * \see FrequencyResponse
+     * \see Bode
      */
     template<class T>
-    std::ostream& operator<< (std::ostream& stream, const FrequencyResponse<T>& bode){
+    std::ostream& operator<< (std::ostream& stream, const Bode<T>& bode){
         stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
         const auto frequs = bode.frequencies();
         const auto real = controlpp::real(bode);
@@ -688,17 +696,17 @@ namespace controlpp{
      * @tparam NSize The number of elements in the frequency vector (may also be `Eigen::Dynamic`)
      * @param tf The continuous transfer function to analyse
      * @param freqs_Hz The frequency vector at which to evaluate the transfer function in Hz
-     * @returns The bode result as a `FrequencyResponse` struct
+     * @returns The bode result as a `Bode` struct
      * @see ContinuousTransferFunction
-     * @see FrequencyResponse
+     * @see Bode
      */
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> bode(
+    Bode<T> bode(
             const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, 
             const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz
     ){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> complex_magnitudes = tf.eval_frequencies_Hz(freqs_Hz);
-        const FrequencyResponse<T> result(freqs_Hz, complex_magnitudes);
+        const Bode<T> result(freqs_Hz, complex_magnitudes);
         return result;
     }
 
@@ -709,13 +717,13 @@ namespace controlpp{
      * \param slowest_freq_Hz The slowest/lowest frequency in Hz from which to calculate frequency responses
      * \param fastest_freq_Hz The fastest/highest frequency in Hz to which to calculate the frequency response
      * \param samples_per_decade The number of samples per decade of frequencies to be calculated
-     * \returns A FrequencyResponse containing the frequencies (Hz), magnitues (dB) and phases (deg)
-     * \see FrequencyResponse
+     * \returns A Bode containing the frequencies (Hz), magnitues (dB) and phases (deg)
+     * \see Bode
      * \see ContinuousTransferFunction::eval_frequencies
      * \see bode(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, const int samples_per_decade)
      */
     template<class T, int NumOrder, int DenOrder, std::convertible_to<T> T1, std::convertible_to<T> T2>
-    FrequencyResponse<T> bode(
+    Bode<T> bode(
             const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, 
             const T1& slowest_freq_Hz, 
             const T2& fastest_freq_Hz, 
@@ -735,13 +743,13 @@ namespace controlpp{
      * 
      * \param tf The transfer function
      * \param samples_per_decade The number of samples per decade of frequencies to be calculated
-     * \returns A FrequencyResponse containing the frequencies (Hz), magnitues (dB) and phases (deg)
-     * \see FrequencyResponse
+     * \returns A Bode containing the frequencies (Hz), magnitues (dB) and phases (deg)
+     * \see Bode
      * \see bode(const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, const T& slowest_freq_Hz, const T& fastest_freq_Hz, const int samples_per_decade)
      * \see ContinuousTransferFunction::eval_frequencies
      */
     template<class T, int NumOrder, int DenOrder>
-    FrequencyResponse<T> bode(
+    Bode<T> bode(
             const ContinuousTransferFunction<T, NumOrder, DenOrder>& tf, 
             const int samples_per_decade=100
     ){
