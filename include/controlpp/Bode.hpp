@@ -9,6 +9,9 @@
 // eigen
 #include <Eigen/Dense>
 
+// csvd a csv reader
+#include <csvd/csvd.hpp>
+
 // controlpp
 #include "ContinuousTransferFunction.hpp"
 
@@ -666,29 +669,6 @@ namespace controlpp{
     }
 
     /**
-     * \brief Prints a bode plot to an output stream as a `.csv` file
-     * \param stream The stream to be printed to
-     * \param bode The bode container with the frequencies, magnitudes and phases
-     * \returns A reference to the stream object for operation chaining.
-     * \see Bode
-     */
-    template<class T>
-    std::ostream& operator<< (std::ostream& stream, const Bode<T>& bode){
-        stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
-        const auto frequs = bode.frequencies();
-        const auto real = controlpp::real(bode);
-        const auto imag = controlpp::imag(bode);
-        const auto mags = controlpp::magnitudes_dB(bode);
-        const auto phases = controlpp::phases_deg(bode);
-        const int n = std::min({frequs.size(), mags.size(), phases.size()});
-        for(int i = 0; i < n; ++i){
-            stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);
-            if(i < n-1) stream << "\n";
-        }
-        return stream;
-    }
-
-    /**
      * @brief Calculates the bode response for a pre defined frequency vector
      * @tparam T The value type of the transfer function
      * @tparam NumOrder The numerator order
@@ -757,6 +737,102 @@ namespace controlpp{
         const T frequency_from_Hz = slowest_freq_rad / (static_cast<T>(10 * 2) * std::numbers::pi_v<T>);
         const T frequency_to_Hz = fastest_freq_rad * static_cast<T>(10 / 2) / std::numbers::pi_v<T>;
         return bode(tf, frequency_from_Hz, frequency_to_Hz, samples_per_decade);
+    }
+
+    /**
+     * \brief Prints a bode plot to an output stream as a `.csv` file
+     * \param stream The stream to be printed to
+     * \param bode The bode container with the frequencies, magnitudes and phases
+     * \returns A reference to the stream object for operation chaining.
+     * \see Bode
+     */
+    template<class T>
+    void write_csv (std::ostream& stream, const Bode<T>& bode){
+        stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
+        const auto frequs = bode.frequencies();
+        const auto real = controlpp::real(bode);
+        const auto imag = controlpp::imag(bode);
+        const auto mags = controlpp::magnitudes_dB(bode);
+        const auto phases = controlpp::phases_deg(bode);
+        const int n = std::min({frequs.size(), mags.size(), phases.size()});
+        for(int i = 0; i < n; ++i){
+            stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);
+            if(i < n-1) stream << "\n";
+        }
+        return stream;
+    }
+
+    /**
+     * @brief Loads bode data from csv data
+     * 
+     * TODO
+     * 
+     * Automatic data discovery:
+     * ---
+     * 
+     * First: searches for the frequency data range. Then for the real and imaginary data ranges. 
+     * If real and imaginary data could not be identified magnitudes and phases will be searched for.
+     * 
+     * Assumes colums starting with `"f"` or `"F"` to be the frequency data.
+     * If the frequency data name contains `"hz"` or `"Hz"` then the frequencies are assumed to be in Herz, otherwise the data range will be interpreted in rad/s.
+     * 
+     * Assumes columns starting with `"Re"` or `"re"` to be real parts of the bode data.
+     * 
+     * Assumes columns starting with `"Im"` or `"im"` to be imaginary parts of the bode data.
+     * 
+     * Assumes columns starting with `"Mag"` or `"mag"` to be magnitues.
+     * If the magnitued column also contains `"dB"` or `"db"`, then the data range is assumed to be in deci-Bell otherwise absolute values are assumed.
+     * 
+     * Assumes column starting with `"Ph"` or `"ph"` to be phases.
+     * If the phases column further contains `"deg"` or `"Deg"` then the data range is interpreted in degree, otherwise it will be interpreted in radiants.
+     * 
+     * 
+     * 
+     * @param stream 
+     * @param settings 
+     * @return 
+     */
+    std::expected<Bode<double>> read_bode_from_csv(std::istream& stream, const csvd::Settings& settings = csvd::Settings()){
+        std::expected<CSVd, ReadError> csv read(std::istream& stream, settings);
+        if(csv.has_value()){
+            // good case
+
+            // find frequency
+            const auto freq_column = csv.find_if([](std::string_view name){return name.starts_with("f") || name.starts_with("F");});
+            if(freq_column == csv.end()){
+                return //Error
+            }
+
+            // determine frequency unit
+            const bool found_freq_hz = std::ranges::contains(freq_column->name, "Hz") || std::ranges::contains(freq_column->name, "hz");
+
+            // find real and imaginary
+            const auto real_column = csv.find_if([](std::string_view name){return name.starts_with("re") || name.starts_with("Re");});
+            const auto imag_column = csv.find_if([](std::string_view name){return name.starts_with("im") || name.starts_with("Im");});
+
+            if(real_column != csv.end() && imag_column != csv.end()){
+                // found real and imaginary
+
+            }
+
+            // find magnitude and phase
+            const auto mag_column = csv.find_if([](std::string_view name){return name.starts_with("Mag") || name.starts_with("mag");});
+            const auto phase_column = csv.find_if([](std::string_view name){return name.starts_with("Ph") || name.starts_with("Mag");});
+            
+            if(mag_column != csv.end() && phase_column != csv.end()){
+                // found magnitude and phase
+
+                // determine magnitude unit
+                const bool found_mag_dB = std::ranges::contains(mag_column->name, "dB") || std::ranges::contains(mag_column->name, "db");
+
+                // determine phase unit
+                const bool found_phase_deg = std::ranges::contains(freq_column->name, "Hz") || std::ranges::contains(freq_column->name, "hz");
+            }
+
+        }else{
+            // error case
+            return std::unexpected(csv.error());
+        }
     }
 
 }

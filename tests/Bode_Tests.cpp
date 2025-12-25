@@ -53,3 +53,18 @@ TEST(Bode, set_magnitudes_dB_and_phases_deg){
     bode.set_magnitudes_dB_and_phases_deg(mags_dB, phases_deg);
 
 }
+
+TEST(Bode, read_csv){
+    using namespace controlpp;
+
+    std::stringstream csv;
+    
+    const controlpp::ContinuousTransferFunction Gs = 1 / (1 + s + s * s);
+    const controlpp::Bode Gb = controlpp::bode(Gs);
+
+    std::stringstream stream;
+
+    write_csv(stream, Gb);
+
+    controlpp Gb = read_csv(stream);
+}
