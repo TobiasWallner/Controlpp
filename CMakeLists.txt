@@ -11,6 +11,8 @@ CPMAddPackage(
       "BUILD_TESTING OFF"
 )
 
+CPMAddPackage("gh:TobiasWallner/CSVd#v2.1.0")
+
 project(Controlpp LANGUAGES CXX)
 
 add_library(controlpp INTERFACE)
@@ -25,6 +27,7 @@ target_include_directories(controlpp SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
 
 target_link_libraries(controlpp INTERFACE
     Eigen3::Eigen
+    csvd
 )
 
 target_compile_features(controlpp INTERFACE cxx_std_23)
