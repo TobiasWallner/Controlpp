@@ -831,9 +831,12 @@ namespace controlpp{
      * @param stream 
      * @param settings 
      * @returns If successful: A bode structure. On failure/error: a variant with an error of the csv reader (`csvd::ReadError`) or an error
-     * of assembing a bode from the csv `BodeCsvReadError`.
+     * of assembing a bode from the csv `EBodeCsvReadError`.
      */
-    std::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> read_bode_from_csv(
+    std::expected<
+        Bode<double>, // success
+        std::variant<EBodeCsvReadError, csvd::ReadError>> //error
+    read_bode_from_csv(
         std::istream& stream, 
         const csvd::Settings& csv_settings = csvd::Settings(),
         EFrequencyInterpretation freq_interp = EFrequencyInterpretation::AutoHz,
