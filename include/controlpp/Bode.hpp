@@ -5,6 +5,7 @@
 #include <cassert>
 #include <concepts>
 #include <complex>
+#include <algorithm>
 
 // eigen
 #include <Eigen/Dense>
@@ -13,7 +14,8 @@
 #include <csvd/csvd.hpp>
 
 // controlpp
-#include "ContinuousTransferFunction.hpp"
+#include <controlpp/ContinuousTransferFunction.hpp>
+#include <controlpp/TimeSeries.hpp>
 
 namespace controlpp{
 
@@ -759,8 +761,46 @@ namespace controlpp{
             stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);
             if(i < n-1) stream << "\n";
         }
-        return stream;
     }
+
+    /**
+     * \brief Error cases for reading/parsing bode data from CSV formated data
+     */
+    enum class EBodeCsvReadError{
+        CouldNotFindFrequencyVector, ///< Could not find the frequency axis in the csv data. Searched for a header that starts with `"f"` (case-insensitive).
+        CouldNotFindAmplitudeVectors, ///< Could not find the amplitude data. Needed either: 1) Two columns that start with `"re"` and `"im"` (case-insensitive). 2) Two columns that start with `"mag"` and `"ph"` (case-insensitive).
+    };
+
+    std::ostream& operator<<(std::ostream& stream, EBodeCsvReadError val);
+
+    /**
+     * \brief Enum that determines how frequency data will be interpreted when reading CSV data.
+     */
+    enum class EFrequencyInterpretation{
+        AutoHz,     ///< Automatically infers the unit from the header or interprets the data in **Hz** if no unit is found in the header name
+        AutoRad,    ///< Automatically infers the unit from the header or interprets the data in **rad** if no unit is found in the header name
+        ForceHz,    ///< When reading frequency data the data is always interpreted in **Hz** regardless of the header name
+        ForceRad,   ///< When reading frequency data the data is always interpreted in **rad** regardless of the header name
+    };
+
+    /**
+     * \brief Enum that determines how frequency data will be interpreted when reading CSV data.
+     */
+    enum class EMagnitudeInterpretation{
+        Auto,    ///< Automatically infers the unit from the header and interprets as **deci-Bell** if `"dB"` has been found or interprets the data as **absolute values** if no unit is found in the header name
+        ForceAbs,   ///< Forces the magnitude data to be interpreted in **absolute values** regardless of the header name
+        ForceDB,    ///< Forces the magnitude data to be interpreted in **dB** regardless of the header name
+    };
+
+    /**
+     * \brief Enum that determines how phase data will be interpreted when reading CSV data.
+     */
+    enum class EPhaseInterpretation{
+        AutoRad,    ///< Automatically infers the unit from the header or interprets the data as **rad** if no unit is found in the header name
+        AutoDeg,    ///< Automatically infers the unit from the header or interprets the data as **deg** if no unit is found in the header name
+        ForceRad,   ///< Forces the magnitude data to be interpreted in **rad** regardless of the header name
+        ForceDeg    ///< Forces the magnitude data to be interpreted in **deg** regardless of the header name
+    };
 
     /**
      * @brief Loads bode data from csv data
@@ -773,66 +813,32 @@ namespace controlpp{
      * First: searches for the frequency data range. Then for the real and imaginary data ranges. 
      * If real and imaginary data could not be identified magnitudes and phases will be searched for.
      * 
-     * Assumes colums starting with `"f"` or `"F"` to be the frequency data.
-     * If the frequency data name contains `"hz"` or `"Hz"` then the frequencies are assumed to be in Herz, otherwise the data range will be interpreted in rad/s.
+     * All following textual comparisons are case insensitive.
      * 
-     * Assumes columns starting with `"Re"` or `"re"` to be real parts of the bode data.
+     * - Assumes colums starting with `"f"` to be the frequency data.
+     *   - If the frequency data name contains `"hz"` the frequency is interpreted as Hertz.
+     *   - If the frequency data name contains `"rad"` the frequency is interpreted as Radiant.
+     * - Assumes columns starting with `"re"` or `"im"` to be the real and imaginary amplitudes.
+     * - If complex amplitudes could not be found assumes that columns starting with `"mag"` or `"ph"` to be absolute magnitudes and phase
+     *   - If the magnitude column header contains `"dB"` the magnitude data will be interpreted in deci-Bell.
+     *   - If the phase column header contains `"deg"` the phase data is interpreted in degree.
+     *   - If the phase column header contains `"rad"` the phase data is interpreted in radiants.
      * 
-     * Assumes columns starting with `"Im"` or `"im"` to be imaginary parts of the bode data.
-     * 
-     * Assumes columns starting with `"Mag"` or `"mag"` to be magnitues.
-     * If the magnitued column also contains `"dB"` or `"db"`, then the data range is assumed to be in deci-Bell otherwise absolute values are assumed.
-     * 
-     * Assumes column starting with `"Ph"` or `"ph"` to be phases.
-     * If the phases column further contains `"deg"` or `"Deg"` then the data range is interpreted in degree, otherwise it will be interpreted in radiants.
-     * 
-     * 
+     * @see EFrequencyInterpretation
+     * @see EMagnitudeInterpretation
+     * @see EPhaseInterpretation
      * 
      * @param stream 
      * @param settings 
-     * @return 
+     * @returns If successful: A bode structure. On failure/error: a variant with an error of the csv reader (`csvd::ReadError`) or an error
+     * of assembing a bode from the csv `BodeCsvReadError`.
      */
-    std::expected<Bode<double>> read_bode_from_csv(std::istream& stream, const csvd::Settings& settings = csvd::Settings()){
-        std::expected<CSVd, ReadError> csv read(std::istream& stream, settings);
-        if(csv.has_value()){
-            // good case
-
-            // find frequency
-            const auto freq_column = csv.find_if([](std::string_view name){return name.starts_with("f") || name.starts_with("F");});
-            if(freq_column == csv.end()){
-                return //Error
-            }
-
-            // determine frequency unit
-            const bool found_freq_hz = std::ranges::contains(freq_column->name, "Hz") || std::ranges::contains(freq_column->name, "hz");
-
-            // find real and imaginary
-            const auto real_column = csv.find_if([](std::string_view name){return name.starts_with("re") || name.starts_with("Re");});
-            const auto imag_column = csv.find_if([](std::string_view name){return name.starts_with("im") || name.starts_with("Im");});
-
-            if(real_column != csv.end() && imag_column != csv.end()){
-                // found real and imaginary
-
-            }
-
-            // find magnitude and phase
-            const auto mag_column = csv.find_if([](std::string_view name){return name.starts_with("Mag") || name.starts_with("mag");});
-            const auto phase_column = csv.find_if([](std::string_view name){return name.starts_with("Ph") || name.starts_with("Mag");});
-            
-            if(mag_column != csv.end() && phase_column != csv.end()){
-                // found magnitude and phase
-
-                // determine magnitude unit
-                const bool found_mag_dB = std::ranges::contains(mag_column->name, "dB") || std::ranges::contains(mag_column->name, "db");
-
-                // determine phase unit
-                const bool found_phase_deg = std::ranges::contains(freq_column->name, "Hz") || std::ranges::contains(freq_column->name, "hz");
-            }
-
-        }else{
-            // error case
-            return std::unexpected(csv.error());
-        }
-    }
+    std::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> read_bode_from_csv(
+        std::istream& stream, 
+        const csvd::Settings& csv_settings = csvd::Settings(),
+        EFrequencyInterpretation freq_interp = EFrequencyInterpretation::AutoHz,
+        EMagnitudeInterpretation mag_interp = EMagnitudeInterpretation::Auto,
+        EPhaseInterpretation phase_interp = EPhaseInterpretation::AutoDeg
+    );
 
 }
