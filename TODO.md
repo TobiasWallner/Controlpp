@@ -3,11 +3,11 @@ TODO:
 =====
 
 - bode shall use frequencies in rad/s instead of hz.
-- make type safe types for:
-    - rad/s
-    - hz
-    - absolute magnitudes
-    - magnitudes in dB
+    - offer convenient conversion functions for scalars and vectors:
+        - radps_to_hz
+        - hz_to_radps
+        - abs_to_dB
+        - dB_to_abs
 
 - Method to interpolate timestep data
 
