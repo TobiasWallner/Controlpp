@@ -6,6 +6,7 @@
 #include <concepts>
 #include <complex>
 #include <algorithm>
+#include <variant>
 
 // eigen
 #include <Eigen/Dense>
