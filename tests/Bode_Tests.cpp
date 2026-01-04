@@ -115,3 +115,13 @@ TEST(Bode, read_csv_hz_real_image){
     ASSERT_EQ(bode.values()[1].imag(), 0.125);
     ASSERT_EQ(bode.values()[2].imag(), 0.25);
 }
+
+TEST(Bode, value_at_frequency){
+    const controlpp::ContinuousTransferFunction s = controlpp::tf::s<double>;
+    const double pi = std::numbers::pi;
+    controlpp::ContinuousTransferFunction Gs = 1 / (1 + s / (2 * pi * 10));
+    controlpp::Bode Gb = controlpp::bode(Gs);
+
+    ASSERT_NEAR(Gb.magnitude_dB_at(10.0), -3.1, 0.1);
+    ASSERT_NEAR(Gb.phase_deg_at(10.0), -45.0, 0.1);
+}

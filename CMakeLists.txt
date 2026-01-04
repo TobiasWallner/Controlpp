@@ -58,6 +58,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/StateSpace_Tests.cpp
         tests/Polynom_Tests.cpp
         tests/math_Tests.cpp
+        tests/algorithm_Tests.cpp
         tests/analysis_Tests.cpp
         tests/Generator_Tests.cpp
         tests/Bode_Tests.cpp

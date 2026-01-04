@@ -16,6 +16,7 @@
 // controlpp
 #include <controlpp/ContinuousTransferFunction.hpp>
 #include <controlpp/TimeSeries.hpp>
+#include <controlpp/algorithm.hpp>
 
 namespace controlpp{
 
@@ -232,6 +233,117 @@ namespace controlpp{
             size_t size() const {return this->freqs_.size();}
 
             bool empty() const {return this->size() == 0;}
+
+
+            /**
+             * \brief returns the complex value at the given frequency using interpolation
+             * 
+             * If the passed frequency is not within the bode plot, data will not be extrapolated.
+             * Instead the first or last available value will be returned, depending weather or not the 
+             * value is below or above the spectrum.
+             * 
+             * Uses linear interpolation in polar coordinates
+             * 
+             * \param frequency The frequency (in hz) at which to read the complex amplitudes.
+             * \returns Interpolated complex value for the passed frequency value
+             */
+            std::complex<T> value_at(const T& frequency) const {
+                std::optional<std::pair<const T*, const T*>> result = find_enclosing(this->freqs_, frequency);
+                if(result.has_value()){
+                    // extract result values (iterators)
+                    const T* low = result.value().first;
+                    const T* high = result.value().second;
+
+                    // calculate integral ierators
+                    const size_t i_low = low - this->freqs_.data();
+                    const size_t i_high = high - this->freqs_.data();
+
+                    // get frequencies and values
+                    const T f_low = *low;
+                    const T f_high = *high;
+                    const std::complex<T> v_low = this->values_(i_low);
+                    const std::complex<T> v_high = this->values_(i_high);
+
+                    // calculate percentage for interpolation
+                    const T p = (frequency - f_low) / (f_high - f_low);
+
+                    // linear magnitude interpolation
+                    const T mag_interp = std::abs(v_low) * (static_cast<T>(1) - p) + (p) * std::abs(v_high);
+
+                    // linear phase interpolation
+                    const T phase_interp = std::arg(v_low) * (static_cast<T>(1) - p) + (p) * std::arg(v_high);
+
+                    // calculate resulting complex value
+                    const std::complex<T> result = std::polar(mag_interp, phase_interp);
+                    return result;
+                }else{
+                    // assume same value for out of bound values | do not extrapolate
+                    if(frequency <= this->freqs_(0)){
+                        return this->values_(0);
+                    }else{
+                        return this->values_(this->values_.size()-1);
+                    }
+                }
+            }
+
+            /**
+             * \brief Returns the phase at the passed frequency
+             * 
+             * Uses linear interpolation.
+             * 
+             * Internally uses `value_at(const T& frequency)`.
+             * 
+             * \param frequency The frequency (in hz) at which to get the phase at
+             * \returns The interpolated phase (in rad) at the given frequency
+             * \see value_at(const T& frequency)
+             */
+            T phase_at(const T& frequency) const {
+                const std::complex<T> value = this->value_at(frequency);
+                const T phase = std::arg(value);
+                return phase;
+            }
+
+            /**
+             * \brief return the phase at the given frequency in degree
+             * 
+             * Uses linear interpolation
+             * 
+             * \param frequency The frequency (in hz) at which to get the phase at
+             * \returns The interpolated phase (in deg) at the given frequency
+             * \see phase_at()
+             * \see value_at()
+             */
+            T phase_deg_at(const T& frequency) const {
+                const T phase_rad = this->phase_at(frequency);
+                const T phase_deg = phase_rad * static_cast<T>(180) / std::numbers::pi_v<T>;
+                return phase_deg;
+            }
+
+            /**
+             * \brief Returns the magnitude at the passed frequency 
+             * 
+             * Uses linear interpolation
+             * \param frequency The frequency (in hz) at which to get the magnitude at
+             * \returns The interpolated magnitude (in absolute) at the given frequency
+             */
+            T magnitude_at(const T& frequency) const {
+                const std::complex<T> value = this->value_at(frequency);
+                const T mag = std::abs(value);
+                return mag;
+            }
+
+            /**
+             * \brief Returns the magnitude at the passed frequency 
+             * 
+             * Uses linear interpolation
+             * \param frequency The frequency (in hz) at which to get the magnitude at
+             * \returns The interpolated magnitude (in absolute) at the given frequency
+             */
+            T magnitude_dB_at(const T& frequency) const {
+                const T mag = this->magnitude_at(frequency);
+                const T mag_dB = static_cast<T>(20) * std::log10(mag);
+                return mag_dB;
+            }
     };
 
     template<class T>

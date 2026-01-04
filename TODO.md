@@ -2,9 +2,14 @@
 TODO:
 =====
 
-- Method to read bode data from *.csv data
+- bode shall use frequencies in rad/s instead of hz.
+- make type safe types for:
+    - rad/s
+    - hz
+    - absolute magnitudes
+    - magnitudes in dB
 
-- Method to interpolate timestep and frequency response data
+- Method to interpolate timestep data
 
 - make a `discretize_zoh()` and a `discretize_tustin()` function for discretisation.
 
