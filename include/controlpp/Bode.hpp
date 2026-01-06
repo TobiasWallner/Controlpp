@@ -53,7 +53,7 @@ namespace controlpp{
                 , values_(values)
             {
                 // assert same size
-                assert(this->freqs_.size() != this->values_.size());
+                assert(this->freqs_.size() == this->values_.size());
 
                 // assert only positive frequencies
                 assert([&](){
@@ -385,7 +385,7 @@ namespace controlpp{
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> phases(const Bode<T>& bode) {
         Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg();
-        return unwrap(result);
+        return unwrap_rad(result);
     }
 
     /**

@@ -129,8 +129,7 @@ namespace controlpp{
 
             if(real_column != csv.end() && imag_column != csv.end()){
                 // found real and imaginary
-                Eigen::VectorXcd values;
-                values.resize(real_column->data.size());
+                Eigen::VectorXcd values(real_column->data.size());
                 for(size_t i = 0; i != real_column->data.size(); ++i){
                     values[i].real(real_column->data[i]);
                     values[i].imag(imag_column->data[i]);
@@ -163,8 +162,7 @@ namespace controlpp{
                 };
 
                 // create magnitude vector with absolute values
-                Eigen::VectorXd mags;
-                mags.resize(mag_column->data.size());
+                Eigen::VectorXd mags(mag_column->data.size());
                 if(is_mag_dB){
                     for(size_t i = 0; i != mag_column->data.size(); ++i){
                         mags[i] = std::pow(10.0, mag_column->data[i] / 20.0);
@@ -202,20 +200,19 @@ namespace controlpp{
                 }
 
                 // make phase vector in rad
-                Eigen::VectorXd phases;
-                phases.resize(phase_column->data.size());
+                Eigen::VectorXd phases(phase_column->data.size());
                 if(phase_is_rad){
                     for(size_t i = 0; i != phase_column->data.size(); ++i){
                         phases[i] = phase_column->data[i];
                     }
                 }else{
                     for(size_t i = 0; i != phase_column->data.size(); ++i){
-                        phases[i] = phase_column->data[i] * (2.0 * std::numbers::pi);
+                        phases[i] = phase_column->data[i] * std::numbers::pi / 180.0;
                     }
                 }
 
                 // create complex value vector
-                Eigen::VectorXcd values;
+                Eigen::VectorXcd values(mags.size());
                 {
                     auto real = mags.array() * phases.array().cos();
                     auto imag = mags.array() * phases.array().sin();
