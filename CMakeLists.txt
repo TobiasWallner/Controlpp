@@ -11,7 +11,7 @@ CPMAddPackage(
       "BUILD_TESTING OFF"
 )
 
-CPMAddPackage("gh:TobiasWallner/CSVd#v2.1.0")
+CPMAddPackage("gh:TobiasWallner/CSVd#v3.0.0")
 
 project(Controlpp LANGUAGES CXX)
 

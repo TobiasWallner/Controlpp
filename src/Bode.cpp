@@ -58,14 +58,14 @@ namespace controlpp{
         }
     }
 
-    std::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> read_bode_from_csv(
+    tl::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> read_bode_from_csv(
         std::istream& stream, 
         const csvd::Settings& csv_settings,
         EFrequencyInterpretation freq_interp,
         EMagnitudeInterpretation mag_interp,
         EPhaseInterpretation phase_interp
     ){
-        std::expected<csvd::CSVd, csvd::ReadError> csv_result = csvd::read(stream, csv_settings);
+        tl::expected<csvd::CSVd, csvd::ReadError> csv_result = csvd::read(stream, csv_settings);
         if(csv_result.has_value()){
 
             csvd::CSVd& csv = csv_result.value();
@@ -79,7 +79,7 @@ namespace controlpp{
             // find frequency
             const auto freq_column = csv.find_if([](std::string_view name){return name.starts_with("f");});
             if(freq_column == csv.end()){
-                return std::unexpected(EBodeCsvReadError::CouldNotFindFrequencyVector);
+                return tl::unexpected(EBodeCsvReadError::CouldNotFindFrequencyVector);
             }
 
             // determine frequency unit
@@ -223,10 +223,10 @@ namespace controlpp{
                 Bode bode(std::move(frequs), std::move(values));
                 return bode;
             }
-            return std::unexpected(EBodeCsvReadError::CouldNotFindAmplitudeVectors);
+            return tl::unexpected(EBodeCsvReadError::CouldNotFindAmplitudeVectors);
         }else{
             // error case
-            return std::unexpected(csv_result.error());
+            return tl::unexpected(csv_result.error());
         }
     }
 

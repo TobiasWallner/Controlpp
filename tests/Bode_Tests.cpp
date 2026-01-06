@@ -94,7 +94,7 @@ TEST(Bode, read_csv_hz_real_image){
     stream << "10, 0.5, 0.125\n";
     stream << "100, 0.25, 0.25\n";
 
-    std::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> bode_result = read_bode_from_csv(stream);
+    tl::expected<Bode<double>, std::variant<EBodeCsvReadError, csvd::ReadError>> bode_result = read_bode_from_csv(stream);
     std::stringstream err_stream;
     if(bode_result.has_value() == false){
         std::visit([&](const auto& val){err_stream << val;}, bode_result.error());
