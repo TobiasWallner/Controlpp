@@ -5,12 +5,19 @@
 #include <cassert>
 #include <concepts>
 #include <complex>
+#include <algorithm>
+#include <variant>
 
 // eigen
 #include <Eigen/Dense>
 
+// csvd a csv reader
+#include <csvd/csvd.hpp>
+
 // controlpp
-#include "ContinuousTransferFunction.hpp"
+#include <controlpp/ContinuousTransferFunction.hpp>
+#include <controlpp/TimeSeries.hpp>
+#include <controlpp/algorithm.hpp>
 
 namespace controlpp{
 
@@ -46,7 +53,7 @@ namespace controlpp{
                 , values_(values)
             {
                 // assert same size
-                assert(this->freqs_.size() != this->values_.size());
+                assert(this->freqs_.size() == this->values_.size());
 
                 // assert only positive frequencies
                 assert([&](){
@@ -227,6 +234,117 @@ namespace controlpp{
             size_t size() const {return this->freqs_.size();}
 
             bool empty() const {return this->size() == 0;}
+
+
+            /**
+             * \brief returns the complex value at the given frequency using interpolation
+             * 
+             * If the passed frequency is not within the bode plot, data will not be extrapolated.
+             * Instead the first or last available value will be returned, depending weather or not the 
+             * value is below or above the spectrum.
+             * 
+             * Uses linear interpolation in polar coordinates
+             * 
+             * \param frequency The frequency (in hz) at which to read the complex amplitudes.
+             * \returns Interpolated complex value for the passed frequency value
+             */
+            std::complex<T> value_at(const T& frequency) const {
+                std::optional<std::pair<const T*, const T*>> result = find_enclosing(this->freqs_, frequency);
+                if(result.has_value()){
+                    // extract result values (iterators)
+                    const T* low = result.value().first;
+                    const T* high = result.value().second;
+
+                    // calculate integral ierators
+                    const size_t i_low = low - this->freqs_.data();
+                    const size_t i_high = high - this->freqs_.data();
+
+                    // get frequencies and values
+                    const T f_low = *low;
+                    const T f_high = *high;
+                    const std::complex<T> v_low = this->values_(i_low);
+                    const std::complex<T> v_high = this->values_(i_high);
+
+                    // calculate percentage for interpolation
+                    const T p = (frequency - f_low) / (f_high - f_low);
+
+                    // linear magnitude interpolation
+                    const T mag_interp = std::abs(v_low) * (static_cast<T>(1) - p) + (p) * std::abs(v_high);
+
+                    // linear phase interpolation
+                    const T phase_interp = std::arg(v_low) * (static_cast<T>(1) - p) + (p) * std::arg(v_high);
+
+                    // calculate resulting complex value
+                    const std::complex<T> result = std::polar(mag_interp, phase_interp);
+                    return result;
+                }else{
+                    // assume same value for out of bound values | do not extrapolate
+                    if(frequency <= this->freqs_(0)){
+                        return this->values_(0);
+                    }else{
+                        return this->values_(this->values_.size()-1);
+                    }
+                }
+            }
+
+            /**
+             * \brief Returns the phase at the passed frequency
+             * 
+             * Uses linear interpolation.
+             * 
+             * Internally uses `value_at(const T& frequency)`.
+             * 
+             * \param frequency The frequency (in hz) at which to get the phase at
+             * \returns The interpolated phase (in rad) at the given frequency
+             * \see value_at(const T& frequency)
+             */
+            T phase_at(const T& frequency) const {
+                const std::complex<T> value = this->value_at(frequency);
+                const T phase = std::arg(value);
+                return phase;
+            }
+
+            /**
+             * \brief return the phase at the given frequency in degree
+             * 
+             * Uses linear interpolation
+             * 
+             * \param frequency The frequency (in hz) at which to get the phase at
+             * \returns The interpolated phase (in deg) at the given frequency
+             * \see phase_at()
+             * \see value_at()
+             */
+            T phase_deg_at(const T& frequency) const {
+                const T phase_rad = this->phase_at(frequency);
+                const T phase_deg = phase_rad * static_cast<T>(180) / std::numbers::pi_v<T>;
+                return phase_deg;
+            }
+
+            /**
+             * \brief Returns the magnitude at the passed frequency 
+             * 
+             * Uses linear interpolation
+             * \param frequency The frequency (in hz) at which to get the magnitude at
+             * \returns The interpolated magnitude (in absolute) at the given frequency
+             */
+            T magnitude_at(const T& frequency) const {
+                const std::complex<T> value = this->value_at(frequency);
+                const T mag = std::abs(value);
+                return mag;
+            }
+
+            /**
+             * \brief Returns the magnitude at the passed frequency 
+             * 
+             * Uses linear interpolation
+             * \param frequency The frequency (in hz) at which to get the magnitude at
+             * \returns The interpolated magnitude (in absolute) at the given frequency
+             */
+            T magnitude_dB_at(const T& frequency) const {
+                const T mag = this->magnitude_at(frequency);
+                const T mag_dB = static_cast<T>(20) * std::log10(mag);
+                return mag_dB;
+            }
     };
 
     template<class T>
@@ -267,7 +385,7 @@ namespace controlpp{
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> phases(const Bode<T>& bode) {
         Eigen::Vector<T, Eigen::Dynamic> result = bode.values().array().arg();
-        return unwrap(result);
+        return unwrap_rad(result);
     }
 
     /**
@@ -666,29 +784,6 @@ namespace controlpp{
     }
 
     /**
-     * \brief Prints a bode plot to an output stream as a `.csv` file
-     * \param stream The stream to be printed to
-     * \param bode The bode container with the frequencies, magnitudes and phases
-     * \returns A reference to the stream object for operation chaining.
-     * \see Bode
-     */
-    template<class T>
-    std::ostream& operator<< (std::ostream& stream, const Bode<T>& bode){
-        stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
-        const auto frequs = bode.frequencies();
-        const auto real = controlpp::real(bode);
-        const auto imag = controlpp::imag(bode);
-        const auto mags = controlpp::magnitudes_dB(bode);
-        const auto phases = controlpp::phases_deg(bode);
-        const int n = std::min({frequs.size(), mags.size(), phases.size()});
-        for(int i = 0; i < n; ++i){
-            stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);
-            if(i < n-1) stream << "\n";
-        }
-        return stream;
-    }
-
-    /**
      * @brief Calculates the bode response for a pre defined frequency vector
      * @tparam T The value type of the transfer function
      * @tparam NumOrder The numerator order
@@ -758,5 +853,108 @@ namespace controlpp{
         const T frequency_to_Hz = fastest_freq_rad * static_cast<T>(10 / 2) / std::numbers::pi_v<T>;
         return bode(tf, frequency_from_Hz, frequency_to_Hz, samples_per_decade);
     }
+
+    /**
+     * \brief Prints a bode plot to an output stream as a `.csv` file
+     * \param stream The stream to be printed to
+     * \param bode The bode container with the frequencies, magnitudes and phases
+     * \returns A reference to the stream object for operation chaining.
+     * \see Bode
+     */
+    template<class T>
+    void write_csv (std::ostream& stream, const Bode<T>& bode){
+        stream << "Frequencies (Hz), Magnitudes (dB), Phases (deg), Real, Imag" << std::endl;
+        const auto frequs = bode.frequencies();
+        const auto real = controlpp::real(bode);
+        const auto imag = controlpp::imag(bode);
+        const auto mags = controlpp::magnitudes_dB(bode);
+        const auto phases = controlpp::phases_deg(bode);
+        const int n = std::min({frequs.size(), mags.size(), phases.size()});
+        for(int i = 0; i < n; ++i){
+            stream << frequs(i) << ", " << mags(i) << ", " << phases(i) << ", " << real(i) << ", " << imag(i);
+            if(i < n-1) stream << "\n";
+        }
+    }
+
+    /**
+     * \brief Error cases for reading/parsing bode data from CSV formated data
+     */
+    enum class EBodeCsvReadError{
+        CouldNotFindFrequencyVector, ///< Could not find the frequency axis in the csv data. Searched for a header that starts with `"f"` (case-insensitive).
+        CouldNotFindAmplitudeVectors, ///< Could not find the amplitude data. Needed either: 1) Two columns that start with `"re"` and `"im"` (case-insensitive). 2) Two columns that start with `"mag"` and `"ph"` (case-insensitive).
+    };
+
+    std::ostream& operator<<(std::ostream& stream, EBodeCsvReadError val);
+
+    /**
+     * \brief Enum that determines how frequency data will be interpreted when reading CSV data.
+     */
+    enum class EFrequencyInterpretation{
+        AutoHz,     ///< Automatically infers the unit from the header or interprets the data in **Hz** if no unit is found in the header name
+        AutoRad,    ///< Automatically infers the unit from the header or interprets the data in **rad** if no unit is found in the header name
+        ForceHz,    ///< When reading frequency data the data is always interpreted in **Hz** regardless of the header name
+        ForceRad,   ///< When reading frequency data the data is always interpreted in **rad** regardless of the header name
+    };
+
+    /**
+     * \brief Enum that determines how frequency data will be interpreted when reading CSV data.
+     */
+    enum class EMagnitudeInterpretation{
+        Auto,    ///< Automatically infers the unit from the header and interprets as **deci-Bell** if `"dB"` has been found or interprets the data as **absolute values** if no unit is found in the header name
+        ForceAbs,   ///< Forces the magnitude data to be interpreted in **absolute values** regardless of the header name
+        ForceDB,    ///< Forces the magnitude data to be interpreted in **dB** regardless of the header name
+    };
+
+    /**
+     * \brief Enum that determines how phase data will be interpreted when reading CSV data.
+     */
+    enum class EPhaseInterpretation{
+        AutoRad,    ///< Automatically infers the unit from the header or interprets the data as **rad** if no unit is found in the header name
+        AutoDeg,    ///< Automatically infers the unit from the header or interprets the data as **deg** if no unit is found in the header name
+        ForceRad,   ///< Forces the magnitude data to be interpreted in **rad** regardless of the header name
+        ForceDeg    ///< Forces the magnitude data to be interpreted in **deg** regardless of the header name
+    };
+
+    /**
+     * @brief Loads bode data from csv data
+     * 
+     * TODO
+     * 
+     * Automatic data discovery:
+     * ---
+     * 
+     * First: searches for the frequency data range. Then for the real and imaginary data ranges. 
+     * If real and imaginary data could not be identified magnitudes and phases will be searched for.
+     * 
+     * All following textual comparisons are case insensitive.
+     * 
+     * - Assumes colums starting with `"f"` to be the frequency data.
+     *   - If the frequency data name contains `"hz"` the frequency is interpreted as Hertz.
+     *   - If the frequency data name contains `"rad"` the frequency is interpreted as Radiant.
+     * - Assumes columns starting with `"re"` or `"im"` to be the real and imaginary amplitudes.
+     * - If complex amplitudes could not be found assumes that columns starting with `"mag"` or `"ph"` to be absolute magnitudes and phase
+     *   - If the magnitude column header contains `"dB"` the magnitude data will be interpreted in deci-Bell.
+     *   - If the phase column header contains `"deg"` the phase data is interpreted in degree.
+     *   - If the phase column header contains `"rad"` the phase data is interpreted in radiants.
+     * 
+     * @see EFrequencyInterpretation
+     * @see EMagnitudeInterpretation
+     * @see EPhaseInterpretation
+     * 
+     * @param stream 
+     * @param settings 
+     * @returns If successful: A bode structure. On failure/error: a variant with an error of the csv reader (`csvd::ReadError`) or an error
+     * of assembing a bode from the csv `EBodeCsvReadError`.
+     */
+    tl::expected<
+        Bode<double>, // success
+        std::variant<EBodeCsvReadError, csvd::ReadError>> //error
+    read_bode_from_csv(
+        std::istream& stream, 
+        const csvd::Settings& csv_settings = csvd::Settings(),
+        EFrequencyInterpretation freq_interp = EFrequencyInterpretation::AutoHz,
+        EMagnitudeInterpretation mag_interp = EMagnitudeInterpretation::Auto,
+        EPhaseInterpretation phase_interp = EPhaseInterpretation::AutoDeg
+    );
 
 }

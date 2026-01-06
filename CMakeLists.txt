@@ -11,23 +11,28 @@ CPMAddPackage(
       "BUILD_TESTING OFF"
 )
 
+CPMAddPackage("gh:TobiasWallner/CSVd#v3.0.0")
+
 project(Controlpp LANGUAGES CXX)
 
-add_library(controlpp INTERFACE)
+add_library(controlpp STATIC
+    src/Bode.cpp
+)
 
 # target_compile_features(controlpp PRIVATE cxx_std_20)
 
-target_include_directories(controlpp INTERFACE
+target_include_directories(controlpp PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
 target_include_directories(controlpp SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
 
-target_link_libraries(controlpp INTERFACE
+target_link_libraries(controlpp PUBLIC
     Eigen3::Eigen
+    csvd
 )
 
-target_compile_features(controlpp INTERFACE cxx_std_23)
+target_compile_features(controlpp PUBLIC cxx_std_23)
 
 ##################################################################################
 #                               TESTING
@@ -53,6 +58,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/StateSpace_Tests.cpp
         tests/Polynom_Tests.cpp
         tests/math_Tests.cpp
+        tests/algorithm_Tests.cpp
         tests/analysis_Tests.cpp
         tests/Generator_Tests.cpp
         tests/Bode_Tests.cpp
@@ -79,7 +85,7 @@ if (CONTROLPP_COMPILE_TEST)
             -Wno-maybe-uninitialized
             -Wno-array-bounds # Gets triggered by SIMD
             -Wno-maybe-uninitialized
-            #-fmax-errors=1
+            -fmax-errors=3
         )
     endif()
 

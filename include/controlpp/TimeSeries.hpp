@@ -107,12 +107,11 @@ namespace controlpp
     /// @param timeseries The timeseries holding the data
     /// @return a reference to the stream for `operator<<` chaining
     template<class T>
-    std::ostream& operator<< (std::ostream& stream, const TimeSeries<T>& timeseries){
+    void write_csv(std::ostream& stream, const TimeSeries<T>& timeseries){
         stream << "Times (s), Values\n";
         for(size_t i = 0; (i < timeseries.size()) && (i < timeseries.size()); ++i){
             stream << timeseries.times(i) << ", " << timeseries.values(i) << "\n";
         }
-        return stream;
     }
 
     template<class T>
