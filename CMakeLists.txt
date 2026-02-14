@@ -40,7 +40,7 @@ else()
 endif()
 
 # Add a csv reader to read measurement data
-CPMAddPackage("gh:TobiasWallner/CSVd#v2.1.0")
+CPMAddPackage("gh:TobiasWallner/CSVd#v3.0.1")
 
 
 # ---------------------------------------------------------------------------
