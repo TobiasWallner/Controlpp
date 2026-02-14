@@ -2,9 +2,14 @@
 TODO:
 =====
 
-- Method to read bode data from *.csv data
+- bode shall use frequencies in rad/s instead of hz.
+    - offer convenient conversion functions for scalars and vectors:
+        - radps_to_hz
+        - hz_to_radps
+        - abs_to_dB
+        - dB_to_abs
 
-- Method to interpolate timestep and frequency response data
+- Method to interpolate timestep data
 
 - make a `discretize_zoh()` and a `discretize_tustin()` function for discretisation.
 

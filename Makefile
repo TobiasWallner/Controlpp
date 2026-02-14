@@ -1,10 +1,7 @@
 config = Release
-G = "Ninja Multi-Config"
-CC = gcc
-GXX = g++
 
 build/$(config)/config.timestampfile: CMakeLists.txt
-	cmake -S . -B build/$(config)/ -G $(G) -DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_BUILD_TYPE=$(config) -DCONTROLPP_COMPILE_TEST=ON
+	cmake -S . -B build/$(config)/ -DCMAKE_BUILD_TYPE=$(config) -DCONTROLPP_COMPILE_TEST=ON
 	echo "" > $@
 
 
@@ -14,7 +11,7 @@ build: build/$(config)/config.timestampfile
 
 .PHONY: test
 test: build
-	ctest --test-dir build/$(config)/ --build-config $(config) -V
+	ctest --test-dir build/$(config)/ --build-config $(config) --output-on-failure
 
 .PHONY: clean
 clean:
