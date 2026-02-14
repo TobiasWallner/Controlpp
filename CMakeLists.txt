@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
+project(controlpp LANGUAGES CXX)
+
+# ---------------------------------------------------------------------------
+#                       Add Libraries
+# ---------------------------------------------------------------------------
+
 include(cmake/CPM.cmake)
 
+# Add eigen for the main matrix/vector algebraics
 CPMAddPackage(
     NAME Eigen3
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen/
@@ -11,9 +18,34 @@ CPMAddPackage(
       "BUILD_TESTING OFF"
 )
 
+# Add blas and lapack for Dare solvers
+find_package(BLAS)
+if(BLAS_FOUND)
+    message(STATUS "BLAS found: ${BLAS_LIBRARIES}")
+else()
+    message(STATUS "BLAS not found")
+endif()
+
+find_package(LAPACK)
+if(LAPACK_FOUND)
+    message(STATUS "LAPACK found: ${LAPACK_LIBRARIES}")
+else()
+    message(STATUS "LAPACK not found")
+endif()
+
+if(BLAS_FOUND AND LAPACK_FOUND)
+    message(STATUS "BALS and LAPACK will be used as a DARE solver")
+else()
+    message(STATUS "A fallback DARE solver will be used since BLAS and LAPACK have not been found")
+endif()
+
+# Add a csv reader to read measurement data
 CPMAddPackage("gh:TobiasWallner/CSVd#v2.1.0")
 
-project(Controlpp LANGUAGES CXX)
+
+# ---------------------------------------------------------------------------
+#                       Define this library
+# ---------------------------------------------------------------------------
 
 add_library(controlpp INTERFACE)
 
