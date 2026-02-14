@@ -60,6 +60,21 @@ namespace controlpp{
 
     /**
      * @brief Computes a discrete LQR controller from a discrete state space plant model
+     * 
+     * ## Ways to choose Q (state penalty) and R (control penalty):
+     * 
+     * ### Brysons rule
+     * 
+     * \[
+     * Q = \text{diag}\left( \frac{1}{x^2_{1,\text{max}}}, \frac{1}{x^2_{2,\text{max}}}, \frac{1}{x^2_{3,\text{max}}}, \cdots \right)
+     * \]
+     * 
+     * \[
+     * R = \text{diag}\left( \frac{1}{u^2_{1,\text{max}}}, \frac{1}{u^2_{2,\text{max}}}, \frac{1}{u^2_{3,\text{max}}}, \cdots \right)
+     * \]
+     * 
+     * for states x and control inputs u.
+     * 
      * @tparam T The value types of the parameters
      * @tparam NStates The number of states of the plant
      * @tparam NInputs The number of inputs of the plant
@@ -146,7 +161,7 @@ namespace controlpp{
      * @see lqr_feed_forward
      */
     template<class T, int NStates, int NInputs, int NOutputs, std::convertible_to<T> U1 = T, std::convertible_to<T> U2 = T>
-    Eigen::Matrix<T, NInputs, NStates> lqr(
+    Eigen::Matrix<T, NInputs, NStates> lqr_bryson(
         const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
         const Eigen::Vector<T, NOutputs>& x_max,
         const Eigen::Vector<T, NInputs>& u_max
