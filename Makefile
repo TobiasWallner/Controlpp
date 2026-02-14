@@ -11,7 +11,7 @@ build: build/$(config)/config.timestampfile
 
 .PHONY: test
 test: build
-	ctest --test-dir build/$(config)/ --build-config $(config) --output-on-failure
+	ctest --test-dir build/$(config)/ --build-config $(config) -V
 
 .PHONY: clean
 clean:
