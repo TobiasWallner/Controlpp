@@ -85,8 +85,8 @@ namespace controlpp{
                 }
             }
 
-            Bode(const Eigen::Vector<T, Eigen::Dynamic>& freqs_Hz, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
-                : omegas_(freqs_Hz)
+            Bode(const Eigen::Vector<T, Eigen::Dynamic>& freqs_rad, Eigen::Vector<std::complex<T>, Eigen::Dynamic>&& values)
+                : omegas_(freqs_rad)
                 , values_(std::move(values))
             {
                 // assert same size
@@ -103,8 +103,8 @@ namespace controlpp{
                 }
             }
 
-            Bode(Eigen::Vector<T, Eigen::Dynamic>&& freqs_Hz, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
-                : omegas_(std::move(freqs_Hz))
+            Bode(Eigen::Vector<T, Eigen::Dynamic>&& freqs_rad, const Eigen::Vector<std::complex<T>, Eigen::Dynamic>& values)
+                : omegas_(std::move(freqs_rad))
                 , values_(values)
             {
                 // assert same size
@@ -153,6 +153,106 @@ namespace controlpp{
              */
             const T& frequency(std::size_t n) const {
                 return this->omegas_(n);
+            }
+
+            /**
+             * @brief Applies tustin pre-warping to the frequency axis
+             * 
+             * The tustin transformation 
+             * 
+             * \f[
+             * s = \frac{2}{T} \frac{z-1}{z+1}
+             * \f]
+             * 
+             * warps the frequency axis with
+             * 
+             * \f[
+             * \omega_d = \frac{2}{T_s} \text{atan}\left( \frac{\omega_c T_s}{2} \right).
+             * \f]
+             * 
+             * So if you design, for example a notch filter to match a specific resonance in the bode
+             * and then use the tustin transformation to get a digital filter, the filter will be at 
+             * a slightly different frequency then intended.
+             * 
+             * In order to prevent that and make controller design easy, we can pre-warp the frequency axis of the bode:
+             * 
+             * \f[
+             * \omega_\text{pre} = \frac{2}{T_s} \text{tan}\left( \frac{\omega_\text{target} T_s}{2} \right)
+             * \f]
+             * 
+             * The pre-warping will move the resonance in the bode so that if you design notch filter (or any other filter)
+             * for that warped frequency it will then match the real system exactly after the tustin discretisation.
+             * 
+             * A typical workflow for controller design could then look like:
+             * 
+             * 1. Measure bode
+             * 2. Apply pre-warping to bode
+             * 3. Design a controller for the pre-warped bode features
+             * 4. a) Discretise the controller. b) Unwarp the simulation to see real crossover frequency.
+             * 
+             * \code{.cpp}
+             *  // Read bode
+             *  auto bode_err = read_bode_from_csv(file);
+             *  if(bode_err.has_value() == false){
+             *      //error handling
+             *  }
+             * 
+             *  Bode& G = bode_err.value();
+             * 
+             *  // pre-warp for controller design
+             * 
+             *  // ------------------------- Start Warped Design ----------------------------
+             * 
+             *      const double Fs = 1000; // sample frequency
+             *      const double Ts = 1/Fs;
+             * 
+             *      G.prewarp_tustin(Ts);
+             * 
+             *      // design the controller R here
+             *      // display open loop L_warped
+             * 
+             *      Bode L = R * G;
+             * 
+             *      // plot L (tryout my other library plotpp)
+             * 
+             *      // calculate the actual open loop L, transfer Try and sensitivity function Tdy
+             * 
+             *      L.unwarp_tustin();
+             * 
+             *  // ------------------------- End Warped Design ----------------------------
+             * 
+             *  plotpp::bode(frequencies_hz(L), magnitudes_dB(L), phases_deg(L));
+             * 
+             *  Bode Try = L / (1 + L);
+             *  plotpp::bode(frequencies_hz(Try), magnitudes_dB(Try), phases_deg(Try));
+             * 
+             *  Bode Tdy = 1 / (1 + L);
+             *  plotpp::bode(frequencies_hz(Tdy), magnitudes_dB(Tdy), phases_deg(Tdy));
+             * \endcode
+             * 
+             * @param Ts The sample time that also the tustin discretisation is using.
+             * 
+             * @see unwarp_tustin
+             */
+            void prewarp_tustin(const T& Ts){
+                this->freqs_ = controlpp::prewarp_tustin(this->freqs_, Ts);
+            }
+
+            /**
+             * @brief Unwarps the pre-warping. Or calculates how system frequencies will shift after tustin discretisation.
+             * 
+             * Applies the following function to the frequency axis:
+             * 
+             * \f[
+             * \omega_d = \frac{2}{T_s} \text{atan}\left( \frac{\omega_c T_s}{2} \right).
+             * \f]
+             * 
+             * @param Ts The sample time that also the tustin discretisation is using
+             * 
+             * @see prewarp_tustin()
+             */
+            void unwarp_tustin(const T& Ts){
+                this->freqs_ = controlpp::unwarp_tustin(this->freqs_, Ts);
             }
 
             /**
@@ -304,6 +404,18 @@ namespace controlpp{
                 return mag_dB;
             }
     };
+
+    template<class T>
+    Bode<T> prewarp_tustin(const Bode<T>& bode, const T& Ts){
+        Bode<T> result(controlpp::prewarp_tustin(bode.frequencies(), Ts), bode.values());
+        return result;
+    }
+
+    template<class T>
+    Bode<T> unwarp_tustin(const Bode<T>& bode, const T& Ts){
+        Bode<T> result(controlpp::unwarp_tustin(bode.frequencies(), Ts), bode.values());
+        return result;
+    }
 
     /**
      * \brief Converts and returns the frequency vector in Hz
