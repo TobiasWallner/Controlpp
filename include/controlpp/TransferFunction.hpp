@@ -194,7 +194,7 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
+            constexpr Eigen::Vector<std::complex<T>, M> eval_frequencies_hz(const Eigen::Vector<T, M>& frequencies) const {
                 const std::complex<T> j(0, 1);
                 const Eigen::Vector<std::complex<T>, M> complex_frequencies = frequencies * j * static_cast<T>(2) * std::numbers::pi_v<T>;
                 const Eigen::Vector<std::complex<T>, M> result = this->eval(complex_frequencies);

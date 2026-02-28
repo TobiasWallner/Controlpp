@@ -40,7 +40,7 @@ TEST(analysis, bode_PT2){
     const double D = 0.5;
     const auto G = 1 / (1 + 2 * D * s / w + (s*s)/(w*w));
 
-    const auto G_bode = controlpp::bode(G, 10);
+    const auto G_bode = controlpp::bode_hz(G, 10);
 
     {
         std::ofstream file("bode.csv");
@@ -55,7 +55,7 @@ TEST(analysis, bode_PT2){
     const auto mags = magnitudes_dB(G_bode);
     const auto phases = phases_deg(G_bode);
     for(size_t i = 0; i < G_bode.size(); ++i){
-        ASSERT_NEAR(freqs(i), expected_freqs[i], 1e-3) << "at index: " << i;
+        ASSERT_NEAR(controlpp::to_hz(freqs(i)), expected_freqs[i], 1e-3) << "at index: " << i;
         ASSERT_NEAR(mags(i), expected_mags[i], 1e-3) << "at index: " << i;
         ASSERT_NEAR(phases(i), expected_phases[i], 1e-3) << "at index: " << i;
     }

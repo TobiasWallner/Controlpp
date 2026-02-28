@@ -114,11 +114,11 @@ namespace controlpp{
             frequs.resize(freq_column->data.size());
             if(freq_hz){
                 for(size_t i = 0; i != freq_column->data.size(); ++i){
-                    frequs[i] = freq_column->data[i];
+                    frequs[i] = freq_column->data[i] * (2 * std::numbers::pi);
                 }
             }else{
                 for(size_t i = 0; i != freq_column->data.size(); ++i){
-                    frequs[i] = freq_column->data[i] / (2 * std::numbers::pi);
+                    frequs[i] = freq_column->data[i];
                 }
             }
             
