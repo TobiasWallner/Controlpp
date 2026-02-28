@@ -72,19 +72,6 @@ TEST(Bode, Calculation){
     }
 }
 
-TEST(Bode, set_magnitudes_dB_and_phases_deg){
-
-    Eigen::Vector<double, Eigen::Dynamic> mags_dB(3);
-    mags_dB << 1.0, 1.0, 1.0;
-
-    Eigen::Vector<double, Eigen::Dynamic> phases_deg(3);
-    phases_deg << 0.0, 1.0, 2.0;
-
-    controlpp::Bode bode;
-    bode.set_magnitudes_dB_and_phases_deg(mags_dB, phases_deg);
-
-}
-
 TEST(Bode, read_csv_hz_real_image){
     using namespace controlpp;
 
@@ -103,9 +90,9 @@ TEST(Bode, read_csv_hz_real_image){
 
     Bode<double>& bode = bode_result.value();
 
-    ASSERT_EQ(bode.frequencies()[0], 1.0);
-    ASSERT_EQ(bode.frequencies()[1], 10.0);
-    ASSERT_EQ(bode.frequencies()[2], 100.0);
+    ASSERT_EQ(controlpp::to_hz(bode.frequencies()[0]), 1.0);
+    ASSERT_EQ(controlpp::to_hz(bode.frequencies()[1]), 10.0);
+    ASSERT_EQ(controlpp::to_hz(bode.frequencies()[2]), 100.0);
 
     ASSERT_EQ(bode.values()[0].real(), 1.0);
     ASSERT_EQ(bode.values()[1].real(), 0.5);
@@ -122,6 +109,6 @@ TEST(Bode, value_at_frequency){
     controlpp::ContinuousTransferFunction Gs = 1 / (1 + s / (2 * pi * 10));
     controlpp::Bode Gb = controlpp::bode(Gs);
 
-    ASSERT_NEAR(Gb.magnitude_dB_at(10.0), -3.1, 0.1);
-    ASSERT_NEAR(Gb.phase_deg_at(10.0), -45.0, 0.1);
+    ASSERT_NEAR(Gb.magnitude_dB_at(controlpp::to_radps(10.0)), -3.1, 0.1);
+    ASSERT_NEAR(Gb.phase_deg_at(controlpp::to_radps(10.0)), -45.0, 0.1);
 }

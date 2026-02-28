@@ -1,6 +1,7 @@
 #pragma once
 #include <controlpp/algorithm.hpp>
 #include <controlpp/math.hpp>
+#include <controlpp/conversion.hpp>
 #include <controlpp/Polynom.hpp>
 #include <controlpp/TransferFunction.hpp>
 #include <controlpp/StateSpace.hpp>

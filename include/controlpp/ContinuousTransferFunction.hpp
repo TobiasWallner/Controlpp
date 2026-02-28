@@ -134,8 +134,8 @@ namespace controlpp
              * \returns The complex result of the frequency evaluation/analysis.
              */
             template<int M>
-            Eigen::Vector<std::complex<T>, M> eval_frequencies_Hz(const Eigen::Vector<T, M>& frequencies) const {
-                return this->tf_.eval_frequencies_Hz(frequencies);
+            Eigen::Vector<std::complex<T>, M> eval_frequencies_hz(const Eigen::Vector<T, M>& frequencies) const {
+                return this->tf_.eval_frequencies_hz(frequencies);
             }
 
             friend std::ostream& operator<<(std::ostream& stream, const ContinuousTransferFunction& ctf){
