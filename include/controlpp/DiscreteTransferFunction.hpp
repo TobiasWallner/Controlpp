@@ -10,7 +10,7 @@ namespace controlpp
      * Transfer functions of the shape:
      * 
      * \f[
-     * G(s) = \frac{b_0 + b_1 d \cdots b_m d^m}{a_0 + a_1 d \cdots a_n d^n}
+     * G_z(s) = \frac{b_0 + b_1 d \cdots b_m d^m}{a_0 + a_1 d \cdots a_n d^n}
      * \f]
      * 
      * Note that the transfer function uses the delay operator: \f$d = z^{-1}\f$.
