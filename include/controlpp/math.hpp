@@ -345,10 +345,20 @@ namespace controlpp{
 	}
 
 	template<class T, int LSize, int RSize>
+	requires(LSize != Eigen::Dynamic && RSize != Eigen::Dynamic)
 	Eigen::Vector<T, LSize + RSize> join_to_vector(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
 		Eigen::Vector<T, LSize + RSize> result;
 		result.head(LSize) = l;
 		result.tail(RSize) = r;
+		return result;
+	}
+
+	template<class T, int LSize, int RSize>
+	requires(!(LSize != Eigen::Dynamic && RSize != Eigen::Dynamic))
+	Eigen::Vector<T, Eigen::Dynamic> join_to_vector(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
+		Eigen::Vector<T, Eigen::Dynamic> result(l.size() + r.size());
+		result.head(l.size()) = l;
+		result.tail(r.size()) = r;
 		return result;
 	}
 
