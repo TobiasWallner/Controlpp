@@ -3,6 +3,11 @@
 #include "Polynom.hpp"
 #include "TransferFunction.hpp"
 
+/**
+ * @defgroup ContinuousTransferFunctionUtilities Continuous Transfer Function
+ * @brief Utilities to work with continuous transfer functions
+ */
+
 namespace controlpp
 {
 
