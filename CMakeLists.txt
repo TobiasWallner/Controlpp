@@ -6,17 +6,10 @@ project(controlpp LANGUAGES CXX)
 #                       Add Libraries
 # ---------------------------------------------------------------------------
 
-include(cmake/CPM.cmake)
+include(cmake/BPM.cmake)
 
 # Add eigen for the main matrix/vector algebraics
-CPMAddPackage(
-    NAME Eigen3
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen/
-    GIT_TAG 3.4.0
-    OPTIONS
-      "EIGEN_BUILD_TESTING OFF"
-      "BUILD_TESTING OFF"
-)
+BPMAddInstallPackage("https://gitlab.com/libeigen/eigen#^5.0.0" PACKAGES Eigen3)
 
 # Add blas and lapack for Dare solvers
 find_package(BLAS)
@@ -40,8 +33,11 @@ else()
 endif()
 
 # Add a csv reader to read measurement data
-CPMAddPackage("gh:TobiasWallner/CSVd#v3.0.1")
+BPMAddSourcePackage("https://github.com/TobiasWallner/CSVd#v4.0.2")
 
+BPMAddInstallPackage("https://github.com/google/googletest#1.17.0" PACKAGES GTest PRIVATE)
+
+BPMMakeAvailable()
 
 # ---------------------------------------------------------------------------
 #                       Define this library
@@ -71,8 +67,6 @@ target_compile_features(controlpp PUBLIC cxx_std_23)
 ##################################################################################
 
 if (CONTROLPP_COMPILE_TEST)
-
-    CPMAddPackage("gh:google/googletest@1.17.0")
 
     enable_testing()
 
