@@ -1,6 +1,8 @@
 // google test
 #include <gtest/gtest.h>
 
+#include <fstream>
+
 // controlpp
 #include <controlpp/ContinuousTransferFunction.hpp>
 #include <controlpp/DiscreteTransferFunction.hpp>
@@ -8,6 +10,8 @@
 #include <controlpp/DiscreteFilter.hpp>
 #include <controlpp/transformations.hpp>
 #include <controlpp/Estimators.hpp>
+#include <controlpp/TimeSeries.hpp>
+#include <controlpp/analysis.hpp>
 
 TEST(Estimators, least_squares){
     const double a0 = 1;
@@ -58,7 +62,7 @@ TEST(Estimators, reccursive_least_squares_1memory){
     for(int i = 0; i < data.size(); ++i){
         Eigen::Vector<double, 3> x_ = X.row(i).eval();
         double y_ = data(i);
-        estimator.add(y_, x_);
+        estimator.input(y_, x_);
     }
 
     
@@ -82,7 +86,7 @@ TEST(Estimators, DtfEstimator){
     for(int i = 0; i < 100; ++i){
         const double u = (i == 0) ? 0.0 : 1.0;
         const double y = dssf.input(u);
-        dtf_est.add(y, u);
+        dtf_est.input(y, u);
         // std::cout << "iteration: " << i << std::endl;
         // std::cout << "- estimage:" << std::endl;
         // std::cout << dtf_est.estimate() << std::endl;
@@ -107,4 +111,41 @@ TEST(Estimators, DtfEstimator){
         ASSERT_NEAR(y, y_est, 0.05);
     }
 
+}
+
+TEST(Estimators, dft_estimate){
+    const auto s = controlpp::tf::s<double>;
+
+    const auto Gs = (8 + 1*s) / (1 + 3*s + 9*s*s);
+
+    controlpp::TimeSeries ts = controlpp::step(Gs);
+
+    Eigen::Vector<double, 10> init = Eigen::Vector<double, 10>::Zero();
+    Eigen::VectorXd step(ts.size());
+    step.setOnes();
+
+    Eigen::VectorXd u(ts.size() + init.size());
+    int mod = 2;
+    for(int i = 0; i < u.size(); ++i) {
+        u(i) = (i < init.size()) ? 0.0 : ((i % mod == 0) ? 1.1 : 0.9);
+        ++mod;
+    }
+
+    Eigen::VectorXd y = controlpp::join_to_vector(init, ts.values());
+    ASSERT_EQ(y.size(), init.size() + ts.size());
+
+    const auto dest_err = controlpp::dft_estimate<double, 1, 2>(u, y, 1e-6);
+
+    ASSERT_TRUE(dest_err.has_value());
+
+    const auto dest = dest_err.value();
+
+    const auto estimated_simulation = dest.eval(u);
+
+    for(size_t i = 0; (i < ts.size()) && (i < static_cast<size_t>(estimated_simulation.size())); ++i){
+        const double y_est = estimated_simulation(init.size() + i);
+        const double y_true = ts.values(i);
+        // std::cout << "iteration: " << i << ", y_true: " << y_true << ", y_est: " << y_est << std::endl;
+        ASSERT_NEAR(y_true, y_est, 0.05);
+    }
 }

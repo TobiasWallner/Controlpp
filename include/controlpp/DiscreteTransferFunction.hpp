@@ -78,6 +78,32 @@ namespace controlpp
                 const T y = (B - A) / this->den(0);
                 return y;
             }
+
+            /**
+             * @brief Evaluates the transfer function for a given input series
+             * 
+             * Starts with zero initial conditions.
+             * 
+             * @tparam N The size of the input and output series. Needs to be at least `max(NumOrder+1, DenOrder)`
+             * @param input_series The input series to evaluate the transfer function for. Needs to be ordered from oldest to newest value. The size needs to be at least `max(NumOrder+1, DenOrder)`
+             * @return The output series that results from evaluating the transfer function for the given input series. The size is the same as the input series.
+             */
+            template<int N>
+            constexpr Eigen::Vector<T, N> eval(const Eigen::Vector<T, N> input_series) const {
+                Eigen::Vector<T, N> output_series;
+                output_series.setZero();
+                for(int i = 0; i < N; ++i){
+                    const int num_start = std::max(0, i - NumOrder);
+                    const int num_end = i + 1;
+                    const int den_start = std::max(0, i - DenOrder);
+                    const int den_end = i;
+
+                    const T B = this->num().vector().segment(num_start, num_end - num_start).dot(input_series.segment(num_start, num_end - num_start));
+                    const T A = this->den().vector().segment(den_start + 1, den_end - den_start).dot(output_series.segment(den_start, den_end - den_start));
+                    output_series(i) = (B - A) / this->den(0);
+                }
+                return output_series;
+            }
             
             constexpr transfer_function_type& transfer_function() {return this->tf_;}
             constexpr const transfer_function_type& transfer_function() const {return this->tf_;}

@@ -1,9 +1,15 @@
 #pragma once
 
+#include <cassert>
+#include <fstream>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <tl/expected.hpp>
+
 #include <controlpp/DiscreteTransferFunction.hpp>
+#include <controlpp/algorithm.hpp>
 
 namespace controlpp
 {
@@ -25,6 +31,137 @@ namespace controlpp
         Eigen::Vector<T, XCols> result = X.colPivHouseholderQr().solve(y).eval();
         return result;
     }
+
+    enum class dft_estimate_error{
+        data_ranges_different_lenth,
+        data_range_too_small
+    };
+
+    inline std::string_view to_string(dft_estimate_error err){
+        switch(err){
+            case dft_estimate_error::data_ranges_different_lenth : return "Data ranges have different length, but should have equal size";
+            case dft_estimate_error::data_range_too_small : return "Data ranges are too small for the system order";
+            default : return "dft_estimate_error::error";
+        }
+    }
+
+    inline std::ostream& operator<< (std::ostream& stream, dft_estimate_error err){
+        return stream << controlpp::to_string(err);
+    }
+
+    /**
+     * @brief Estimates a discrete time transfer function of a specific order for the input (u) and output (y) data pairs
+     * 
+     * Finds the optimal parameters that minimize the cost function:
+     * \f[
+     * \left( y - U p \right)^2
+     * \f]
+     * 
+     * where 
+     * - y: is the output of the system
+     * - p: are the parameters of the transfer function (this is what we optimise)
+     * - U: A matrix where each row contains the current and past inputs and outputs.
+     * 
+     * @tparam T The data type
+     * @tparam NumOrder The numerator order for the resulting transfer function
+     * @tparam DenOrder The denominator order for the resulting transfer function
+     * @tparam N The size of the data
+     * @param y The output data of the system
+     * @param u The input data of the system
+     * @param regularization adds an extra (\f$\lambda\f$) therm \f$ \lambda p^2 \f$ to the cost function that penalises large parameters (p).
+     * @param hint adds an extra penalty to the cost function if parameters deviate from the hint \f$ \lambda (p - p_\text{hint})^2 \f$. Note that regularisation needs to be non-zero for the hint to take effect.
+     * @returns A transfer function that best fits: `y = Tf * u`
+     */
+    template<class T, int NumOrder, int DenOrder>
+    requires((NumOrder != Eigen::Dynamic) && (DenOrder != Eigen::Dynamic))
+    tl::expected<DiscreteTransferFunction<T, NumOrder, DenOrder>, dft_estimate_error> 
+    dft_estimate(
+        const Eigen::Vector<T, Eigen::Dynamic>& u,
+        const Eigen::Vector<T, Eigen::Dynamic>& y,
+        const T& regularization = T(0),
+        const DiscreteTransferFunction<T, NumOrder, DenOrder>& hint = DiscreteTransferFunction<T, NumOrder, DenOrder>({T(0)}, {T(1)})
+    ){
+        if(y.size() != u.size()){
+            return tl::unexpected(dft_estimate_error::data_ranges_different_lenth);
+        }
+
+        constexpr int P = NumOrder + 1 + DenOrder;
+        Eigen::Vector<T, P> s;
+        s.setZero();
+        
+        // input (u) partition
+        auto s_u = s.head(NumOrder + 1);
+
+        // output (y partition)
+        auto s_y = s.tail(DenOrder);
+
+        const std::size_t start = std::max(s_u.size()-1, s_y.size());
+
+        if(static_cast<std::size_t>(y.size()) <= start || static_cast<std::size_t>(u.size()) <= start){
+            return tl::unexpected(dft_estimate_error::data_range_too_small);
+        }
+
+        // fill s_u and s_y with start values
+        for(std::size_t k = 0; k < static_cast<std::size_t>(s_u.size()); ++k){
+            s_u(k) = u(start - k);
+        }
+        for(std::size_t k = 0; k < static_cast<std::size_t>(s_y.size()); ++k){
+            s_y(k) = -y(start - k - 1);
+        }
+
+        // sums
+        Eigen::Matrix<T, P, P> S;
+        S.setZero();
+        
+        Eigen::Vector<T, P> r;
+        r.setZero();
+
+        // first iteration out of the loop
+        S.noalias() += s * s.transpose();
+        r.noalias() += y(start) * s;
+
+        // make an memory efficient sum to solve the least squares equation
+        for(std::size_t k = start+1; (k < static_cast<std::size_t>(y.size())) && (k < static_cast<std::size_t>(u.size())); ++k){
+            // push next input, output
+            controlpp::shift_up(s_u.data(), s_u.data() + s_u.size(), u(k));
+            controlpp::shift_up(s_y.data(), s_y.data() + s_y.size(), -y(k-1));
+
+            S.noalias() += s * s.transpose();
+            r.noalias() += y(k) * s;
+        }
+
+        // S should be symetric --> enforce symetry
+        S = (S + S.transpose()) * T(0.5);
+
+        // add regularisation to S
+        S.diagonal().array() += regularization;
+
+        // add hint penalty to r
+        const T hint_a0 = hint.den(0);
+
+        const Eigen::Vector<T, NumOrder + 1> hint_scaled_num = (hint.num().vector() / hint_a0);
+        const Eigen::Vector<T, DenOrder + 1> hint_scaled_den = (hint.den().vector() / hint_a0);
+        const Eigen::Vector<T, DenOrder> hint_scaled_den_tail = hint_scaled_den.template tail<DenOrder>();
+
+        const Eigen::Vector<T, P> hint_v = controlpp::join_to_vector(hint_scaled_num, hint_scaled_den_tail);
+        r += regularization * hint_v;
+
+        // solve r = S * param
+        // since S is symetric positive definite use llt
+        std::cout << "S:\n" << S << std::endl;
+        std::cout << "r:\n" << r.transpose() << std::endl;
+        const Eigen::Vector<T, P> params = S.ldlt().solve(r);
+
+        // partition result into numerator and denominator
+        const Eigen::Vector<T, NumOrder + 1> num = params.head(NumOrder + 1);
+        Eigen::Vector<T, DenOrder + 1> den;
+        den(0) = T(1);
+        den.tail(DenOrder) = params.tail(DenOrder);
+
+        // construct resulting transfer function
+        DiscreteTransferFunction<T, NumOrder, DenOrder> result(num, den);
+        return result;
+    } 
 
     /**
      * \brief Calculates the recursive least square for online parameter estimation
@@ -61,15 +198,23 @@ namespace controlpp
         Eigen::Matrix<T, NParams, NParams> _cov;    ///< previous covariance
         Eigen::Vector<T, NParams> _param;           ///< previous parameter estimate
         Eigen::Vector<T, NParams> _K;
-        T _memory = 0.98;
-        T _cov_regularisation = 1e-9;
-        T _gain_clamp = 10;
+        T _memory = 0.98;                           ///< memory factor (in literature: the forgetting factor, but i think higher value corresponds to higher memory makes more sense)
+        T _cov_regularisation = 1e-9;               ///< regularisation for numerical stability
+        T _gain_clamp = 10;                         ///< clamping the maximal gain for correction therms
         
 
         public:
 
         /**
          * \brief Creates a recursive least square object with start parameters/covariance and a memory factor
+         * 
+         * Implicitly sets the covariance matrix to a diagonal matrix where each diagonal element has a
+         * value of 1000. Large diagonal elements mean that the algorithm is very uncertain about the parameters.
+         * 
+         * Assertions/Assumptions:
+         * -----------------------
+         * - 0 < memory <= 1
+         * - cov_regularisation >= 0
          * 
          * \param param_hint The start value of the parameter vector.
          * If there is no prior knowledge of the values, 0 is often a good choice.
@@ -79,23 +224,43 @@ namespace controlpp
          * As a starting point use the square of the standard deviation of the noise if known.
          * If there is no prior knowledge of the uncertainties setting it to a diagonal matrix with elements much greater than 1 is often a good choice
          * 
-         * \param memory The value memory that determines how much the past determines the new estimate.
+         * \param memory The value memory that determines how much the past determines the new estimate. (In literature often called the: forgetting factor)
          * It has to be within the open-closed range: \f$(0, 1]\f$. 
          * Remembers more of the past with higher `memory` and forgets more with lower `memory`
          * - `memory` = 1: no forgetting, converges to standard least squares
-         * - `memory` < 1: forgetting older values with an exponential decay
+         * - `memory` < 1: forgetting older values with an exponential decay  
          * Often used values are between 0.8 and 0.98
+         * 
+         * \param cov_regularisation Adds a small positive number to the diagonal of the covariance matrix P at every iteration for numerical stability:
+         * - it prevents the covariance matrix from collapsing to zero
+         * - reduces the risk of the matrix becoming ill conditioned
+         * - improves robustness of the gain computation when excitation is weak  
+         * Typical values are between `1e-12` and `1e-6` depending on numerical precision and signal scaling
+         * 
+         * \param gain_clamp Limits/clamps the elements of the recursive gain vector `K = P s / (λ + sᵀ P s)` to the range `[-gain_clamp, +gain_clamp]`. 
+         * Prevents sudden large scale parameter updates caused by:
+         * - poor excitation
+         * - nearly singulare covariance matrices
+         * - Very small gain denominators  
+         * Important notes: clamping the gain breaks strict optimality and introduces a bias.
+         * Typical values are between 5 and 50.
          * 
          */
         inline ReccursiveLeastSquares(
-            const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
-            T memory = 0.99)
+                const Eigen::Vector<T, NParams>& param_hint = Eigen::Vector<T, NParams>().setOne(), 
+                T memory = 0.99,
+                T cov_regularisation = 1e-9,
+                T gain_clamp = 10
+            )
             : _param(param_hint)
             , _memory(memory)
+            , _cov_regularisation(cov_regularisation)
+            , _gain_clamp(gain_clamp)
             {
-                if(memory <= T(0) || memory > T(1)){
-                    throw std::invalid_argument("Error: ReccursiveLeastSquares::ReccursiveLeastSquares(): memory has to be in the open-closed range of: (0, 1]");
-                }
+                assert(0 < memory);
+                assert(memory <= 1);
+                assert(cov_regularisation > 0);
+                
                 this->_cov = (Eigen::Matrix<T, NParams, NParams>::Identity() * T(1000));
                 this->_K.setZero();
             }
@@ -106,7 +271,7 @@ namespace controlpp
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s)  {
+        void input(const T& y, const Eigen::Matrix<T, NMeasurements, NParams>& s)  {
             this->_cov.diagonal().array() += this->_cov_regularisation;
 
             // Gain
@@ -149,6 +314,21 @@ namespace controlpp
 
         inline void set_cov(const Eigen::Matrix<T, NParams, NParams>& cov) {
             this->_cov = cov;
+        }
+
+        /**
+         * @brief Set the value for the covariant regularisation
+         * 
+         * Often used values: `1e-6` or `1e-9`
+         * 
+         * @param reg The regularisation coefficient that will be added to the diagonal of the covariance matrix
+         */
+        inline void set_cov_regularisation(const T& reg){
+            this->_cov_regularisation = reg;
+        }
+
+        [[nodiscard]] inline T cov_regularisation() const {
+            return this->_cov_regularisation;
         }
 
         /**
@@ -320,7 +500,7 @@ namespace controlpp
          * \param s The known system inputs
          * \returns The new parameter state estimate
          */
-        void add(const T& y, const Eigen::Vector<T, NParams>& s)  {
+        void input(const T& y, const Eigen::Vector<T, NParams>& s)  {
             this->_cov.diagonal().array() += this->_cov_regularisation;
 
             // Gain
@@ -413,10 +593,10 @@ namespace controlpp
          * 
          */
         DtfEstimator(
-            DiscreteTransferFunction<T, NumOrder, DenOrder> hint = DiscreteTransferFunction<T, 0, 0>({static_cast<T>(1)}, {static_cast<T>(1)}),
-            const Eigen::Vector<T, NumOrder+1> NumeratorUncertainty = Eigen::Vector<T, NumOrder+1>().setOnes()*T(1000),
-            const Eigen::Vector<T, DenOrder> DenominatorUncertainty = Eigen::Vector<T, DenOrder>().setOnes()*T(1000),
-            const T& memory = 0.99)
+            DiscreteTransferFunction<T, NumOrder, DenOrder> hint,
+            const Eigen::Vector<T, NumOrder+1> NumeratorUncertainty,
+            const Eigen::Vector<T, DenOrder> DenominatorUncertainty,
+            const T& memory = 0.995)
         {
             T a_0 = hint.den().at(0);
             if(a_0 != static_cast<T>(0)){
@@ -435,6 +615,24 @@ namespace controlpp
             static_assert(NumOrder <= DenOrder, "The Discrete Transfer Function has to be propper. Meaning `NumOrder <= DenOrder` has to be true.");
         }
 
+        DtfEstimator(
+            DiscreteTransferFunction<T, NumOrder, DenOrder> hint,
+            const T& uncertainty = 1000,
+            const T& memory = 0.995)
+            : DtfEstimator(
+                hint, 
+                Eigen::Vector<T, NumOrder+1>().setOnes()*T(uncertainty), 
+                Eigen::Vector<T, DenOrder>().setOnes()*T(uncertainty),
+                memory){}
+
+        DtfEstimator() 
+            : DtfEstimator(
+                DiscreteTransferFunction<T, 0, 0>({T(1)}, {T(1)}), // hint
+                1000, // uncertainty
+                0.995 // memory
+            ){}
+
+
         /**
          * \brief Adds an interation step to the estimate
          * 
@@ -445,13 +643,13 @@ namespace controlpp
          * 
          * \returns the 
          */
-        void add(const T& y, const T& u){
+        void input(const T& y, const T& u){
             // add to the recursive least squares solver
             Eigen::Vector<T, 1 + NumOrder + DenOrder> s;
             s(0) = u;
             s.segment(1, NumOrder) = this->uk;
             s.tail(DenOrder) = this->neg_yk;
-            this->rls.add(y, s);
+            this->rls.input(y, s);
             
             // update uk
             std::copy_backward(this->uk.data(), this->uk.data()+this->uk.size(), this->uk.data()+1);
@@ -491,6 +689,17 @@ namespace controlpp
             return this->rls.gain_clamp();
         }
 
+        inline void set_cov_regularisation(const T& reg){
+            this->rls.cov_regularisation(reg);
+        }
+
+        [[nodiscard]] inline T cov_regularisation() const {
+            return this->rls.cov_regularisation();
+        }
+
     };
+
+    
+      
     
 } // namespace controlpp
