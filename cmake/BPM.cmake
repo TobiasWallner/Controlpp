@@ -1651,7 +1651,9 @@ function(bpm_try_find_packages lib_name packages lib_install_dir OUT_FOUND_ALL)
         # check which packages are actually in the install dir to give a more detailed error message
         bpm_find_installed_packages("${PKG_NAME}" "${lib_install_dir}" installed_packages)
         if(installed_packages)
-            message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: Installed packages: ${installed_packages}")
+            message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: Installed packages: '${installed_packages}' in: '${lib_install_dir}'")
+        else()
+            message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: No packages installed in: ${lib_install_dir}")
         endif()
     endif()
 
@@ -2012,17 +2014,9 @@ function(bpm_show_installed_packages PKG_NAME lib_install_dir)
                 message(STATUS "  - ${package_name}:\t from ${config_file}")
             endforeach()
         else()
-            set(installed_package_names)
-            foreach(config_file IN LISTS config_files)
-                get_filename_component(config_dir "${config_file}" DIRECTORY)
-                get_filename_component(package_name "${config_dir}" NAME)
-                if(NOT installed_package_names)
-                    string(APPEND installed_package_names "${package_name}")
-                else()
-                    string(APPEND installed_package_names ", ${package_name}")
-                endif()
-            endforeach()
-            message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: Installed packages: ${installed_package_names}")
+            set(installed_packages)
+            bpm_find_installed_packages("${PKG_NAME}" "${lib_install_dir}" installed_packages)
+            message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: Installed packages: ${installed_packages}")
         endif()
     else()
         if(BPM_VERBOSE)
@@ -2133,7 +2127,7 @@ function(bpm_load_dependencies BPM_CACHE_DIR registry_content master_solution ou
 endfunction()
 
 function(bpm_check_for_bpm_updates BPM_VERSION BPM_REPO)
-    message(STATUS "BPM [${PROJECT_NAME}]: Checking for BPM updates...")
+    message(STATUS "BPM [${PROJECT_NAME}]: Checking for BPM updates ...")
 
     execute_process(
         COMMAND git ls-remote --tags --sort=-version:refname "${BPM_REPO}" "refs/tags/*"
@@ -2143,14 +2137,19 @@ function(bpm_check_for_bpm_updates BPM_VERSION BPM_REPO)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-    if(bpm_version_tags MATCHES "v([0-9]+\\.[0-9]+\\.[0-9]+)")
-    set(newest_bpm_version "${CMAKE_MATCH_1}")
-        if(newest_bpm_version VERSION_GREATER BPM_VERSION)
-            message(STATUS "BPM [${PROJECT_NAME}]:   A newer version of BPM is available: ${newest_bpm_version} (current: ${BPM_VERSION})")
-            if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-                message(STATUS "BPM [${PROJECT_NAME}]:     Update with: curl -o cmake/BPM.cmake \"https://github.com/TobiasWallner/BPM.cmake/releases/download/${newest_bpm_version}/BPM.cmake\" -L")
-            elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-                message(STATUS "BPM [${PROJECT_NAME}]:     Update with: Invoke-WebRequest -Uri \"https://github.com/TobiasWallner/BPM.cmake/releases/download/${newest_bpm_version}/BPM.cmake\" -OutFile \"cmake/BPM.cmake\"")
+    if(bpm_version_tags MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
+        set(newest_bpm_version "${CMAKE_MATCH_1}")
+        if(BPM_VERSION MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
+            set(current_bpm_version "${CMAKE_MATCH_1}")
+            if(newest_bpm_version VERSION_GREATER current_bpm_version)
+                message(STATUS "BPM [${PROJECT_NAME}]:   A newer version of BPM is available: v${newest_bpm_version} (current: v${current_bpm_version})")
+                if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+                    message(STATUS "BPM [${PROJECT_NAME}]:     Update with: `curl -o cmake/BPM.cmake \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -L`")
+                elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+                    message(STATUS "BPM [${PROJECT_NAME}]:     Update with: `Invoke-WebRequest -Uri \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -OutFile \"cmake/BPM.cmake\"`")
+                endif()
+            else()
+                message(STATUS "BPM [${PROJECT_NAME}]:   BPM is up to date: ${BPM_VERSION}")
             endif()
         endif()
     endif()        
@@ -2160,7 +2159,7 @@ endfunction()
 #
 function(BPMMakeAvailable)
 
-    set(BPM_VERSION "v0.5.2")
+    set(BPM_VERSION "v0.5.3")
     set(BPM_REPO "https://github.com/TobiasWallner/BPM.cmake")
 
     message(STATUS "BPM [${PROJECT_NAME}]: BPM version: ${BPM_VERSION}")
@@ -2232,13 +2231,15 @@ function(BPMMakeAvailable)
     endforeach()
     
     # TODO: sort fily by package names before writing for improved robustness
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry")
-        file(READ "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry" old_registry_file_content)
-        if(NOT "${registry_file_content}\n" STREQUAL "${old_registry_file_content}")
+    if(registry_file_content) # only write if there is content to write
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry")
+            file(READ "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry" old_registry_file_content)
+            if(NOT "${registry_file_content}\n" STREQUAL "${old_registry_file_content}")
+                file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry" "${registry_file_content}\n")
+            endif()
+        else()
             file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry" "${registry_file_content}\n")
         endif()
-    else()
-        file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/.bpm-registry" "${registry_file_content}\n")
     endif()
 
     # -------------------------------
@@ -2330,7 +2331,8 @@ function(BPMMakeAvailable)
     message("")
     message(STATUS "BPM [${PROJECT_NAME}]: Making packages available")
     list(REVERSE solution) # reverse for correct order of installation (dependencies first) - should have leaves first
-    foreach(pkg IN LISTS solution)
+    foreach(pkg IN LISTS solution)        
+
         # clear variables to prevent accidental reuse in the loop
         set(PKG_NAME)
         set(PKG_VERSION)
@@ -2351,6 +2353,9 @@ function(BPMMakeAvailable)
         if(PKG_MADE_AVAILABLE)
             continue()
         endif()
+
+        message(STATUS "BPM [${PROJECT_NAME}:${PKG_NAME}]: Making available: ${PKG_NAME}#${PKG_VERSION} from ${PKG_GIT_REPO}")
+
         set_property(GLOBAL PROPERTY "BPM_REGISTRY_${PKG_NAME}_MADE_AVAILABLE" TRUE)
 
         set(lib_mirror_dir "${BPM_CACHE_DIR}/${PKG_NAME}/mirror")
@@ -2406,7 +2411,7 @@ function(BPMMakeAvailable)
         list(SORT PKG_DEPENDENCIES)
         foreach(dep IN LISTS PKG_DEPENDENCIES)
             if(BPM_${dep}_FOUND)
-                string(APPEND DEPENDENCIES_MANIFESTS "\n  DEPENDENCY ${dep} VERSION ${BPM_PKG_${PKG_NAME}_VERSION} REPO ${BPM_PKG_${PKG_NAME}_GIT_REPO} OPTIONS ${BPM_PKG_${PKG_NAME}_OPTIONS} PACKAGES ${BPM_PKG_${PKG_NAME}_PACKAGES} MANIFEST ${BPM_${dep}_MANIFEST_HASH}")
+                string(APPEND DEPENDENCIES_MANIFESTS "\n  DEPENDENCY ${dep} VERSION ${BPM_PKG_${dep}_VERSION} REPO ${BPM_PKG_${dep}_GIT_REPO} OPTIONS ${BPM_PKG_${dep}_OPTIONS} PACKAGES ${BPM_PKG_${dep}_PACKAGES} MANIFEST ${BPM_${dep}_MANIFEST_HASH}")
             else()
                 message(FATAL_ERROR "BPM [${PROJECT_NAME}:${PKG_NAME}]: Dependency '${dep}' referenced but no manifest has been created yet. This should not happen. Please report this to the developers.")
             endif()
@@ -2416,6 +2421,8 @@ function(BPMMakeAvailable)
         list(SORT PKG_OPTIONS)
         list(SORT PKG_PACKAGES)
         
+        # repo WOT ([W]ith[O]ut [T]railing) .git suffix for manifest
+        string(REGEX REPLACE "\.git$" "" PKG_GIT_REPO_WOT "${PKG_GIT_REPO}")
         
         # turn tag into commit hash
         bpm_create_manifest(manifest
@@ -2442,7 +2449,7 @@ function(BPMMakeAvailable)
             PKG_NAME
             PKG_VERSION
             PKG_GIT_COMMIT
-            PKG_GIT_REPO
+            PKG_GIT_REPO_WOT
             PKG_OPTIONS
             PKG_TYPE
             DEPENDENCIES_MANIFESTS
@@ -2753,6 +2760,10 @@ function(BPMCreateInstallPackage)
         )
     endif()
 
+    # again at the end in case the output is very long and the user has to scroll up to see the first message
+    if((NOT BPM_NO_DOWNLOAD) AND (NOT BPM_NO_DOWNLOAD_UPDATES))
+        bpm_check_for_bpm_updates("${BPM_VERSION}" "${BPM_REPO}")
+    endif()
     
 endfunction()
 
