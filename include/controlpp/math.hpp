@@ -104,11 +104,11 @@ namespace controlpp{
 	 * 
 	 * \result the exponentiated value
 	 * 
-	 * \see controlpp::mexp_taylor_scale
-	 * \see controlpp::mexp
+	 * \see controlpp::expm_taylor_scale
+	 * \see controlpp::expm
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor(
+	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> expm_taylor(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, 
 			int n
 	){
@@ -147,10 +147,10 @@ namespace controlpp{
 	 * 
 	 * \return The resulting exponentiated matrix
 	 * 
-	 * \see controlpp::mexp_taylor
+	 * \see controlpp::expm_taylor
 	 */
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor_scaled(
+	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> expm_taylor_scaled(
 			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, 
 			int taylor_order = 8, 
 			int scaling = 10
@@ -158,7 +158,7 @@ namespace controlpp{
 		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
 		T s = static_cast<T>(1 << scaling);
 		Matrix scaled_M = M/s;
-		Matrix t = mexp_taylor(scaled_M, taylor_order);
+		Matrix t = expm_taylor(scaled_M, taylor_order);
 		for(int i = 0; i < scaling; ++i){
 			const Matrix temp = t * t;
 			t = temp;
@@ -243,7 +243,7 @@ namespace controlpp{
 	 * @return An approximation of the exponential \f$\exp{A}\f$
 	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp_pade(
+	Eigen::Matrix<T, N, N> expm_pade(
 			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& A,
 			int Order = 5
 	){
@@ -281,14 +281,14 @@ namespace controlpp{
 	}
 
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp_pade_scaled(
+	Eigen::Matrix<T, N, N> expm_pade_scaled(
 			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, 
 			int order = 5,
 			int scaling = 5
 	){
 		const T s = static_cast<T>(1ULL << scaling);
 		Eigen::Matrix<T, N, N> scaled_M = M/s;
-		Eigen::Matrix<T, N, N> t = mexp_pade(scaled_M, order);
+		Eigen::Matrix<T, N, N> t = expm_pade(scaled_M, order);
 		for(int i = 0; i < scaling; ++i){
 			const Eigen::Matrix<T, N, N> temp = t * t;
 			t = temp;
@@ -311,18 +311,18 @@ namespace controlpp{
 	 * 
 	 * \return The resulting exponentiated matrix
 	 * 
-	 * \see controlpp::mexp_pade
-	 * \see controlpp::mexp_pade_scaled
+	 * \see controlpp::expm_pade
+	 * \see controlpp::expm_pade_scaled
 	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
+	Eigen::Matrix<T, N, N> expm(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
 		// actual exponent calculation
 		const T maxColNorm = M.colwise().norm().maxCoeff();
 		const T maxRowNorm = M.rowwise().norm().maxCoeff();
 		const T maxNorm = std::max(maxColNorm, maxRowNorm);
 		const T one = static_cast<T>(1);
 		int scaling = static_cast<int>(std::log2(std::max(maxNorm, one))) + 1;
-		return mexp_pade_scaled(M, order, scaling);
+		return expm_pade_scaled(M, order, scaling);
 	}
 
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>

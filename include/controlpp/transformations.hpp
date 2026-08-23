@@ -79,7 +79,7 @@ namespace controlpp
         M *= sample_time;
         
         // calculation
-        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::mexp(M, approximation_order);
+        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::expm(M, approximation_order);
 
         // re-assignment
         result.A() = Md.template block<states, states>(0, 0);
