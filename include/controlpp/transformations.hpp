@@ -63,8 +63,7 @@ namespace controlpp
     template<class ValueType, int states>
     DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
             const ContinuousStateSpace<ValueType, states, 1, 1>& sys, 
-            ValueType sample_time,
-            int approximation_order=8
+            ValueType sample_time
     ){
         // allocation
         DiscreteStateSpace<ValueType, states, 1, 1> result;
@@ -79,7 +78,7 @@ namespace controlpp
         M *= sample_time;
         
         // calculation
-        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::expm(M, approximation_order);
+        Eigen::Matrix<ValueType, states+1, states+1> Md = controlpp::expm(M);
 
         // re-assignment
         result.A() = Md.template block<states, states>(0, 0);

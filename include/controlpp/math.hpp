@@ -280,14 +280,25 @@ namespace controlpp{
 		return result;
 	}
 
+	/**
+	 * @brief Applies scaling and squaring to the pade approximation of the matrix exponential
+	 * @tparam T The value type of the matrix entries (usually `float` or `double`)
+	 * @tparam N The size of the square matrix
+	 * @tparam Options The storage order of the matrix (see Eigen documentation)
+	 * @tparam MaxRows The maximum number of rows for the matrix (default is `N`)
+	 * @tparam MaxCols The maximum number of columns for the matrix (default is `N`)
+	 * @param M Matrix to exponentiate
+	 * @param order Order of the Pade approximation (default is 7)
+	 * @param scaling Scaling factor for the matrix (default is 7)
+	 * @return The exponentiated matrix \f$\exp{M}\f$ using the scaled Pade approximation
+	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
 	Eigen::Matrix<T, N, N> expm_pade_scaled(
 			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, 
-			int order = 5,
-			int scaling = 5
+			int order,
+			int scaling
 	){
-		const T s = static_cast<T>(1ULL << scaling);
-		Eigen::Matrix<T, N, N> scaled_M = M/s;
+		Eigen::Matrix<T, N, N> scaled_M = M * std::ldexp(T(1), -scaling);
 		Eigen::Matrix<T, N, N> t = expm_pade(scaled_M, order);
 		for(int i = 0; i < scaling; ++i){
 			const Eigen::Matrix<T, N, N> temp = t * t;
@@ -297,17 +308,92 @@ namespace controlpp{
 	}
 
 	/**
+	 * @brief Pade for the scaled pade matrix exponential
+	 */
+	struct ExpmPadeParams{
+		int order; ///< The order of the pade approximation
+		int scaling; ///< The scaling and squaring factor for the matrix
+	};
+
+	/**
+	 * @brief Determines the order and scaling factor for the scaled pade approximation of the matrix exponential
+	 * 
+	 * Higham, Nicholas J., and Desmond J. Higham. "A new scaling and squaring algorithm for the matrix exponential." 
+	 * 
+	 * @tparam T The value type of the matrix entries (usually `float` or `double`)
+	 * @tparam MaxRows The maximum number of rows for the matrix (default is `N`)
+	 * @tparam MaxCols The maximum number of columns for the matrix (default is `N`)
+	 * @tparam Options The storage order of the matrix (see Eigen documentation)
+	 * @tparam N The size of the square matrix
+	 * @param M The matrix for which to determine the parameters
+	 * @return The parameters for the scaled pade approximation, including the order and scaling factor
+	 */
+	template<class T, int N, int Options, int MaxRows, int MaxCols>
+	ExpmPadeParams expm_pade_params(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M){
+		const T norm = M.cwiseAbs().colwise().sum().maxCoeff();
+
+		// Theta values from Higham
+		constexpr T theta3  = T(1.495585217958292e-2);
+		constexpr T theta5  = T(2.539398330063230e-1);
+		constexpr T theta7  = T(9.504178996162932e-1);
+		constexpr T theta9  = T(2.097847961257068);
+		constexpr T theta13 = T(5.371920351148152);
+
+		if(norm <= theta3){
+			return {3, 0};
+		}
+		
+		if(norm <= theta5){
+			return {5, 0};
+		}
+		
+		if(norm <= theta7){
+			return {7, 0};
+		}
+		
+		if(norm <= theta9){
+			return {9, 0};
+		}
+		
+		if(norm <= theta13){
+			return {13, 0};
+		}
+		
+		int scaling = static_cast<int>(std::log2(norm / theta13)) + 1;
+		return {13, scaling};
+	
+	}
+
+	/**
+	 * @brief Matrix exponential using a scaled Pade approximation with automatic order and scaling factor determination
+	 * @tparam T The value type of the matrix entries (usually `float` or `double`)
+	 * @tparam N The size of the square matrix
+	 * @tparam Options The storage order of the matrix (see Eigen documentation)
+	 * @tparam MaxRows The maximum number of rows for the matrix (default is `N`)
+	 * @tparam MaxCols The maximum number of columns for the matrix (default is `N`)
+	 * @param M The matrix to exponentiate
+	 * @return The exponentiated matrix \f$\exp{M}\f$ using the scaled Pade approximation with automatically determined order and scaling factor
+	 */
+	template<class T, int N, int Options, int MaxRows, int MaxCols>
+	Eigen::Matrix<T, N, N> expm_pade_scaled(
+			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M
+	){
+		const ExpmPadeParams params = expm_pade_params(M);
+		return expm_pade_scaled(M, params.order, params.scaling);
+	}
+
+	/**
 	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
 	 * 
 	 * Uses a scaled pade approximation for the exponential.
+	 * 
+	 * The order and scaling factor are automatically determined based on the norm of the matrix.
 	 * 
 	 * \tparam T The value type of the matrix elements
 	 * \tparam Rows The number of rows of the matrix
 	 * \tparam Cols The number of columns of the matrix
 	 * 
 	 * \param M The matrix
-	 * \param order The order of the pade polynomial used to approximate the exponential function 
-	 * \param scaling The scaling factor used to improve the accuracy of the exponential function
 	 * 
 	 * \return The resulting exponentiated matrix
 	 * 
@@ -315,14 +401,9 @@ namespace controlpp{
 	 * \see controlpp::expm_pade_scaled
 	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> expm(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
+	Eigen::Matrix<T, N, N> expm(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M){
 		// actual exponent calculation
-		const T maxColNorm = M.colwise().norm().maxCoeff();
-		const T maxRowNorm = M.rowwise().norm().maxCoeff();
-		const T maxNorm = std::max(maxColNorm, maxRowNorm);
-		const T one = static_cast<T>(1);
-		int scaling = static_cast<int>(std::log2(std::max(maxNorm, one))) + 1;
-		return expm_pade_scaled(M, order, scaling);
+		return expm_pade_scaled(M);
 	}
 
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
