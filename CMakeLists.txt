@@ -89,6 +89,8 @@ if (CONTROLPP_COMPILE_TEST)
         tests/Generator_Tests.cpp
         tests/Bode_Tests.cpp
 
+        tests/test_expm.cpp
+
     )
 
     set_target_properties(controlpp_tests PROPERTIES LINKER_LANGUAGE CXX)

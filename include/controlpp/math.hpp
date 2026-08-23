@@ -3,13 +3,19 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues> 
 
+#include <cstdint>
+
 namespace controlpp{
 
 	/**
 	 * \brief Calculates the product of all numbers in the closed open range [from, to)
 	 * \returns An integer
+	 * @tparam T The value type of the range
+	 * @param from The first number in the range
+	 * @param to The last number in the range (exclusive)
 	 */
-	constexpr unsigned long product_over(unsigned long from, unsigned long to){
+	template<class T>
+	constexpr T product_over(T from, T to){
 		unsigned long product = 1;
 		for(; from < to; ++from){
 			product *= from;
@@ -167,6 +173,45 @@ namespace controlpp{
 	}
 
 	/**
+	 * @brief Calculates the next pade parameter recursively
+	 * 
+	 * use 1 as the first parameter to calculate the next parameter
+	 * 
+	 * \f[
+	 * \frac{P_{k+1}}{P_k} = \frac{(m - k)}{(k + 1) (m + n - k)}
+	 * \f]
+	 * 
+	 * @param P_k The previous pade parameter
+	 * @param m The order of the numerator
+	 * @param n The order of the denominator
+	 * @param k The order of the parameter
+	 * @return The next pade parameter
+	 */
+	template<class T = double>
+	constexpr T pade_param_reccursice(T P_k, std::int32_t m, std::int32_t n, std::int32_t k){
+		const std::int64_t num = (m - k);
+		const std::int64_t den = (k + 1) * (m + n - k);
+		const double f = static_cast<T>(num) / static_cast<T>(den);
+		return P_k * f;
+	}
+
+	/**
+	 * @brief Calculates all pade parameters up to the given size
+	 * @param params A pointer to an array of doubles to store the parameters
+	 * @param size The size of the array
+	 * @param m The order of the numerator
+	 * @param n The order of the denominator
+	 * @tparam T The type of the parameters (default: double)
+	 */
+	template<class T = double>
+	constexpr void pade_params(T* params, std::size_t size, std::uint32_t m, std::uint32_t n){
+		params[0] = T(1.0);
+		for(std::size_t k = 1; k < size; ++k){
+			params[k] = pade_param_reccursice(params[k-1], m, n, k-1);
+		}
+	}
+
+		/**
 	 * \brief Calculates the numerator parameters of the pade approximation
      * 
      * Calculates the parameter:
@@ -192,13 +237,13 @@ namespace controlpp{
      * \see pade_den_param
      * \see https://ris.utwente.nl/ws/portalfiles/portal/134422804/Some_remarks_on_Pade-approximations.pdf
 	 */
-    template<class T = double>
-	constexpr T pade_num_param(unsigned long m, unsigned long n, unsigned long k){
-		const unsigned long long num1 = product_over(k+1, m+1);
-		const unsigned long long den1 = product_over(m + n - k + 1, m + n + 1);
-		const unsigned long long den2 = product_over(1, m-k + 1);
-		const T result = static_cast<T>(num1) / static_cast<T>(den1 * den2);
-		return result;
+	template<class T = double>
+	constexpr T pade_num_param(std::int32_t m, std::int32_t n, std::int32_t k){
+		double P_k = 1.0;
+		for(std::int32_t i = 0; i < k; ++i){
+			P_k = pade_param_reccursice(P_k, m, n, i);
+		}
+		return P_k;
 	}
 
     /**
@@ -256,10 +301,14 @@ namespace controlpp{
 		even.setZero();
 		odd.setZero();
 
+		// calculate pade parameters
+		T buffer[Order+1];
+		pade_params(buffer, sizeof(buffer)/sizeof(buffer[0]), Order, Order);
+
 		// horner chains to evaluate the polynomials
 		for(int k = Order; k >= 0; --k){
 			const bool is_first_iteration = (k == Order);
-			const T pk = pade_num_param<T>(Order, Order, k);
+			const T pk = static_cast<T>(buffer[k]);
 			if((k & 1) == 0){
 				// even
 				if(!is_first_iteration) even *= A2; // skipp on the first iteration
@@ -359,7 +408,12 @@ namespace controlpp{
 			return {13, 0};
 		}
 		
-		int scaling = static_cast<int>(std::log2(norm / theta13)) + 1;
+		const double ratio = static_cast<double>(norm / theta13);
+		int scaling = 0;
+		if (ratio > 1.0) {
+			scaling = static_cast<int>(std::ceil(std::log2(ratio)));
+			if (scaling < 0) scaling = 0;
+		}
 		return {13, scaling};
 	
 	}
