@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 // controlpp
-#include <controlpp/Pade.hpp>
+#include <controlpp/PadeDelay.hpp>
 #include <controlpp/transformations.hpp>
 #include <controlpp/analysis.hpp>
 

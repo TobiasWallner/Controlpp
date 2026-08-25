@@ -37,3 +37,15 @@ TEST(algorithm, find_enclosing_after_range){
     const auto result = find_enclosing(range, 5.1);
     ASSERT_FALSE(result.has_value());
 }
+
+TEST(algorithm, shift_up){
+    Eigen::Vector<int, 5> v(1, 2, 3, 4, 5);
+
+    controlpp::shift_up(v.data(), v.data() + v.size(), 42);
+
+    ASSERT_EQ(v(0), 42);
+    ASSERT_EQ(v(1), 1);
+    ASSERT_EQ(v(2), 2);
+    ASSERT_EQ(v(3), 3);
+    ASSERT_EQ(v(4), 4);
+}

@@ -5,6 +5,7 @@
 
 namespace controlpp
 {
+
     /**
      * \brief Creates a continuous transfer function approximating a delay using the pade approximation
      * 
@@ -30,15 +31,14 @@ namespace controlpp
         ContinuousTransferFunction<T, NumOrder, DenOrder> result;
         
         for(int k = 0; k < (NumOrder+1); ++k){
-            result.num().at(k) = pade_num_param<T>(NumOrder, DenOrder, k) * controlpp::pow(-delay, k);
+            result.num().at(k) = pade_num_param(NumOrder, DenOrder, k) * controlpp::pow(-delay, k);
         }
 
         for(int k = 0; k < (DenOrder+1); ++k){
-            result.den().at(k) = pade_den_param<T>(NumOrder, DenOrder, k) * controlpp::pow(delay, k);
+            result.den().at(k) = pade_den_param(NumOrder, DenOrder, k) * controlpp::pow(delay, k);
         }
 
         return result;
     }
-
 
 } // namespace controlpp

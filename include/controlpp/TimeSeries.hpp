@@ -3,6 +3,11 @@
 #include <ostream>
 #include <Eigen/Dense>
 
+/**
+ * @defgroup TimeSeriesUtilities Time Series Utilities
+ * @brief Utilities to work with time series data
+ */
+
 namespace controlpp
 {
 

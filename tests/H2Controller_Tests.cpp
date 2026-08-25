@@ -8,7 +8,7 @@
 #include <controlpp/transformations.hpp>
 #include <controlpp/DiscreteFilter.hpp>
 #include <controlpp/H2Controller.hpp>
-#include <controlpp/Pade.hpp>
+#include <controlpp/PadeDelay.hpp>
 
 TEST(H2Controller, for_PT1){
     using namespace controlpp;

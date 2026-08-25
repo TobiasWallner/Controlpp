@@ -3,13 +3,19 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues> 
 
+#include <cstdint>
+
 namespace controlpp{
 
 	/**
 	 * \brief Calculates the product of all numbers in the closed open range [from, to)
 	 * \returns An integer
+	 * @tparam T The value type of the range
+	 * @param from The first number in the range
+	 * @param to The last number in the range (exclusive)
 	 */
-	constexpr unsigned long product_over(unsigned long from, unsigned long to){
+	template<class T>
+	constexpr T product_over(T from, T to){
 		unsigned long product = 1;
 		for(; from < to; ++from){
 			product *= from;
@@ -89,81 +95,44 @@ namespace controlpp{
 		return unwrap(phases, modulo);
 	}
 
+	
 	/**
-	 * \brief Exponential function with a taylor approximation
+	 * @brief Calculates the next pade parameter recursively
+	 * 
+	 * use 1 as the first parameter to calculate the next parameter
 	 * 
 	 * \f[
-	 * 	\exp{x} = I + x + x^2 / 2 + ... + x^n / n!
+	 * \frac{P_{k+1}}{P_k} = \frac{(m - k)}{(k + 1) (m + n - k)}
 	 * \f]
 	 * 
-	 * The minimum number of n is 2. If n is set lower than 2, then 2 increments will be calculated regardless
-	 * 
-	 * \tparam T The value type
-	 * \param x The value taken to the exponent
-	 * \param n The order of the taylor approximation (default: 3)
-	 * 
-	 * \result the exponentiated value
-	 * 
-	 * \see controlpp::mexp_taylor_scale
-	 * \see controlpp::mexp
+	 * @param P_k The previous pade parameter
+	 * @param m The order of the numerator
+	 * @param n The order of the denominator
+	 * @param k The order of the parameter
+	 * @return The next pade parameter
 	 */
-	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor(
-			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& x, 
-			int n
-	){
-		Eigen::Matrix<T, Rows, Cols> result;
-		const auto I = Eigen::Matrix<T, Rows, Cols>::Identity();
-		result.setZero();
-		for(int i = n; i > 0; --i){
-			Eigen::Matrix<T, Rows, Cols> new_result = (result + I) * x / static_cast<T>(i);
-			result = new_result;
-		}
-		result += I;
-		return result;
+	template<class T = double>
+	constexpr T pade_param_reccursice(T P_k, std::int32_t m, std::int32_t n, std::int32_t k){
+		const std::int64_t num = (m - k);
+		const std::int64_t den = (k + 1) * (m + n - k);
+		const double f = static_cast<T>(num) / static_cast<T>(den);
+		return P_k * f;
 	}
 
 	/**
-	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
-	 * 
-	 * Uses a scaled taylor approximation for the exponential.
-	 * 
-	 * Uses the following relationship:
-	 * 
-	 * \f[
-	 * 	exp{x} = exp{x/s*s} = \left( exp{x/s} \right) ^ {s}
-	 * \f]
-	 * 
-	 *  to improve accuracy, by scaling the value first, 
-	 * allowing for smaller taylor orders with increased accuracy.
-	 * 
-	 * \tparam T The value type of the matrix elements
-	 * \tparam Rows The number of rows of the matrix
-	 * \tparam Cols The number of columns of the matrix
-	 * 
-	 * \param M The matrix
-	 * \param taylor_order The order of the taylor polynomial used to approximate the exponential function 
-	 * \param scaling The scaling factor used to improve the accuracy of the exponential function
-	 * 
-	 * \return The resulting exponentiated matrix
-	 * 
-	 * \see controlpp::mexp_taylor
+	 * @brief Calculates all pade parameters up to the given size
+	 * @param params A pointer to an array of doubles to store the parameters
+	 * @param size The size of the array
+	 * @param m The order of the numerator
+	 * @param n The order of the denominator
+	 * @tparam T The type of the parameters (default: double)
 	 */
-	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> mexp_taylor_scaled(
-			const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& M, 
-			int taylor_order = 8, 
-			int scaling = 10
-	){
-		using Matrix = Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>;
-		T s = static_cast<T>(1 << scaling);
-		Matrix scaled_M = M/s;
-		Matrix t = mexp_taylor(scaled_M, taylor_order);
-		for(int i = 0; i < scaling; ++i){
-			const Matrix temp = t * t;
-			t = temp;
-		};
-		return t;
+	template<class T = double>
+	constexpr void pade_params(T* params, std::size_t size, std::uint32_t m, std::uint32_t n){
+		params[0] = T(1.0);
+		for(std::size_t k = 1; k < size; ++k){
+			params[k] = pade_param_reccursice(params[k-1], m, n, k-1);
+		}
 	}
 
 	/**
@@ -192,13 +161,13 @@ namespace controlpp{
      * \see pade_den_param
      * \see https://ris.utwente.nl/ws/portalfiles/portal/134422804/Some_remarks_on_Pade-approximations.pdf
 	 */
-    template<class T = double>
-	constexpr T pade_num_param(unsigned long m, unsigned long n, unsigned long k){
-		const unsigned long long num1 = product_over(k+1, m+1);
-		const unsigned long long den1 = product_over(m + n - k + 1, m + n + 1);
-		const unsigned long long den2 = product_over(1, m-k + 1);
-		const T result = static_cast<T>(num1) / static_cast<T>(den1 * den2);
-		return result;
+	template<class T = double>
+	constexpr T pade_num_param(std::int32_t m, std::int32_t n, std::int32_t k){
+		double P_k = 1.0;
+		for(std::int32_t i = 0; i < k; ++i){
+			P_k = pade_param_reccursice(P_k, m, n, i);
+		}
+		return P_k;
 	}
 
     /**
@@ -232,99 +201,6 @@ namespace controlpp{
 		return pade_num_param(n, m, k);
 	}
 
-	/**
-	 * @brief Approximates \f$\exp{A}\f$ using a pade fraction
-	 * @tparam T The value type of the matrix entries (usually `float` or `double`)
-	 * @tparam Rows The number of rows
-	 * @tparam Cols The number of columns
-	 * @tparam Options Matrix options (See: [Store Orders](https://libeigen.gitlab.io/eigen/docs-nightly/group__TopicStorageOrders.html))
-	 * @param A The input matrix
-	 * @param Order The order of the numerator and denominator of the pade fraction
-	 * @return An approximation of the exponential \f$\exp{A}\f$
-	 */
-	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp_pade(
-			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& A,
-			int Order = 5
-	){
-		const Eigen::Matrix<T, N, N> I = Eigen::Matrix<T, N, N>::Identity();
-		const Eigen::Matrix<T, N, N> A2 = A * A;
-
-		// even odd split of polynomials: allows to reuse results
-		Eigen::Matrix<T, N, N> even;
-		Eigen::Matrix<T, N, N> odd;
-		even.setZero();
-		odd.setZero();
-
-		// horner chains to evaluate the polynomials
-		for(int k = Order; k >= 0; --k){
-			const bool is_first_iteration = (k == Order);
-			const T pk = pade_num_param<T>(Order, Order, k);
-			if((k & 1) == 0){
-				// even
-				if(!is_first_iteration) even *= A2; // skipp on the first iteration
-				even += I * pk;
-			}else{
-				// odd
-				if(!is_first_iteration) odd *= A2; // skipp on the first iteration
-				odd += I * pk;
-			}
-		}
-		odd *= A;
-
-		const Eigen::Matrix<T, N, N> num = even + odd;
-		const Eigen::Matrix<T, N, N> den = even - odd;
-
-		const Eigen::Matrix<T, N, N> result = den.partialPivLu().solve(num);
-		
-		return result;
-	}
-
-	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp_pade_scaled(
-			const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, 
-			int order = 5,
-			int scaling = 5
-	){
-		const T s = static_cast<T>(1ULL << scaling);
-		Eigen::Matrix<T, N, N> scaled_M = M/s;
-		Eigen::Matrix<T, N, N> t = mexp_pade(scaled_M, order);
-		for(int i = 0; i < scaling; ++i){
-			const Eigen::Matrix<T, N, N> temp = t * t;
-			t = temp;
-		};
-		return t;
-	}
-
-	/**
-	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
-	 * 
-	 * Uses a scaled pade approximation for the exponential.
-	 * 
-	 * \tparam T The value type of the matrix elements
-	 * \tparam Rows The number of rows of the matrix
-	 * \tparam Cols The number of columns of the matrix
-	 * 
-	 * \param M The matrix
-	 * \param order The order of the pade polynomial used to approximate the exponential function 
-	 * \param scaling The scaling factor used to improve the accuracy of the exponential function
-	 * 
-	 * \return The resulting exponentiated matrix
-	 * 
-	 * \see controlpp::mexp_pade
-	 * \see controlpp::mexp_pade_scaled
-	 */
-	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> mexp(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M, unsigned int order = 3){
-		// actual exponent calculation
-		const T maxColNorm = M.colwise().norm().maxCoeff();
-		const T maxRowNorm = M.rowwise().norm().maxCoeff();
-		const T maxNorm = std::max(maxColNorm, maxRowNorm);
-		const T one = static_cast<T>(1);
-		int scaling = static_cast<int>(std::log2(std::max(maxNorm, one))) + 1;
-		return mexp_pade_scaled(M, order, scaling);
-	}
-
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
 	Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols> identity_like([[maybe_unused]]const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& unused){
 		if constexpr (Rows != Eigen::Dynamic && Cols != Eigen::Dynamic){
@@ -345,10 +221,20 @@ namespace controlpp{
 	}
 
 	template<class T, int LSize, int RSize>
+	requires(LSize != Eigen::Dynamic && RSize != Eigen::Dynamic)
 	Eigen::Vector<T, LSize + RSize> join_to_vector(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
 		Eigen::Vector<T, LSize + RSize> result;
 		result.head(LSize) = l;
 		result.tail(RSize) = r;
+		return result;
+	}
+
+	template<class T, int LSize, int RSize>
+	requires(!(LSize != Eigen::Dynamic && RSize != Eigen::Dynamic))
+	Eigen::Vector<T, Eigen::Dynamic> join_to_vector(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
+		Eigen::Vector<T, Eigen::Dynamic> result(l.size() + r.size());
+		result.head(l.size()) = l;
+		result.tail(r.size()) = r;
 		return result;
 	}
 

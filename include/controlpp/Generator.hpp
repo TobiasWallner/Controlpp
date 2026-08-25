@@ -73,7 +73,7 @@ namespace controlpp
 
                 // discretised dynamic matrix
                 Eigen::Matrix<T, 2, 2> ATs = A_continuous * sample_time;
-                this->A_ = controlpp::mexp(ATs);
+                this->A_ = controlpp::expm(ATs);
             }
 
             /**

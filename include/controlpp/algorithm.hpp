@@ -7,8 +7,13 @@
 // Eigen
 #include <Eigen/Dense>
 
-namespace controlpp{
+/**
+ * @file algorithm.hpp
+ * @brief General algorithms that are used in multiple places in the library
+ */
 
+
+namespace controlpp{
 
     /**
      * \brief Finds elements in a range that enclose v.
@@ -48,6 +53,64 @@ namespace controlpp{
         const T* first = range.data();
         const T* last = range.data() + range.size();
         return find_enclosing(first, last, v);
+    }
+
+
+    /**
+     * @brief Shifts the values in a range up by one position and inserts a new value (copy operation) at the beginning of the range
+     * @tparam Iterator The type of the iterators that define the range to shift
+     * @tparam T The type of the value to insert at the beginning of the range
+     * @param first The first iterator of the range (points to the first element of the range)
+     * @param last The last iterator of the range (points past the last element of the range)
+     * @param v0 The value to insert at the beginning of the range (default: T(0))
+     */
+    template<class Iterator, class T>
+    void shift_up(Iterator first, Iterator last, const T& v0 = T(0)){
+        // the iterator that will be assigned to
+        Iterator itr_to = last;
+        --itr_to;
+
+        // the iterator that will be read from
+        Iterator itr_from = last;
+        --itr_from;
+        --itr_from;
+        while(itr_to != first){
+            *itr_to = std::move(*itr_from);
+            --itr_to;
+            --itr_from;
+        }
+        
+        // assign the first value
+        *first = v0;
+    }
+
+    /**
+     * @brief Shifts the values in a range up by one position and inserts a new value (move operation) at the beginning of the range
+     * @tparam Iterator The type of the iterators that define the range to shift
+     * @tparam T The type of the value to insert at the beginning of the range
+     * @param first The first iterator of the range (points to the first element of the range)
+     * @param last The last iterator of the range (points past the last element of the range)
+     * @param v0 The value to insert at the beginning of the range (default: T(0))
+     */
+    template<class Iterator, class T>
+    void shift_up(Iterator first, Iterator last, T&& v0 = T(0)){
+        // the iterator that will be assigned to
+        Iterator itr_to = last;
+        --itr_to;
+
+        // the iterator that will be read from
+        Iterator itr_from = last;
+        --itr_from;
+        --itr_from;
+
+        while(itr_to != first){
+            *itr_to = std::move(*itr_from);
+            --itr_to;
+            --itr_from;
+        }
+        
+        // assign the first value
+        *first = std::move(v0);
     }
 
 }

@@ -20,10 +20,15 @@
 #include <controlpp/algorithm.hpp>
 #include <controlpp/conversion.hpp>
 
+/**
+ * @defgroup BodeUtilities Bode Utilities
+ * @brief Utilities to work with Bode data
+ */
+
 namespace controlpp{
 
     /**
-     * \brief Frequency response data
+     * @brief Frequency response data
      * 
      * This class holds frequency response data and can be used to either plot 
      * a transfer function or to do data driven design.
@@ -31,9 +36,8 @@ namespace controlpp{
      * It holds frequencies and complplex magnitudes and allows arithmetic calculations
      * like transfer functions do.
      * 
-     * 
-     * 
-     * \tparam T The data type of the class. Typically `float`, `double` or a custom fixpoint type
+     * @tparam T The data type of the class. Typically `float`, `double` or a custom fixpoint type
+     * @see BodeUtilities
      */
     template<class T = double>
     class Bode{
@@ -124,6 +128,7 @@ namespace controlpp{
             /**
              * \brief Returns a const-reference to the frequency vector in rad
              * \returns const-reference to an eigen vector
+             * @see frequencies_hz(const Bode<T>& bode)
              */
             const Eigen::Vector<T, Eigen::Dynamic>& frequencies() const {
                 return this->omegas_;
@@ -132,6 +137,7 @@ namespace controlpp{
             /**
              * \brief Returns a reference to the frequency vector in rad
              * \returns const-reference to an eigen vector
+             * @see frequencies_hz(const Bode<T>& bode)
              */
             Eigen::Vector<T, Eigen::Dynamic>& frequencies() {
                 return this->omegas_;
@@ -235,7 +241,7 @@ namespace controlpp{
              * @see unwarp_tustin
              */
             void prewarp_tustin(const T& Ts){
-                this->freqs_ = controlpp::prewarp_tustin(this->freqs_, Ts);
+                this->omegas_ = controlpp::prewarp_tustin(this->omegas_, Ts);
             }
 
             /**
@@ -252,7 +258,7 @@ namespace controlpp{
              * @see prewarp_tustin()
              */
             void unwarp_tustin(const T& Ts){
-                this->freqs_ = controlpp::unwarp_tustin(this->freqs_, Ts);
+                this->omegas_ = controlpp::unwarp_tustin(this->omegas_, Ts);
             }
 
             /**
@@ -405,12 +411,36 @@ namespace controlpp{
             }
     };
 
+    /**
+     * @brief Prewarps the frequency axis of a bode plot for tustin discretisation
+     * 
+     * Note that this will allocate a new Bode object.
+     * 
+     * @ingroup BodeUtilities
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data to prewarp
+     * @param Ts The sample time that also the tustin discretisation is using.
+     * @return A bode plot with prewarped frequencies
+     * @see unwarp_tustin(const Bode<T>& bode, const T& Ts)
+     */
     template<class T>
     Bode<T> prewarp_tustin(const Bode<T>& bode, const T& Ts){
         Bode<T> result(controlpp::prewarp_tustin(bode.frequencies(), Ts), bode.values());
         return result;
     }
 
+    /**
+     * @brief Unwarps the frequency axis of a bode plot for tustin discretisation
+     * 
+     * Note that this will allocate a new Bode object.
+     * 
+     * @ingroup BodeUtilities
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data to unwarp
+     * @param Ts The sample time that also the tustin discretisation is using.
+     * @return A bode plot with unwarped frequencies
+     * @see prewarp_tustin(const Bode<T>& bode, const T& Ts)
+     */
     template<class T>
     Bode<T> unwarp_tustin(const Bode<T>& bode, const T& Ts){
         Bode<T> result(controlpp::unwarp_tustin(bode.frequencies(), Ts), bode.values());
@@ -418,8 +448,14 @@ namespace controlpp{
     }
 
     /**
-     * \brief Converts and returns the frequency vector in Hz
-     * \returns const-reference to an eigen vector
+     * @brief Converts and returns the frequency vector in rad
+     * 
+     * Note that this will use a const reference from the bode data and will not allocate a new vector.
+     * 
+     * @param bode The bode data to get the frequencies from
+     * @ingroup BodeUtilities
+     * @returns const-reference to an eigen vector
+     * @see frequencies_hz(const Bode<T>& bode)
      */
     template<class T>
     const Eigen::Vector<T, Eigen::Dynamic>& frequencies(const Bode<T>& bode) {
@@ -427,24 +463,60 @@ namespace controlpp{
     }
 
     /**
-     * \brief Converts and returns the frequency vector in Hz
-     * \returns const-reference to an eigen vector
+     * @brief Converts and returns the frequency vector in Hz
+     * 
+     * Note that this will allocate a new vector.
+     * 
+     * @param bode The bode data to get the frequencies from
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @returns const-reference to an eigen vector
+     * @ingroup BodeUtilities
      */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> frequencies_hz(const Bode<T>& bode) {
-        return (bode.frequencies() / 2) * std::numbers::inv_pi_v<T>;
+        return bode.frequencies() * std::numbers::inv_pi_v<T> / 2;
     }
 
+    /**
+     * @brief Converts and returns the frequency vector in rad/s
+     * 
+     * Note that this will allocate a new vector.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the real parts of the complex magnitudes
+     * @ingroup BodeUtilities
+     */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> real(const Bode<T>& bode){
         return bode.values().real();
     }
 
+    /**
+     * @brief Converts and returns the frequency vector in rad/s
+     * 
+     * Note that this will allocate a new vector.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the imaginary parts of the complex magnitudes
+     * @ingroup BodeUtilities
+     */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> imag(const Bode<T>& bode){
         return bode.values().imag();
     }
 
+    /**
+     * @brief Returns the complex values of the bode data
+     * 
+     * Will allocate a new vector and return it.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the complex magnitudes
+     * @ingroup BodeUtilities
+     */
     template<class T>
     const Eigen::Vector<T, Eigen::Dynamic>& values(const Bode<T>& bode) {
         return bode.values();
@@ -453,7 +525,14 @@ namespace controlpp{
     /**
      * @brief Creates a vector containing the absolute magnitudes
      * 
-     * Calculates the absolute magnitudes from the complex magnitudes 
+     * Calculates the absolute magnitudes from the complex magnitudes.
+     * 
+     * Will allocate a new vector and return it.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the absolute magnitudes
+     * @ingroup BodeUtilities
      */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> magnitudes(const Bode<T>& bode) {
@@ -463,7 +542,14 @@ namespace controlpp{
     /**
      * @brief Creates a vector of magnitudes in dB
      * 
-     * Calculates the magnitudes from the complex magnitudes 
+     * Calculates the magnitudes from the complex magnitudes.
+     * 
+     * Will allocate a new vector and return it. 
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the magnitudes in dB
+     * @ingroup BodeUtilities
      */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> magnitudes_dB(const Bode<T>& bode) {
@@ -474,6 +560,13 @@ namespace controlpp{
      * @brief Creates a vector of phases in rad
      * 
      * Calculates the phases from the complex magnitudes
+     * 
+     * Will allocate a new vector.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the phases in rad
+     * @ingroup BodeUtilities
      */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> phases(const Bode<T>& bode) {
@@ -485,6 +578,14 @@ namespace controlpp{
      * @brief Creates a vector of phases in degree
      * 
      * Calculates the phases from the complex magnitudes
+     * 
+     * Will allocate a new vector.
+     * 
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param bode The bode data
+     * @return A vector containing the phases in degree
+     * @ingroup BodeUtilities
+     * 
      */
     template<class T>
     Eigen::Vector<T, Eigen::Dynamic> phases_deg(const Bode<T>& bode) {
@@ -507,6 +608,7 @@ namespace controlpp{
      * @param time_step The timestep for the integration
      * @param simulation_time The simulation time over which to simulate. This is the minimal simulation time and may be overstepped by one timestep.
      * @return A timeseries containing the impulse frequency response of the bode data
+     * @ingroup BodeUtilities
      */
     template<class T>
     TimeSeries<T> impulse(const Bode<T>& bode, const T& time_step, const T& simulation_time){
@@ -630,6 +732,8 @@ namespace controlpp{
      * \returns a time series
      * 
      * \see template<class T> TimeSeries<T> step(const Bode<T>& bode)
+     * 
+     * @ingroup BodeUtilities
      */
     template<class T>
     TimeSeries<T> impulse(const Bode<T>& bode){
@@ -653,6 +757,9 @@ namespace controlpp{
      * @param out The output time-series where the result will be written to
      * @param in The input time-series that will be integrated over
      * @param v0 The start of the integration. Integration constant C in other nomiclatures.
+     * 
+     * @ingroup TimeSeriesUtilities
+     * @ingroup BodeUtilities
      */
     template<class T>
     void integrate(TimeSeries<T>& out, const TimeSeries<T>& in, const T& v0 = T(0)){
@@ -675,6 +782,7 @@ namespace controlpp{
      * @param in The input time-series that will be integrated over
      * @param v0 The start of the integration. Integration constant C in other nomiclatures.
      * @returns The integated time-series
+     * @ingroup TimeSeriesUtilities
      */
     template<class T>
     TimeSeries<T> integrate(const TimeSeries<T>& in, const T& v0 = T(0)){
@@ -694,6 +802,9 @@ namespace controlpp{
      * @tparam T The data type. Typically `float` or `double`.
      * @param bode The step response of the system
      * @return A TimeSeries containing time-value pairs
+     * 
+     * @ingroup TimeSeriesUtilities
+     * @ingroup BodeUtilities
      */
     template<class T>
     TimeSeries<T> step(const Bode<T>& bode){
@@ -709,6 +820,9 @@ namespace controlpp{
      * @param time_step The time step used for the time series data
      * @param simulation_time The time until the step response will be calculated (+1 for rounding).
      * @return The TimeSeries step response of the bode data
+     * 
+     * @ingroup TimeSeriesUtilities
+     * @ingroup BodeUtilities
      */
     template<class T>
     TimeSeries<T> step(const Bode<T>& bode, const T& time_step, const T& simulation_time){
@@ -720,6 +834,14 @@ namespace controlpp{
     // operator +
     //-----------------
 
+    /**
+     * @brief Adds two bode plots together
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param l Bode data on the left side of the addition operator
+     * @param r Bode data on the right side of the addition operator
+     * @return Bode data containing the sum of the two bode plots
+     * @ingroup BodeUtilities
+     */
     template<class T>
     Bode<T> operator+ (const Bode<T>& l, const Bode<T>& r){
         assert(l.size() == r.size());
@@ -728,34 +850,81 @@ namespace controlpp{
         return Bode<T>(l.frequencies(), result);
     }
 
+    /**
+     * @brief Adds a bode plot and a scalar value together
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @tparam T2 The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param l Bode data on the left side of the addition operator
+     * @param r A scalar value on the right side of the addition operator
+     * @return Bode data containing the sum of the bode plot and the scalar value
+     * @ingroup BodeUtilities
+     */
     template<class T, std::convertible_to<T> T2>
     Bode<T> operator+ (const Bode<T>& l, const T2& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + static_cast<std::complex<T>>(l)(r);
         return Bode<T>(l.frequencies(), result);
     }
 
+    /**
+     * @brief Adds a scalar value and a bode plot together
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @tparam T2 The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param l A scalar value on the left side of the addition operator
+     * @param r Bode data on the right side of the addition operator
+     * @return Bode data containing the sum of the scalar value and the bode plot
+     * @ingroup BodeUtilities
+     */
     template<class T, std::convertible_to<T> T2>
     Bode<T> operator+ (const T2& l, const Bode<T>& r){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = static_cast<std::complex<T>>(l) + r.values().array();
         return Bode<T>(r.frequencies(), result);
     }
 
+    /**
+     * @brief Negates the bode plot values
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @param b Bode data to negate
+     * @return Bode data containing the negated values of the bode plot
+     * @ingroup BodeUtilities
+     */
     template<class T>
     Bode<T> operator+ (const Bode<T>& b){
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = +b.values().array();
         return Bode<T>(b.frequencies(), result);
     }
 
+    /**
+     * @brief Adds a bode plot and a continuous transfer function together
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @tparam NumOrder The order of the numerator polynomial of the continuous transfer function
+     * @tparam DenOrder The order of the denominator polynomial of the continuous transfer function
+     * @param l Bode data on the left side of the addition operator
+     * @param r A continuous transfer function on the right side of the addition operator
+     * @return Bode data containing the sum of the bode plot and the continuous transfer function
+     * @ingroup BodeUtilities
+     * @ingroup ContinuousTransferFunctionUtilities
+     */
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator+ (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_hz(l.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() + r_mags.array();
         return Bode<T>(l.frequencies(), result);
     }
 
+    /**
+     * @brief Adds a continuous transfer function and a bode plot together
+     * @tparam T The value type used to represent numbers. Usually `float`, `double` or a custom fixpoint type
+     * @tparam NumOrder The order of the numerator polynomial of the continuous transfer function
+     * @tparam DenOrder The order of the denominator polynomial of the continuous transfer function
+     * @param l A continuous transfer function on the left side of the addition operator
+     * @param r Bode data on the right side of the addition operator
+     * @return Bode data containing the sum of the continuous transfer function and the bode plot
+     * @ingroup BodeUtilities
+     * @ingroup ContinuousTransferFunctionUtilities
+     */
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator+ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_hz(r.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies(r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() + l.values().array();
         return Bode<T>(r.frequencies(), result);
     }
@@ -791,14 +960,14 @@ namespace controlpp{
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator- (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_hz(l.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() - r_mags.array();
         return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator- (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_hz(r.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies(r.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() - l.values().array();
         return Bode<T>(r.frequencies(), result);
     }
@@ -828,15 +997,15 @@ namespace controlpp{
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator* (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_hz(l.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies(l.frequencies());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() * r_mags.array();
         return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator* (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies_hz(r.frequencies());
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() * l.values().array();
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> l_mags = l.eval_frequencies(r.frequencies());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l_mags.array() * r.values().array();
         return Bode<T>(r.frequencies(), result);
     }
 
@@ -875,14 +1044,14 @@ namespace controlpp{
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator/ (const Bode<T>& l, const ContinuousTransferFunction<T, NumOrder, DenOrder>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies_hz(l.frequencies().array());
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> r_mags = r.eval_frequencies(l.frequencies().array());
         const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.values().array() / r_mags.array();
         return Bode<T>(l.frequencies(), result);
     }
 
     template<class T, int NumOrder, int DenOrder>
     Bode<T> operator/ (const ContinuousTransferFunction<T, NumOrder, DenOrder>& l, const Bode<T>& r){
-        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.eval_frequencies_hz(r.frequencies().array()) / l.values().array();
+        const Eigen::Vector<std::complex<T>, Eigen::Dynamic> result = l.eval_frequencies(r.frequencies().array()) / r.values().array();
         return Bode<T>(r.frequencies(), result);
     }
 
