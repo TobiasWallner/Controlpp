@@ -7,11 +7,14 @@ Controlpp
 
 A C++ library for control systems: from classic transfer-function workflows to state-space, estimators, and optimal control. Design continuous or discrete controllers, run time-variant logic, and bring in LQR, Kalman filtering, and even H₂ synthesis building blocks.
 
+- Documentation: https://tobiaswallner.github.io/Controlpp/
+- GitHub Repository: https://github.com/TobiasWallner/Controlpp
+
 Features:
 ---------
 
 - **Performance**
-  Supports [Vectorisation](https://eigen.tuxfamily.org/index.php?title=FAQ#Vectorization) for: SSE2, SSE3, SSE4, AVX, AVX2, AVX512, AltiVec/VSX, ARM NEON and now S390x SIMD (ZVector) through the [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library.
+  Supports Vectorisation for: SSE2, SSE3, SSE4, AVX, AVX2, AVX512, AltiVec/VSX, ARM NEON and now S390x SIMD (ZVector) through the [Eigen](https://eigen.tuxfamily.org/index.php?title=Main_Page) library.
 - **Classical Control, Transfer Functions and State Space**  
   Work directly with continuous and discrete transfer functions, numerator/denominator polynomials, zeros/poles, and conversions from and to state space realisations.
 - **Time-Variant Controllers**  
@@ -70,66 +73,4 @@ int main(){
     const auto PT2_z = discretise_zoh(PT2_ss, Ts);
 }
 
-```
-
----- 
-
-### Known Issues:
-- `-W-array-bounds`
-  might get triggered by Eigen's use of SIMD instructions. The operations are all safe and heavily tested by Eigen. It might occur when for example a vector with a size of 3 is being used with a SIMD instruction that uses 4 values. To get rid of the warning, use: `-Wno-array-bounds`
-- `-W-maybe-uninitialized`
-  Might get triggered by Eigen's solvers if the compiler fails to proove that an uninitialised value is not used. To get rid of the warning, use: `-Wno-maybe-uninitialized`
-
-----
-
-### Set your CMake default compiler
-
-#### On Linux:
-Add to `~/.bashrc`, `~/.zshrc` or the config script of your terminal:
-```
-export CC=/path/to/gcc
-export CXX=/path/to/g++
-```
-
-likely path: `/usr/bin/`.
-
-#### On Windows:
-add the environment variables
-```
-setx CC "\path\to\gcc.exe"
-setx CXX "\path\to\g++.exe"
-```
-
-likely path: `C:\mingw64\bin\` or `C:\Program Files\LLVM\bin\`.
-
-----
-
-###  Set your CMake default generator
-
-#### On Linux:
-Add to `~/.bashrc`, `~/.zshrc` or the config script of your terminal:
-```
-export CMAKE_GENERATOR="Ninja"
-```
-
-#### On Windows:
-Add the environment variable
-```
-setx CMAKE_GENERATOR "Ninja"
-```
-
-----
-
-### Set your default CPM Package Manager library cache
-
-#### On Linux:
-Add to `~/.bashrc`, `~/.zshrc` or the config script of your terminal:
-```
-export CPM_SOURCE_CACHE=$HOME/.cache/CPM
-```
-
-#### On Windows:
-Add the environment variable
-```
-setx CPM_SOURCE_CACHE "%USERPROFILE%\.cache\CPM"
 ```

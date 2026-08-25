@@ -287,7 +287,7 @@ namespace controlpp{
 	 * given the vector:
 	 * 
 	 * \f[
-	 * \vec{v} = \left[a_0, a_1, a_2, \hdots, a_n \right]
+	 * \vec{v} = \left[a_0, a_1, a_2, \cdots , a_n \right]
 	 * \f]
 	 * 
 	 * creates the companion matrix:

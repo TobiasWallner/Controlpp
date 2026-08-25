@@ -20,3 +20,10 @@
 #include <controlpp/analysis.hpp>
 #include <controlpp/Bode.hpp>
 #include <controlpp/Generator.hpp>
+
+/**
+ * @brief The main namespace for the Control++ library
+ * 
+ * This namespace contains all the classes, functions, and utilities provided by the Control++ library for control systems analysis and design.
+ */
+namespace controlpp{}

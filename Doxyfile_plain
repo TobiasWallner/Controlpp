@@ -1373,7 +1373,7 @@ HTML_FILE_EXTENSION    = .html
 # of the possible markers and block names see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_HEADER            = external/doxygen-awesome/doxygen-custom/theme-robot.css
+HTML_HEADER            =
 
 
 # The HTML_FOOTER tag can be used to specify a user-defined HTML footer for each
@@ -1414,13 +1414,13 @@ HTML_STYLESHEET        =
 # documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  = external/doxygen-awesome/doxygen-awesome.css \
-                         external/doxygen-awesome/doxygen-custom/header.html \
-                         external/doxygen-awesome/doxygen-awesome-sidebar-only.css \
-                         external/doxygen-awesome/doxygen-awesome-sidebar-only-darkmode-toggle.css \
-                         external/doxygen-awesome/doxygen-custom/theme-round.css \
-                         external/doxygen-awesome/doxygen-awesome-interactive-toc.js \
-                         external/doxygen-awesome/doxygen-awesome-tabs.js
+HTML_EXTRA_STYLESHEET  = 
+                         
+                         
+                         
+                         
+                         
+                         
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1430,12 +1430,12 @@ HTML_EXTRA_STYLESHEET  = external/doxygen-awesome/doxygen-awesome.css \
 # files will be copied as-is; there are no commands or markers available.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_FILES       = external/doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
-                         external/doxygen-awesome/doxygen-awesome-fragment-copy-button.js \
-                         external/doxygen-awesome/doxygen-awesome-paragraph-link.js \
-                         external/doxygen-awesome/doxygen-custom/toggle-alternative-theme.js \
-                         external/doxygen-awesome/doxygen-awesome-interactive-toc.js \
-                         external/doxygen-awesome/doxygen-awesome-tabs.js
+HTML_EXTRA_FILES       = 
+                         
+                         
+                         
+                         
+                         
 
 # The HTML_COLORSTYLE tag can be used to specify if the generated HTML output
 # should be rendered with a dark or light theme.

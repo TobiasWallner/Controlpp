@@ -45,7 +45,7 @@ namespace controlpp{
 	}
 
 	/**
-	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
+	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{M}} \f$
 	 * 
 	 * Uses a scaled taylor approximation for the exponential.
 	 * 
@@ -254,7 +254,7 @@ namespace controlpp{
 	}
 
 	/**
-	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{\M}} \f$
+	 * \brief Calculates the matrix exponent \f$ \exp{\mathbf{M}} \f$
 	 * 
 	 * Uses a scaled pade approximation for the exponential.
 	 * 
