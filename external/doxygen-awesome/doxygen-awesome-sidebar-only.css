@@ -56,14 +56,6 @@ html {
         padding-right: 0;
     }
 
-    .ui-resizable-handle {
-        display: none;
-    }
-
-    .ui-resizable-e {
-        width: 0;
-    }
-
     #nav-path {
         position: fixed;
         right: 0;
