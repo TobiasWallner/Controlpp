@@ -85,7 +85,7 @@ OUTPUT_DIRECTORY       = docs
 # control the number of sub-directories.
 # The default value is: NO.
 
-CREATE_SUBDIRS         = YES
+CREATE_SUBDIRS         = NO
 
 # Controls the number of sub-directories that will be created when
 # CREATE_SUBDIRS tag is set to YES. Level 0 represents 16 directories, and every
@@ -534,7 +534,7 @@ TIMESTAMP              = NO
 # normally produced when WARNINGS is set to YES.
 # The default value is: NO.
 
-EXTRACT_ALL            = NO
+EXTRACT_ALL            = YES
 
 # If the EXTRACT_PRIVATE tag is set to YES, all private members of a class will
 # be included in the documentation.
@@ -1373,7 +1373,8 @@ HTML_FILE_EXTENSION    = .html
 # of the possible markers and block names see the documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_HEADER            =
+HTML_HEADER            = external/doxygen-awesome/doxygen-custom/theme-robot.css
+
 
 # The HTML_FOOTER tag can be used to specify a user-defined HTML footer for each
 # generated HTML page. If the tag is left blank Doxygen will generate a standard
@@ -1395,7 +1396,7 @@ HTML_FOOTER            =
 # obsolete.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_STYLESHEET        =
+HTML_STYLESHEET        = 
 
 # The HTML_EXTRA_STYLESHEET tag can be used to specify additional user-defined
 # cascading style sheets that are included after the standard style sheets
@@ -1413,7 +1414,13 @@ HTML_STYLESHEET        =
 # documentation.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_STYLESHEET  =
+HTML_EXTRA_STYLESHEET  = external/doxygen-awesome/doxygen-awesome.css \
+                         external/doxygen-awesome/doxygen-custom/header.html \
+                         external/doxygen-awesome/doxygen-awesome-sidebar-only.css \
+                         external/doxygen-awesome/doxygen-awesome-sidebar-only-darkmode-toggle.css \
+                         external/doxygen-awesome/doxygen-custom/theme-round.css \
+                         external/doxygen-awesome/doxygen-awesome-interactive-toc.js \
+                         external/doxygen-awesome/doxygen-awesome-tabs.js
 
 # The HTML_EXTRA_FILES tag can be used to specify one or more extra images or
 # other source files which should be copied to the HTML output directory. Note
@@ -1423,7 +1430,12 @@ HTML_EXTRA_STYLESHEET  =
 # files will be copied as-is; there are no commands or markers available.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_EXTRA_FILES       =
+HTML_EXTRA_FILES       = external/doxygen-awesome/doxygen-awesome-darkmode-toggle.js \
+                         external/doxygen-awesome/doxygen-awesome-fragment-copy-button.js \
+                         external/doxygen-awesome/doxygen-awesome-paragraph-link.js \
+                         external/doxygen-awesome/doxygen-custom/toggle-alternative-theme.js \
+                         external/doxygen-awesome/doxygen-awesome-interactive-toc.js \
+                         external/doxygen-awesome/doxygen-awesome-tabs.js
 
 # The HTML_COLORSTYLE tag can be used to specify if the generated HTML output
 # should be rendered with a dark or light theme.
@@ -1447,7 +1459,9 @@ HTML_COLORSTYLE        = AUTO_LIGHT
 # Minimum value: 0, maximum value: 359, default value: 220.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_HUE    = 209
+
+
 
 # The HTML_COLORSTYLE_SAT tag controls the purity (or saturation) of the colors
 # in the HTML output. For a value of 0 the output will use gray-scales only. A
@@ -1466,7 +1480,7 @@ HTML_COLORSTYLE_SAT    = 100
 # Minimum value: 40, maximum value: 240, default value: 80.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-HTML_COLORSTYLE_GAMMA  = 80
+HTML_COLORSTYLE_GAMMA  = 113
 
 # If the HTML_DYNAMIC_MENUS tag is set to YES then the generated HTML
 # documentation will contain a main index with vertical navigation menus that
@@ -1747,7 +1761,7 @@ ECLIPSE_DOC_ID         = org.doxygen.Project
 # The default value is: YES.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-DISABLE_INDEX          = YES
+DISABLE_INDEX          = NO
 
 # The GENERATE_TREEVIEW tag is used to specify whether a tree-like index
 # structure should be generated to display hierarchical information. If the tag
@@ -1765,6 +1779,16 @@ DISABLE_INDEX          = YES
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
 GENERATE_TREEVIEW      = YES
+
+# When GENERATE_TREEVIEW is set to YES, the PAGE_OUTLINE_PANEL option determines
+# if an additional navigation panel is shown at the right hand side of the
+# screen, displaying an outline of the contents of the main page, similar to
+# e.g. https://developer.android.com/reference If GENERATE_TREEVIEW is set to
+# NO, this option has no effect.
+# The default value is: YES.
+# This tag requires that the tag GENERATE_HTML is set to YES.
+
+PAGE_OUTLINE_PANEL     = YES
 
 # When both GENERATE_TREEVIEW and DISABLE_INDEX are set to YES, then the
 # FULL_SIDEBAR option determines if the side bar is limited to only the treeview
@@ -1792,14 +1816,14 @@ ENUM_VALUES_PER_LINE   = 4
 # enumeration values besides the enumeration mnemonics.
 # The default value is: NO.
 
-SHOW_ENUM_VALUES       = NO
+SHOW_ENUM_VALUES       = YES
 
 # If the treeview is enabled (see GENERATE_TREEVIEW) then this tag can be used
 # to set the initial width (in pixels) of the frame in which the tree is shown.
 # Minimum value: 0, maximum value: 1500, default value: 250.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-TREEVIEW_WIDTH         = 250
+TREEVIEW_WIDTH         = 335
 
 # If the EXT_LINKS_IN_WINDOW option is set to YES, Doxygen will open links to
 # external symbols imported via tag files in a separate window.
