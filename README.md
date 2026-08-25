@@ -7,6 +7,9 @@ Controlpp
 
 A C++ library for control systems: from classic transfer-function workflows to state-space, estimators, and optimal control. Design continuous or discrete controllers, run time-variant logic, and bring in LQR, Kalman filtering, and even H₂ synthesis building blocks.
 
+- Documentation: https://tobiaswallner.github.io/Controlpp/
+- GitHub Repository: https://github.com/TobiasWallner/Controlpp
+
 Features:
 ---------
 
