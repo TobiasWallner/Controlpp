@@ -1,37 +1,41 @@
-name: build-and-publish-docs
+name: Build and publish documentation
 
 on:
   workflow_run:
     workflows:
       - gcc-build-and-test
       - clang-build-and-test
-    types:
-      - completed
+    types: [completed]
+
+  workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-  actions: read
 
 jobs:
   docs:
-    # Only run when both build workflows have completed successfully
     if: >
+      github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
 
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow.run.head_sha || github.sha }}
 
       - name: Install Doxygen
         run: |
-          sudo apt update
-          sudo apt install -y doxygen graphviz
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
 
       - name: Generate documentation
         run: doxygen Doxyfile
@@ -45,4 +49,5 @@ jobs:
           path: docs
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
