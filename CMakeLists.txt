@@ -118,7 +118,7 @@ if (CONTROLPP_COMPILE_TEST)
     endif()
 
     include(GoogleTest)
-    add_test(NAME controlpp_tests COMMAND controlpp_tests)
+    gtest_discover_tests(controlpp_tests) 
 
 endif()
 

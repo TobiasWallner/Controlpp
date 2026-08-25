@@ -5,6 +5,7 @@
 
 namespace controlpp
 {
+
     /**
      * \brief Creates a continuous transfer function approximating a delay using the pade approximation
      * 
@@ -39,6 +40,5 @@ namespace controlpp
 
         return result;
     }
-
 
 } // namespace controlpp

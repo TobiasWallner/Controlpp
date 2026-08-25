@@ -7,6 +7,7 @@
 
 // controlpp
 #include <controlpp/math.hpp>
+#include <controlpp/expm.hpp>
 
 #include <controlpp/ContinuousStateSpace.hpp>
 #include <controlpp/ContinuousTransferFunction.hpp>

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <cmath>
 
-#include "controlpp/math.hpp"
+#include "controlpp/expm.hpp"
 
 TEST(PadeTest, Coefficients)
 {
