@@ -410,7 +410,7 @@ namespace controlpp{
 		int si = 0; // stable eigenvalue iterator
 		int ei = 0; // eigen value iterator
 		for(; (si < N/2) && (ei < N); ++ei){
-			if(std::abs(eigvals(ei)) <= 1){// only stable ones
+			if(std::abs(eigvals(ei)) < 1){// only stable ones
 				StableEigenVecs.col(si) = eigvecs.col(ei);
 				++si;
 			}
@@ -657,6 +657,8 @@ namespace controlpp{
 	 * \tparam NStates Number of states.
 	 * \tparam NInputs Number of control inputs.
 	 * 
+	 * @returns The solution of the DARE as an Eigen::Matrix with the dimensions `NStates x NStates`.
+	 * 
 	 * @see hamilton_solver
 	 */
 	template<class T, int NStates, int NInputs,
@@ -665,7 +667,7 @@ namespace controlpp{
 			int ROpt, int RMaxR, int RMaxC,
 			int QOpt, int QMaxR, int QMaxC
   	>
-	Eigen::Matrix<T, NStates, NStates> dare_solver(
+	Eigen::Matrix<T, NStates, NStates> dare_eigenvector_solver(
 		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
 		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
 		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
@@ -680,6 +682,218 @@ namespace controlpp{
 		S.bottomLeftCorner(NStates, NStates) = - aq;
 		S.bottomRightCorner(NStates, NStates) = At_qr.solve(identity_like(A));
 		return symplectic_solver(S);
+	}
+
+	/**
+	 * @brief Builds the symplectic pencil matrix H for the discrete algebraic riccati equation (DARE)
+	 * 
+	 * To solve the DARE:
+     * 
+	 * \f[
+	 * A^\top X A - A^\top X B (R + B^\top X B)^{-1} B^\top X A + Q = 0
+	 * \f]
+	 * 
+	 * we can construct the symplectic pencil matrix H, which is used in the solution process.
+	 * 
+	 * the pencil is given by:
+	 * 
+	 * \f[
+	 * H - \lambda J
+	 * \f]
+	 * 
+	 * This function constructs the matrix H matrix:
+	 * 
+	 * \f[
+	 * \begin{bmatrix}
+	 *    A & 0 & B \\
+	 *   -Q & I & 0 \\
+	 *    0 & 0 & R
+	 * \end{bmatrix}
+	 * \f]
+	 * 
+	 * @see build_dare_symplectic_pencil_J
+	 * 
+	 * @tparam T 
+	 * @tparam NStates 
+	 * @tparam NInputs 
+	 * @param A 
+	 * @param B 
+	 * @param Q 
+	 * @param R 
+	 * @return The symplectic pencil matrix H for the DARE as an Eigen::Matrix with the dimensions `(2*NStates + NInputs) x (2 NStates + NInputs)`.
+	 */
+	template<class T, int NStates, int NInputs,
+			int AOpt, int AMaxR, int AMaxC,
+			int BOpt, int BMaxR, int BMaxC,
+			int ROpt, int RMaxR, int RMaxC,
+			int QOpt, int QMaxR, int QMaxC
+  	>
+	Eigen::Matrix<T, 2*NStates + NInputs, 2*NStates + NInputs> build_dare_symplectic_pencil_H(
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
+		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
+		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R
+	){
+		constexpr int H_rows = 2*NStates + NInputs;
+		constexpr int H_cols = 2*NStates + NInputs;
+
+		// build the matrix:
+		// [  A   0   B ]
+		// [ -Q   I   0 ]
+		// [  0   0   R ]
+		Eigen::Matrix<T, H_rows, H_cols> H;
+		H.setZero();
+		H.template block<NStates, NStates>(0, 0) = A;
+		H.template block<NStates, NInputs>(0, 2 * NStates) = B;
+		H.template block<NStates, NStates>(NStates, 0) = -Q;
+		H.template block<NStates, NStates>(NStates, NStates).setIdentity();
+		H.template block<NInputs, NInputs>(2 * NStates, 2 * NStates) = R;
+
+		return H;
+	}
+
+	/**
+	 * @brief Builds the symplectic pencil matrix J for the discrete algebraic riccati equation (DARE)
+	 * 
+	 * To solve the DARE:
+     * 
+	 * \f[
+	 * A^\top X A - A^\top X B (R + B^\top X B)^{-1} B^\top X A + Q = 0
+	 * \f]
+	 * 
+	 * we can construct the symplectic pencil matrix J, which is used in the solution process.
+	 * 
+	 * the pencil is given by:
+	 * 
+	 * \f[
+	 * H - \lambda J
+	 * \f]
+	 * 
+	 * This function constructs the matrix J matrix:
+	 * 
+	 * \f[
+	 * \begin{bmatrix}
+	 *   I & 0 & B \\
+	 *   0 & A^T & 0 \\
+	 *   0 & -B^T & 0
+	 * \end{bmatrix}
+	 * \f]
+	 * 
+	 * @see build_dare_symplectic_pencil_H
+	 * 
+	 * @tparam T 
+	 * @tparam NStates 
+	 * @tparam NInputs 
+	 * @param A 
+	 * @param B 
+	 * @param Q 
+	 * @param R 
+	 * @return The symplectic pencil matrix J for the DARE as an Eigen::Matrix with the dimensions `(2 NStates + NInputs) x (2 NStates + NInputs)`.
+	 */
+	template<class T, int NStates, int NInputs,
+			int AOpt, int AMaxR, int AMaxC,
+			int BOpt, int BMaxR, int BMaxC
+  	>
+	Eigen::Matrix<T, 2*NStates + NInputs, 2*NStates + NInputs> build_dare_symplectic_pencil_J(
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B
+	){	
+		constexpr int J_rows = NStates + NStates + NInputs;
+		constexpr int J_cols = NStates + NStates + NInputs;
+		
+		// build the matrix:
+		// [ I   0    B]
+		// [ 0   A^T  0]
+		// [ 0  -B^T  0]
+		Eigen::Matrix<T, J_rows, J_cols> J;
+		J.setZero();
+		J.template block<NStates, NStates>(0, 0).setIdentity();
+		J.template block<NStates, NInputs>(0, 2 * NStates) = B;
+		J.template block<NStates, NStates>(NStates, NStates) = A.transpose();
+		J.template block<NInputs, NStates>(2 * NStates, NStates) = -B.transpose();
+
+		return J;
+	}
+
+	
+
+	/**
+	 * @brief Solves the discrete time riccati equation (DARE)
+	 * 
+	 * This function computes the stabilizing symmetric solution of the DARE:
+     * 
+	 * \f[
+	 * A^\top X A - A^\top X B (R + B^\top X B)^{-1} B^\top X A + Q = 0
+	 * \f]
+	 * 
+	 * 
+	 * ------
+	 * 
+	 * This algorithm uses the ordered QZ decomposition with generalized Schur form to solve the DARE.
+	 * 
+	 * \tparam T Scalar type (e.g., `double`, `float`).
+	 * \tparam NStates Number of states.
+	 * \tparam NInputs Number of control inputs.
+	 * 
+	 * \param A State matrix (\f$n \times n\f$).
+	 * \param B Input matrix (\f$n \times m\f$).
+	 * \param R Input weighting matrix (\f$m \times m\f$, symmetric positive definite).
+	 * \param Q State weighting matrix (\f$n \times n\f$, symmetric positive semidefinite).
+	 * 
+	 * @returns The solution of the DARE as an Eigen::Matrix with the dimensions `NStates x NStates`.
+	 * @throws std::runtime_error if QZ failed to converge
+	 */
+	template<class T, int NStates, int NInputs,
+			int AOpt, int AMaxR, int AMaxC,
+			int BOpt, int BMaxR, int BMaxC,
+			int ROpt, int RMaxR, int RMaxC,
+			int QOpt, int QMaxR, int QMaxC
+  	>
+	Eigen::Matrix<T, NStates, NStates> dare_qz_solver(
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
+		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
+		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R
+	){
+		// 1. Build the symplectic pencil matrices H and J
+		constexpr int PencilSize = 2 * NStates + NInputs;
+		using Pencil = Eigen::Matrix<T, PencilSize, PencilSize>;
+
+		const Pencil H = build_dare_symplectic_pencil_H(A, B, Q, R);
+
+		const Pencil J = build_dare_symplectic_pencil_J(A, B);
+
+		// 2. Solve the generalized eigenvalue problem H v = lambda J v
+		Eigen::RealQZ<Pencil> qz;
+		qz.compute(H, J);
+
+		if(qz.info() != Eigne::Success){
+			// QZ failed to converge
+			throw std::runtime_error("Controlpp: dare_qz_solver(): QZ failed to converge.");
+		}
+
+		Pencil S = qz.matrixS(); // is quasi-upper-triangular
+		Pencil Tmat = qz.matrixT(); // is upper-triangular
+		Pencil Qz = qz.matrixQ(); // contains the left generalized Schur vectors
+		Pencil Z = qz.matrixZ(); // contains the right generalized Schur vectors
+
+		// 3. Reorder
+
+	}
+
+	template<class T, int NStates, int NInputs,
+			int AOpt, int AMaxR, int AMaxC,
+			int BOpt, int BMaxR, int BMaxC,
+			int ROpt, int RMaxR, int RMaxC,
+			int QOpt, int QMaxR, int QMaxC
+  	>
+	Eigen::Matrix<T, NStates, NStates> dare_solver(
+		const Eigen::Matrix<T, NStates, NStates, AOpt, AMaxR, AMaxC>& A,
+		const Eigen::Matrix<T, NStates, NInputs, BOpt, BMaxR, BMaxC>& B,
+		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
+		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R
+	){
+		return dare_eigenvector_solver(A, B, Q, R);
 	}
 
 	/**
