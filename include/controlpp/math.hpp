@@ -815,7 +815,207 @@ namespace controlpp{
 		return J;
 	}
 
+	/**
+	 * @brief Determines the block size of a quasi-upper-triangular matrix S at a given block start index.
+	 * 
+	 * Asserts: That the block_start is within the valid range of the matrix S.
+	 * 
+	 * @tparam T The value type of the matrix elements (e.g., `float`, `double`).
+	 * @tparam Rows The number of rows in the matrix S.
+	 * @tparam Cols The number of columns in the matrix S.
+	 * @tparam Options The options for the Eigen matrix (e.g., storage order).
+	 * @tparam MaxRows The maximum number of rows in the matrix S.
+	 * @tparam MaxCols The maximum number of columns in the matrix S.
+	 * @param S The quasi-upper-triangular matrix to analyze.
+	 * @param block_start The starting index of the block to analyze.
+	 * @return The size of the block (1 or 2) at the specified block start index.
+	 * @throws std::runtime_error If both S and T are zero, indicating an indeterminate pencil block.
+	 */
+	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
+	int pencil_block_size(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& S, int block_start){
+		assert((0 <= block_start) && (block_start < S.rows() - 1) && "block_start is out of bounds for the matrix S.");
+
+		int block_size = 1;
+			
+		// determine the blocksize (1x1 or 2x2)
+		const T sub_diag = S(block_start + 1, block_start);
+		
+		// zero threshold for numerical stability
+		const T local_diagonal = std::abs(S(block_start, block_start)) + std::abs(S(block_start + 1, block_start + 1));
+		const T epsilon  = std::numeric_limits<T>::epsilon();
+		const T zero_threshold = epsilon  * std::max(local_diagonal, T(1)) * T(1024);
+
+		if(block_start + 1 < PencilSize){
+			if(std::abs(sub_diag) > zero_threshold){
+				block_size = 2;
+			}else{
+				block_size = 1;
+			}
+		}else{
+			block_size = 1;
+		}
+
+		return block_size;
+	}
+
+	/**
+	 * @brief Determines if a given pencil block (Sb, Tb) is stable, meaning all eigenvalues of the pencil are inside the unit circle.
+	 * 
+	 * Asserts that:
+	 *  - The matrices Sb and Tb have the same dimensions.
+	 *  - The matrices Sb and Tb are either 1x1 or 2x2.
+	 * 
+	 * @tparam T The value type of the matrix elements (e.g., `float`, `double`).
+	 * @tparam Options The options for the Eigen matrix (e.g., storage order).
+	 * @tparam MaxRows The maximum number of rows in the matrices Sb and Tb.
+	 * @tparam MaxCols The maximum number of columns in the matrices Sb and Tb.
+	 * @tparam N The size of the matrices Sb and Tb (must be either 1 or 2).
+	 * @param Sb The matrix representing the S part of the pencil block. (quasi-upper-triangular from the QZ decomposition)
+	 * @param Tb The matrix representing the T part of the pencil block. (upper-triangular from the QZ decomposition)
+	 * @return The boolean value indicating whether the pencil block is stable (true) or not (false).
+	 * @throws std::runtime_error If both Sb and Tb have zero eigenvalues, indicating an indeterminate pencil block.
+	 */
+	template<class DerivedS, class DerivedT>
+	bool is_stable_pencil_block(
+		const Eigen::MatrixBase<DerivedS>& Sb,
+		const Eigen::MatrixBase<DerivedT>& Tb
+	){
+		assert(Sb.rows() == Sb.cols());
+		assert(Tb.rows() == Tb.cols());
+		assert(Sb.rows() == Tb.rows());
+		assert(Sb.rows() >= 1 && Sb.rows() <= 2);
+
+		if(Sb.rows() == 1){
+			// blocksize is 1
+
+			// check if the eigenvalue is stable (inside the unit circle)
+			const auto s = Sb(0, 0);
+			const auto t = Tb(0, 0);
+
+			const auto scale = std::max({
+				std::abs(t),
+				std::abs(s),
+				Scalar(1)});
+
+			const auto tolerance = std::numeric_limits<Scalar>::epsilon() * scale * Scalar(128);
+
+			// avoid checks against zero for numerical stability
+			if((std::abs(s) <= tolerance) && (std::abs(t) <= tolerance)){
+				// both s and t are zero --> indeterminante
+				throw std::runtime_error("Controlpp: Indeterminate pencil block: both S and T are zero.");
+			}
+
+			// avoid division by zero
+			const bool stable = (std::abs(s) < std::abs(t));
+			return stable;
+		}else{
+			// blocksize is 2
+
+			// solve det(S - lambda T) = 0 for the 2x2 block to find the eigenvalues
+			// build the quadratic polynomial coefficients
+			//
+			// 
+			// det | (S00 - lambda T00)   (S01 - lambda T01) |
+			//     | (S10)                (S11 - lambda T11) |
+			auto a = Tb(0, 0) * Tb(1, 1);
+			auto b = Sb(1, 0) * Tb(0, 1) - Sb(0, 0) * Tb(1, 1) - Sb(1, 1) * Tb(0, 0);
+			auto c = Sb(0, 0) * Sb(1, 1) - Sb(0, 1) * Sb(1, 0);
+
+			{ // assert that the block is determinate
+				const auto scale = std::max({
+					std::abs(a),
+					std::abs(b),
+					std::abs(c)
+				});
+
+				if(scale == Scalar(0)){
+					// all coefficients are zero --> indeterminante
+					throw std::runtime_error("Controlpp: Indeterminate pencil block: All coefficients are zero.");
+				}
+
+				// normalize the coefficients to avoid numerical issues
+				a /= scale;
+				b /= scale;
+				c /= scale;
+
+				const auto tolerance = std::numeric_limits<Scalar>::epsilon() * Scalar(128);
+				
+				// avoid checks against zero for numerical stability
+				if(std::abs(a) <= tolerance){
+					if(std::abs(b) <= tolerance){
+						if(std::abs(c) <= tolerance){
+							// all coefficients are zero --> indeterminante
+							throw std::runtime_error("Controlpp: Indeterminate pencil block: Zero eigenvalues.");
+						}
+						// constant equation c = 0 --> no solution --> infinite eigenvalues --> unstable
+						return false;
+					}
+					// linear equation b lambda + c = 0 --> lambda = -c/b
+					// one finite eigenvalue and one infinite eigenvalue --> unstable
+					return false;
+				}
+			}
+
+			// solve the quadratic equation a lambda^2 + b lambda + c = 0
+			// lambda_1,2 = (-b +- sqrt(b^2 - 4ac)) / 2a
+			// | lambda_1,2 | < 1 ... for stability
+			//   --> | (-b +- sqrt(b^2 - 4ac)) | < | 2a |  ... for stability
+			const auto discriminant = b * b - 4 * a * c;
+			if(discriminant >= 0){
+				// real eigenvalues
+				const auto lhs_1 = std::abs(-b + std::sqrt(discriminant));
+				const auto lhs_2 = std::abs(-b - std::sqrt(discriminant));
+				const auto rhs = std::abs(2 * a);
+
+				{ // assert that the block is determinate
+					// avoid checks against zero for numerical stability 
+					const auto scale = std::max({
+					std::abs(lhs_1),
+					std::abs(lhs_2),
+					std::abs(rhs),
+					Scalar(1)});
 	
+					const auto tolerance = std::numeric_limits<Scalar>::epsilon() * scale * Scalar(128);
+	
+					if(std::abs(lhs_1) == DerivedS::Scalar(0) && std::abs(rhs) == DerivedT::Scalar(0)){
+						// both lhs and rhs are zero --> indeterminante
+						throw std::runtime_error("Controlpp: Indeterminate pencil block: Eigenvalues are zero.");
+					}
+
+					if(std::abs(lhs_2) == DerivedS::Scalar(0) && std::abs(rhs) == DerivedT::Scalar(0)){
+						// both lhs and rhs are zero --> indeterminante
+						throw std::runtime_error("Controlpp: Indeterminate pencil block: Eigenvalues are zero.");
+					}
+				}
+
+				const bool stable_1 = (lhs_1 < rhs);
+				const bool stable_2 = (lhs_2 < rhs);
+				const bool stable = stable_1 && stable_2;
+				return stable;
+			}else{
+				// complex eigenvalues
+				const auto lhs = std::sqrt(b * b - discriminant);
+				const auto rhs = std::abs(2 * a);
+				{ // assert that the block is determinate
+					// avoid checks against zero for numerical stability 
+					const auto scale = std::max({
+					std::abs(lhs),
+					std::abs(rhs),
+					Scalar(1)});
+	
+					const auto tolerance = std::numeric_limits<Scalar>::epsilon() * scale * Scalar(128);
+	
+					if(std::abs(lhs) == DerivedS::Scalar(0) && std::abs(rhs) == DerivedT::Scalar(0)){
+						// both lhs and rhs are zero --> indeterminante
+						throw std::runtime_error("Controlpp: Indeterminate pencil block: Eigenvalues are zero.");
+					}
+				}
+
+				const bool stable = (lhs < rhs);
+				return stable;
+			}
+		}
+	}
 
 	/**
 	 * @brief Solves the discrete time riccati equation (DARE)
@@ -878,6 +1078,24 @@ namespace controlpp{
 		Pencil Z = qz.matrixZ(); // contains the right generalized Schur vectors
 
 		// 3. Reorder
+		int block_start = 0;
+		while(block_start < PencilSize){
+			
+			const int block_size = pencil_block_size(S, block_start);
+
+			// map to eigen::map for easier access
+			auto Sb = S.block(block_start, block_start, block_size, block_size);
+			auto Tb = Tmat.block(block_start, block_start, block_size, block_size);
+
+			const bool is_stable = is_stable_pencil_block(Sb, Tb);
+
+			// if the block is not stable, we need to swap it with a stable block
+			// so that all stable blocks are in the top left corner of the matrix
+			// @todo
+
+
+			block_start += block_size;
+		}
 
 	}
 
