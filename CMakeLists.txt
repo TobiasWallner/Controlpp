@@ -35,7 +35,7 @@ endif()
 # Add a csv reader to read measurement data
 BPMAddSourcePackage("https://github.com/TobiasWallner/CSVd#v4.0.2")
 
-BPMAddInstallPackage("https://github.com/google/googletest#1.17.0" PACKAGES GTest PRIVATE)
+BPMAddInstallPackage("https://github.com/google/googletest#1.18.0" PACKAGES GTest PRIVATE)
 
 BPMMakeAvailable()
 

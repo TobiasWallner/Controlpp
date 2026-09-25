@@ -214,7 +214,7 @@ namespace controlpp{
 
 	template<class T, int LSize, int RSize>
 	Eigen::Matrix<T, LSize + RSize, LSize + RSize> join_to_diagonal(const Eigen::Vector<T, LSize>& l, const Eigen::Vector<T, RSize>& r){
-		Eigen::Matrix<T, LSize + RSize, LSize + RSize> result;
+		Eigen::Matrix<T, LSize + RSize, LSize + RSize> result = Eigen::Matrix<T, LSize + RSize, LSize + RSize>::Zero();
 		result.diagonal().head(LSize) = l;
 		result.diagonal().tail(RSize) = r;
 		return result;
@@ -831,6 +831,7 @@ namespace controlpp{
 	 * @return The size of the block (1 or 2) at the specified block start index.
 	 * @throws std::runtime_error If both S and T are zero, indicating an indeterminate pencil block.
 	 */
+	/* DEVELOPEMENT
 	template<class T, int Rows, int Cols, int Options, int MaxRows, int MaxCols>
 	int pencil_block_size(const Eigen::Matrix<T, Rows, Cols, Options, MaxRows, MaxCols>& S, int block_start){
 		assert((0 <= block_start) && (block_start < S.rows() - 1) && "block_start is out of bounds for the matrix S.");
@@ -857,6 +858,7 @@ namespace controlpp{
 
 		return block_size;
 	}
+	*/
 
 	/**
 	 * @brief Determines if a given pencil block (Sb, Tb) is stable, meaning all eigenvalues of the pencil are inside the unit circle.
@@ -875,6 +877,7 @@ namespace controlpp{
 	 * @return The boolean value indicating whether the pencil block is stable (true) or not (false).
 	 * @throws std::runtime_error If both Sb and Tb have zero eigenvalues, indicating an indeterminate pencil block.
 	 */
+	/* DEVELOPEMENT
 	template<class DerivedS, class DerivedT>
 	bool is_stable_pencil_block(
 		const Eigen::MatrixBase<DerivedS>& Sb,
@@ -1016,6 +1019,7 @@ namespace controlpp{
 			}
 		}
 	}
+	*/
 
 	/**
 	 * @brief Solves the discrete time riccati equation (DARE)
@@ -1043,6 +1047,7 @@ namespace controlpp{
 	 * @returns The solution of the DARE as an Eigen::Matrix with the dimensions `NStates x NStates`.
 	 * @throws std::runtime_error if QZ failed to converge
 	 */
+	/* DEVELOPEMENT
 	template<class T, int NStates, int NInputs,
 			int AOpt, int AMaxR, int AMaxC,
 			int BOpt, int BMaxR, int BMaxC,
@@ -1098,6 +1103,7 @@ namespace controlpp{
 		}
 
 	}
+	*/
 
 	template<class T, int NStates, int NInputs,
 			int AOpt, int AMaxR, int AMaxC,

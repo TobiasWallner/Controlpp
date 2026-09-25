@@ -113,6 +113,57 @@ TEST(Estimators, DtfEstimator){
 
 }
 
+TEST(Estimators, DtfEstimatorNaNInitialization){
+    const Eigen::Vector2d num_uncertainty = Eigen::Vector2d::Constant(1000.0);
+    const Eigen::Vector<double, 1> den_uncertainty = Eigen::Vector<double, 1>::Constant(1000.0);
+    const auto covariance = controlpp::join_to_diagonal(num_uncertainty, den_uncertainty);
+
+    const Eigen::Matrix3d expected = Eigen::Matrix3d::Identity() * 1000.0;
+    ASSERT_EQ(covariance, expected);
+
+    controlpp::ReccursiveLeastSquares<double, 3> estimator(
+        Eigen::Vector3d::Zero(), covariance, 0.995);
+    estimator.input(0.0, Eigen::Vector3d::Zero());
+
+    EXPECT_TRUE(estimator.cov().allFinite());
+    EXPECT_TRUE(estimator.gain().allFinite());
+    EXPECT_TRUE(estimator.estimate().allFinite());
+}
+
+TEST(Estimators, DtfEstimatorSecondOrderHistory){
+    const controlpp::DiscreteTransferFunction<double, 2, 2> hint({0.0, 0.0, 0.0}, {1.0, 0.0, 0.0});
+    controlpp::DtfEstimator<double, 2, 2> estimator(hint, 1000.0, 1.0);
+    controlpp::ReccursiveLeastSquares<double, 5> reference(
+        Eigen::Vector<double, 5>::Zero(),
+        Eigen::Matrix<double, 5, 5>::Identity() * 1000.0,
+        1.0);
+
+    Eigen::Vector<double, 6> inputs;
+    inputs << 0.0, 1.0, 0.5, -0.25, 0.75, 0.0;
+    Eigen::Vector<double, 6> outputs;
+    outputs << 0.0, 0.2, -0.4, 0.7, -0.1, 1.1;
+
+    for(int i = 0; i < inputs.size(); ++i){
+        Eigen::Vector<double, 5> regressor;
+        regressor << inputs(i),
+            i > 0 ? inputs(i - 1) : 0.0,
+            i > 1 ? inputs(i - 2) : 0.0,
+            i > 0 ? -outputs(i - 1) : 0.0,
+            i > 1 ? -outputs(i - 2) : 0.0;
+
+        reference.input(outputs(i), regressor);
+        estimator.input(outputs(i), inputs(i));
+
+        const auto estimated = estimator.estimate();
+        for(int j = 0; j < 3; ++j){
+            ASSERT_NEAR(estimated.num(j), reference.estimate()(j), 1e-10) << "sample " << i;
+        }
+        for(int j = 0; j < 2; ++j){
+            ASSERT_NEAR(estimated.den(j + 1), reference.estimate()(j + 3), 1e-10) << "sample " << i;
+        }
+    }
+}
+
 TEST(Estimators, dft_estimate){
     const auto s = controlpp::tf::s<double>;
 
