@@ -69,6 +69,7 @@ add_library(controlpp::controlpp ALIAS controlpp)
 BPMCreateInstallPackage(
     PACKAGE_NAME Controlpp
     NAMESPACE controlpp
+    TARGETS controlpp csvd
 )
 
 ##################################################################################
