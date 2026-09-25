@@ -33,9 +33,9 @@ else()
 endif()
 
 # Add a csv reader to read measurement data
-BPMAddSourcePackage("https://github.com/TobiasWallner/CSVd#v4.0.2")
+BPMAddInstallPackage("https://github.com/TobiasWallner/CSVd#^v4.1.0")
 
-BPMAddInstallPackage("https://github.com/google/googletest#1.18.0" PACKAGES GTest PRIVATE)
+BPMAddInstallPackage("https://github.com/google/googletest#^1.18.0" PACKAGES GTest PRIVATE)
 
 BPMMakeAvailable()
 
@@ -50,17 +50,27 @@ add_library(controlpp STATIC
 # target_compile_features(controlpp PRIVATE cxx_std_20)
 
 target_include_directories(controlpp PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(controlpp SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
 
 target_link_libraries(controlpp PUBLIC
     Eigen3::Eigen
-    csvd
+    csvd::csvd
 )
 
 target_compile_features(controlpp PUBLIC cxx_std_23)
+
+add_library(controlpp::controlpp ALIAS controlpp)
+
+
+BPMCreateInstallPackage(
+    PACKAGE_NAME Controlpp
+    NAMESPACE controlpp
+    TARGETS controlpp
+)
 
 ##################################################################################
 #                               TESTING
