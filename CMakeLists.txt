@@ -58,7 +58,7 @@ target_include_directories(controlpp SYSTEM PRIVATE ${EIGEN3_INCLUDE_DIR})
 
 target_link_libraries(controlpp PUBLIC
     Eigen3::Eigen
-    csvd
+    csvd::csvd
 )
 
 target_compile_features(controlpp PUBLIC cxx_std_23)
