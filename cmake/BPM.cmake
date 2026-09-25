@@ -685,15 +685,17 @@ endfunction()
 function(bpm_get_cache_dir RESULT_VAR)
     set(cache_dir "")
 
+    message(STATUS "BPM [${PROJECT_NAME}]: resolve BPM_CACHE")
     if(DEFINED BPM_CACHE AND NOT "${BPM_CACHE}" STREQUAL "")
         set(cache_dir "${BPM_CACHE}")
-        message(STATUS "BPM [${PROJECT_NAME}]: resolve BPM_CACHE - from CMAKE_ARG: ${BPM_CACHE}")
+        message(STATUS "    - from CMAKE_ARG: ${BPM_CACHE}")
     elseif(DEFINED ENV{BPM_CACHE} AND NOT "$ENV{BPM_CACHE}" STREQUAL "")
         set(cache_dir "$ENV{BPM_CACHE}")
-        message(STATUS "BPM [${PROJECT_NAME}]: resolve BPM_CACHE - from environment variable: ${cache_dir}")
+        message(STATUS "    - from environment variable: ${cache_dir}")
     else()
-        set(cache_dir "${CMAKE_BINARY_DIR}/_deps")
-        message(STATUS "BPM [${PROJECT_NAME}]: resolve BPM_CACHE - no cache provided: use local: ${cache_dir}")
+        set(cache_dir "${CMAKE_BINARY_DIR}/_bpm_cache")
+        message(STATUS "    - no cache provided, defauling to: `BPM_CACHE=${cache_dir}`")
+        message(STATUS "    - provide one with: `-DBPM_CACHE=path/to/cache` or set `BPM_CACHE` as an environment variable")
     endif()
 
     # turn into absolute path
@@ -2127,8 +2129,6 @@ function(bpm_load_dependencies BPM_CACHE_DIR registry_content master_solution ou
 endfunction()
 
 function(bpm_check_for_bpm_updates BPM_VERSION BPM_REPO)
-    message(STATUS "BPM [${PROJECT_NAME}]: Checking for BPM updates ...")
-
     execute_process(
         COMMAND git ls-remote --tags --sort=-version:refname "${BPM_REPO}" "refs/tags/*"
         RESULT_VARIABLE res
@@ -2142,24 +2142,67 @@ function(bpm_check_for_bpm_updates BPM_VERSION BPM_REPO)
         if(BPM_VERSION MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
             set(current_bpm_version "${CMAKE_MATCH_1}")
             if(newest_bpm_version VERSION_GREATER current_bpm_version)
-                message(STATUS "BPM [${PROJECT_NAME}]:   A newer version of BPM is available: v${newest_bpm_version} (current: v${current_bpm_version})")
+                message(STATUS "BPM [${PROJECT_NAME}]: A newer version of BPM is available: v${newest_bpm_version} (current: v${current_bpm_version})")
                 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-                    message(STATUS "BPM [${PROJECT_NAME}]:     Update with: `curl -o cmake/BPM.cmake \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -L`")
+                    message(STATUS "BPM [${PROJECT_NAME}]:   Update with: `curl -o cmake/BPM.cmake \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -L`")
                 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-                    message(STATUS "BPM [${PROJECT_NAME}]:     Update with: `Invoke-WebRequest -Uri \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -OutFile \"cmake/BPM.cmake\"`")
+                    message(STATUS "BPM [${PROJECT_NAME}]:   Update with: `Invoke-WebRequest -Uri \"https://github.com/TobiasWallner/BPM.cmake/releases/download/v${newest_bpm_version}/BPM.cmake\" -OutFile \"cmake/BPM.cmake\"`")
                 endif()
             else()
-                message(STATUS "BPM [${PROJECT_NAME}]:   BPM is up to date: ${BPM_VERSION}")
+                message(STATUS "BPM [${PROJECT_NAME}]: BPM is up to date: ${BPM_VERSION}")
             endif()
         endif()
     endif()        
     
 endfunction()
 
+function(bpm_extract_version_list tag_list OUT_VERSION_LIST)
+    set(version_list "")
+    foreach(tag IN LISTS tag_list)
+        if(tag MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
+            set(version "${CMAKE_MATCH_1}")
+            if(NOT version_list)
+                string(APPEND version_list "${version}")
+            else()
+                string(APPEND version_list ";${version}")
+            endif()
+        endif()
+    endforeach()
+    set(${OUT_VERSION_LIST} "${version_list}" PARENT_SCOPE)
+endfunction()
+
+function(bpm_get_newest_version_from_mirror lib_name library_mirror_dir OUT_NEWEST_VERSION ERROR_QUIET)
+    # fetch git tags under locks
+    file(LOCK "${library_mirror_dir}/mirror.lock")
+        execute_process(COMMAND git --git-dir "${library_mirror_dir}" tag RESULT_VARIABLE res OUTPUT_VARIABLE version_tags ERROR_QUIET)
+    file(LOCK "${library_mirror_dir}/mirror.lock" RELEASE)
+
+    # check if the git command was successful
+    if(NOT (res EQUAL 0))
+        # early return on error
+        if(NOT ERROR_QUIET)
+            message(FATAL_ERROR "BPM [${PROJECT_NAME}:${lib_name}]: Failed to get tags from mirror: ${library_mirror_dir}")
+        endif()
+        return()
+    endif()
+
+    # replace new lines with ; for list seperators
+    string(REPLACE "\r\n" "\n" version_tags "${version_tags}")
+    string(REPLACE "\n" ";" version_tags "${version_tags}") 
+    bpm_extract_version_list("${version_tags}" version_list)
+
+    # sort the version list so that the newest version is at the front
+    list(SORT version_list COMPARE NATURAL) # Natural does numerical comparison within version strings, e.g. 1.10 > 1.9
+
+    # get the last element as the newest version 
+    list(GET version_list -1 newest_version)
+    set(${OUT_NEWEST_VERSION} "${newest_version}" PARENT_SCOPE)
+endfunction()
+
 #
 function(BPMMakeAvailable)
 
-    set(BPM_VERSION "v0.5.3")
+    set(BPM_VERSION "v0.5.4")
     set(BPM_REPO "https://github.com/TobiasWallner/BPM.cmake")
 
     message(STATUS "BPM [${PROJECT_NAME}]: BPM version: ${BPM_VERSION}")
@@ -2273,7 +2316,20 @@ function(BPMMakeAvailable)
             separate_arguments(pkg_tokens UNIX_COMMAND "${pkg}")
             cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${pkg_tokens})
 
-            message(STATUS "  + Resolved: ${PKG_NAME}#${PKG_VERSION}")
+            unset(newest_version)
+            bpm_get_newest_version_from_mirror("${PKG_NAME}" "${BPM_CACHE_DIR}/${PKG_NAME}/mirror" newest_version TRUE)
+
+            # use regex to extract version and compare that
+            unset(current_version)
+            if(PKG_VERSION MATCHES "([0-9]+\\.[0-9]+\\.[0-9]+)")
+                set(current_version "${CMAKE_MATCH_1}")
+            endif()
+
+            if(newest_version AND current_version AND (NOT (current_version VERSION_EQUAL newest_version)))
+                message(STATUS "  + Resolved: ${PKG_NAME}#${PKG_VERSION} (newest: ${newest_version})")
+            else()
+                message(STATUS "  + Resolved: ${PKG_NAME}#${PKG_VERSION}")
+            endif()
             if(BPM_VERBOSE)
                 message(STATUS "    > GIT_REPO: ${PKG_GIT_REPO}")
                 if(PKG_OPTIONS)
