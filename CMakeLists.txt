@@ -33,9 +33,9 @@ else()
 endif()
 
 # Add a csv reader to read measurement data
-BPMAddSourcePackage("https://github.com/TobiasWallner/CSVd#v4.0.2")
+BPMAddInstallPackage("https://github.com/TobiasWallner/CSVd#^v4.1.0")
 
-BPMAddInstallPackage("https://github.com/google/googletest#1.18.0" PACKAGES GTest PRIVATE)
+BPMAddInstallPackage("https://github.com/google/googletest#^1.18.0" PACKAGES GTest PRIVATE)
 
 BPMMakeAvailable()
 
@@ -69,7 +69,7 @@ add_library(controlpp::controlpp ALIAS controlpp)
 BPMCreateInstallPackage(
     PACKAGE_NAME Controlpp
     NAMESPACE controlpp
-    TARGETS controlpp csvd
+    TARGETS controlpp
 )
 
 ##################################################################################
