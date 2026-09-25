@@ -8,6 +8,18 @@
 // controlpp
 #include <controlpp/math.hpp>
 
+TEST(math, join_to_diagonal){
+    Eigen::Vector2d left;
+    left << 2.0, 3.0;
+    Eigen::Vector<double, 1> right;
+    right << 5.0;
+
+    const auto result = controlpp::join_to_diagonal(left, right);
+    Eigen::Matrix3d expected = Eigen::Matrix3d::Zero();
+    expected.diagonal() << 2.0, 3.0, 5.0;
+    EXPECT_EQ(result, expected);
+}
+
 TEST(math, solve_riccati){
     // TODO: this
 }

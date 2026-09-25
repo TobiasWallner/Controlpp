@@ -652,12 +652,16 @@ namespace controlpp
             this->rls.input(y, s);
             
             // update uk
-            std::copy_backward(this->uk.data(), this->uk.data()+this->uk.size(), this->uk.data()+1);
-            this->uk(0) = u;
+            if constexpr (NumOrder > 0){
+                std::copy_backward(this->uk.data(), this->uk.data() + NumOrder - 1, this->uk.data() + NumOrder);
+                this->uk(0) = u;
+            }
             
             // update yk
-            std::copy_backward(this->neg_yk.data(), this->neg_yk.data()+this->neg_yk.size(), this->neg_yk.data()+1);
-            this->neg_yk(0) = -y;
+            if constexpr (DenOrder > 0){
+                std::copy_backward(this->neg_yk.data(), this->neg_yk.data() + DenOrder - 1, this->neg_yk.data() + DenOrder);
+                this->neg_yk(0) = -y;
+            }
         }
 
         /**
