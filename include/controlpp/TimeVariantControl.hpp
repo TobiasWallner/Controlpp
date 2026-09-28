@@ -640,17 +640,17 @@ namespace controlpp
 
                 // turn it into state space form
                 Eigen::Matrix<T, 2, 2> A({
-                    {-a1_, -a2_},
-                    {static_cast<T>(1), static_cast<T>(0)}
+                    {-a1_, static_cast<T>(1)},
+                    {-a2_, static_cast<T>(0)}
                 });
 
                 const Eigen::Matrix<T, 2, 1> B({
-                    static_cast<T>(1),
-                    static_cast<T>(0)
+                    (b1_ - a1_ * b0_), 
+                    (b2_ - a2_ * b0_)
                 });
 
                 const Eigen::Matrix<T, 1, 2> C({
-                    (b1_ - a1_ * b0_), (b2_ - a2_ * b0_)
+                    static_cast<T>(1), static_cast<T>(0)
                 });
 
                 const T D = b0_;
