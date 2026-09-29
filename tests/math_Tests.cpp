@@ -44,3 +44,26 @@ TEST(math, phase_unwrap_rad_positive){
         ASSERT_NEAR(unwrapped_phases(i), expected_result(i), 1e-9) << "at index: " << i;
     }
 }
+
+TEST(math, parabola_kiss_001){
+    float a1 = 2;
+    float d1 = 0;
+    float a2 = -3;
+    float d2 = 1;
+
+    std::optional<float> kiss = controlpp::parabola_kiss(a1, d1, a2, d2);
+
+    ASSERT_TRUE(kiss.has_value());
+    ASSERT_NEAR(kiss.value(), 0.912871, 1e-5);
+}
+
+TEST(math, parabola_kiss_no_solution){
+    float a1 = 2;
+    float d1 = 0;
+    float a2 = -3;
+    float d2 = -1;
+
+    std::optional<float> kiss = controlpp::parabola_kiss(a1, d1, a2, d2);
+
+    ASSERT_FALSE(kiss.has_value());
+}

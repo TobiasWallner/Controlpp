@@ -1187,5 +1187,51 @@ namespace controlpp{
 		H.bottomRightCorner(NStates, NStates) = -A_.transpose();
 		return hamilton_solver(H);
 	}
-	
+
+
+	/**
+	 * @brief Calculates the "kiss"ing distance of two parabolas
+	 * 
+	 * Parabolas are kissing when they touch at a single point, where the tangents (aka. first order derivative) of both parabolas are equal
+	 * 
+	 * Parabola given by:
+	 * \f[
+	 * 	f_i(x) = a_i x^2 + d_i
+	 * \f]
+	 * 
+	 * solves for $\rho$:
+	 * \f[
+	 * 	f_1(x) = f_2(x - \rho) \\
+	 *  \frac{\text{d}}{\text{d} x} f_1(x) = \frac{\text{d}}{\text{d} x} f_2(x - \rho)
+	 * \f]
+	 * 
+	 * @tparam T The value type of the matrix elements (e.g., `float`, `double`).
+	 * @param a1 The acceleration of the first parabola. 
+	 * @param d1 The displacement in y of the first parabola.
+	 * @param a2 The acceleration of the second parabola
+	 * @param d2 The displacement in y of the second parabola
+	 * @return The positive distance between the parabolas so that they "kiss" (its negative is the second solution) or `std::nullopt` if there is no solution.
+	 */
+	template<class T = float>
+	std::optional<T> parabola_kiss(T a1, T d1, T a2, T d2){
+		const auto delta_a = a1 - a2;
+		const auto delta_d = d1 - d2;
+
+		const auto num = (delta_a * delta_d);
+		const auto den = (a2 * a2 + a2 * delta_a);
+
+		if(den == 0){
+			return std::nullopt;
+		}
+
+		const auto rho_2 = num / den;
+
+		if(rho_2 < 0){
+			return std::nullopt;
+		}
+
+		const auto rho = std::sqrt(rho_2);
+		return rho;
+	}
+
 }
