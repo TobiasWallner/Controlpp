@@ -6,6 +6,8 @@
  * @brief Contains prefilters and trajectory planners for control systems
  */
 
+#include <controlpp/math.hpp>
+
 /**
  * @brief First order pre filter
  * 
@@ -139,58 +141,87 @@ class PreFilterO2{
          * @return The next position of the prefilter
          */
         constexpr T input(const T& target_pos, const T& target_vel = static_cast<T>(0)){
-            const t_vel = std::clamp(target_vel, -this->max_vel_, this->max_vel_);
-            // calculate the stopping position based on the current velocity and the maximum acceleration
-            const T direction = (this->vel_ >= static_cast<T>(0)) ? static_cast<T>(1) : static_cast<T>(-1);
-            const T v_2 = t_vel * t_vel;
-            const T v0_2 = this->vel_ * this->vel_;
-            const T stopping_distance = (v_2 - v0_2) / (static_cast<T>(2) * this->max_acc_);
-            const T stopping_pos = this->pos_ + stopping_distance * direction
-            const T next_stopping_pos = stopping_pos + this->vel_ * this->Ts_;
-            const T distance_to_target = target_pos - this->pos_;
+            // target parabola 1:
+            const T a_t1 = this->max_acc_ / T(2);
+            const T d_t1 = target_pos - (target_vel * target_vel) / (T(4) * a_t1);
 
-            // maximal distance that can be convered in one step from the target position with the target velocity and the maximal acceleration
-            const T eps_step = std::abs((v_2 - v0_2) / (static_cast<T>(2) * this->max_acc_)) + std::abs(this->vel_ * this->Ts_) + std::abs(t_vel * this->Ts_);
+            // target parabola 2:
+            const T a_t2 = -this->max_acc_ / T(2);
+            const T d_t2 = target_pos - (target_vel * target_vel) / (T(4) * a_t2);
 
-            // maximal velocity that can be reached in one step from the target velocity
-            const T eps_vel = std::abs(this->vel_ - t_vel) + this->max_acc_ * this->Ts_;
+            // source parabola 1: 
+            const T a_s1 = this->max_acc_ / T(2);
+            const T d_s1 = this->pos_ - (this->vel_ * this->vel_) / (T(4) * a_s1);
 
-            // check if we are close enough to the target position and velocity
-            // check before to avoid overshoot but mostly division by zero in the next step
-            if(std::abs(distance_to_target) <= eps_step && std::abs(this->vel_ - t_vel) <= eps_vel){
-                this->pos_ = target_pos;
-                this->vel_ = t_vel;
-                this->reached_ = true;
-                return this->pos_;
-            }
-            this->reached_ = false;
+            // source parabola 2: 
+            const T a_s2 = this->max_acc_ / T(2);
+            const T d_s2 = this->pos_ - (this->vel_ * this->vel_) / (T(4) * a_s2);
 
-            // calculate the new acceleration based on the current position, velocity, and target position and velocity
-            T new_accel = T(0);
-            if((this->pos_ < target_pos && next_stopping_pos >= target_pos) || (this->pos_ > target_pos && next_stopping_pos <= target_pos)){
-                if(distance_to_target == static_cast<T>(0)){
-                    new_accel = static_cast<T>(0);
-                }else{
-                    // decelerate with exact acceleration
-                    new_accel = (v_2 - v0_2) / (static_cast<T>(2) * distance_to_target);
-                }
-            }else if(stopping_pos < target_pos){
-                new_accel = this->max_acc_;
-            }else{
-                new_accel = -this->max_acc_;
-            }
-
-            // clamp the velocity to the maximum velocity
-            const T new_vel = std::clamp(this->vel_ + new_accel * this->Ts_, -this->max_vel_, this->max_vel_);
-            new_accel = (new_vel - this->vel_) / this->Ts_; // recalculate the acceleration based on the clamped velocity
-
-            // calculate the new position 
-            const T new_pos = this->pos_ + new_vel * this->Ts_;
+            // 1 1 --> no need to check --> there is no solution to the kiss
             
-            // update the internal states
-            this->acc_ = new_accel;
+            // 1 2
+            const std::optional<T> kiss_12 = controlpp::parabola_kiss(a_s1, d_s1, a_t2, d_t2);
+
+            // 2 1
+            const std::optional<T> kiss_21 = controlpp::parabola_kiss(a_s2, d_s2, a_t1, d_t1);
+
+            // 2 2 --> no need to check --> there is no solution to the kiss
+
+            // find the correct kiss
+            bool k12 = true;
+            if((kiss_12.has_value() == true) && (kiss_21.has_value() == false)){
+                k12 = true;
+            }else if((kiss_12.has_value() == false) && (kiss_21.has_value() == true)){
+                k12 = false;
+            }else /*if((kiss_12.has_value() == true) && (kiss_21.has_value() == true))*/{
+                if(this->pos_ <= kiss_12.value() && kiss_12.value() <= target_pos){
+                    k12 = true;
+                }else /*if(this->pos_ <= kiss_21.value() && kiss_21.value() <= target_pos)*/{
+                    k12 = false;
+                }
+                //else{
+                    // error: no solution
+                //}
+            }
+            //else{
+                // error: no solution
+            //}
+
+            // get the right combination of polynomials
+            // selected source parabol
+            const T a_s = k12 ? a_s1 : a_s2;
+            const T d_s = k12 ? d_s1 : d_s2;
+
+            // selected target parabola
+            const T a_t = k12 ? a_t1 : a_t2;
+            const T d_t = k12 ? d_t1 : d_t2;
+
+            // needed distance between the parabola for a kiss
+            const T rho = k12 ? kiss_12.value() : kiss_21.value(); //< distance between the parabolas
+            const T kiss = -(rho * a_t) / (a_s - a_t); //< point of the kiss measured from the center of the source parabola
+
+            // time point of the source point
+            const T t_s = this->vel_ / (2 * a_s);
+
+            const T t = t_s + this->Ts_;
+            T new_pos = 0;
+            if(t < kiss){
+                // next sample is on the source parabola
+                new_pos = a_s * t * t + d_s;
+            }else{
+                // next sample is on the target parabola
+                new_pos = a_t * (t - rho) * (t - rho) + d_t;
+            }
+
+            // calculate required speed and limit velocity
+            const T required_speed = (new_pos - this->pos_) / this->Ts_;
+            const T clipped_speed = std::clamp(required_speed, -this->max_vel_, this->max_vel_);
+            new_pos = clipped_speed * this->Ts_;
+
+            // update state
+            this->acc_ = (clipped_speed - this->vel_) / this->Ts_;
+            this->vel_ = clipped_speed;
             this->pos_ = new_pos;
-            this->vel_ = new_vel;
 
             return new_pos;
         }
