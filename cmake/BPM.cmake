@@ -2202,7 +2202,7 @@ endfunction()
 #
 function(BPMMakeAvailable)
 
-    set(BPM_VERSION "v0.5.4")
+    set(BPM_VERSION "v0.6.0")
     set(BPM_REPO "https://github.com/TobiasWallner/BPM.cmake")
 
     message(STATUS "BPM [${PROJECT_NAME}]: BPM version: ${BPM_VERSION}")

@@ -20,6 +20,9 @@
 #include <controlpp/analysis.hpp>
 #include <controlpp/Bode.hpp>
 #include <controlpp/Generator.hpp>
+#include <controlpp/care.hpp>
+#include <controlpp/dare.hpp>
+
 
 /**
  * @brief The main namespace for the Control++ library
