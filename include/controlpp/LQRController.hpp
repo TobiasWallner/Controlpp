@@ -2,7 +2,7 @@
 
 #include <Eigen/Dense>
 
-#include <controlpp/math.hpp>
+#include <controlpp/dare.hpp>
 #include <controlpp/ContinuousStateSpace.hpp>
 
 

@@ -7,7 +7,7 @@
 #include <Eigen/Cholesky>
 
 // controlpp
-#include <controlpp/math.hpp>
+#include <controlpp/care.hpp>
 #include <controlpp/ContinuousStateSpace.hpp>
 
 namespace controlpp
