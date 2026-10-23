@@ -100,6 +100,7 @@ if (CONTROLPP_COMPILE_TEST)
         tests/Bode_Tests.cpp
 
         tests/test_expm.cpp
+        tests/dare_Tests.cpp
 
     )
 

@@ -391,6 +391,98 @@ namespace controlpp{
 		}
 	}
 
+	template<class T, std::size_t N>
+	struct QZSwap{
+		Eigen::Matrix<T, N, N> V;
+		Eigen::Matrix<T, N, N> U;
+	};
+
+	/**
+	 * @brief Caclulates the V matrix for a qt 1x1 block swap
+	 * 
+	 * for upper triangular block (1) matrices
+	 * 
+	 * \f[
+	 * S_b' =
+	 * 	\begin{bmatrix}
+	 * 		s_{22}' & *\\
+	 * 		0 & s_{11}'
+	 * 	\end{bmatrix},
+	 * \qquad
+	 * T_b' =
+	 * 	\begin{bmatrix}
+	 * 		t_{22}' & *\\
+	 * 		0 & t_{11}'
+	 * 	\end{bmatrix}.
+	 * f\]
+	 * 
+	 * finds the V matrix such that:
+	 * 
+	 * f\[
+	 * 	S_b' = U^\top S_b V,
+	 * 	\qquad
+	 * 	T_b' = U^\top T_b V,
+	 * f\]
+	 * 
+	 * swaps the eigenvalus of the matrices while remaining the
+	 * generalised Shur form for both of them
+	 * 
+	 * 
+	 */
+	template<class T>
+	QZSwap<T, 2> create_local_qz_1x1_swap(const Eigen::Matrix<T, 2, 2>& s, const Eigen::Matrix<T, 2, 2>& t){
+		// find the right generalised eigenvector
+		// for the second eigenvalue: (sb - lambda tb) v = 0
+
+		// the second row provides: (s11 - lambda1 t11) v1 = 0
+		// remember: lambda1 = s11 / t11
+		// --> (s11 - s11 / t11 * t11) = 0
+		// --> always satisfied for every v1
+		
+		// The first row: (s00 - lambda1 t00) v1 + (s01 - lambda1 t01) v1 = 0
+		const T v0 = - (s(0,1) * t(1,1) - s(1,1) * t(0,1));
+		const T v1 = (s(0,0) * t(1,1) - s(1,1) * t(0,0));
+
+		const Eigen::Vector<T, 2> v(v0, v1);
+
+		// normalise it to unit length
+		const Eigen::Vector<T, 2> v_u = v.normalized();
+
+		// construct the full orthogonal V matrix
+		const Eigen::Matrix<T, 2, 2> V({
+			{v_u(0), -v_u(1)},
+			{v_u(1), v_u(0)}
+		});
+
+		// calculate the right transformed matrices
+		const Eigen::Vector<T, 2> a = s * V.col(0);
+		// const Eigen::Matrix<T, 2, 2> B = t * B; // ignored because its parallel
+
+		// now satisfy U^T A.col(0) = [*, 0] and similarly for B
+		// u10 a0 + u11 a1 = 0
+		// u10 b0 + u11 b1 = 0
+		
+		const T u11 = a(0);
+		const T u10 = -a(1);
+		const Eigen::Vector<T, 2> u_c1(u10, u11); // bottom row vector of U
+		
+		// norm it
+		const Eigen::Vector<T, 2> u_n = u_c1.normalized();
+
+		// build the U matrix
+		const Eigen::Matrix<T, 2, 2> U({
+			{u_n(1), u_n(0)},
+			{-u_n(0), u_n(1)}
+		});
+
+		const QZSwap<T, 2> result{
+			.V = V,
+			.U = U
+		};
+
+		return result;
+	}
+
     /**
 	 * @brief Solves the discrete time riccati equation (DARE)
 	 * 
