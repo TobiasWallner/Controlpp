@@ -302,6 +302,90 @@ namespace controlpp{
 		}
 	}
 
+	/**
+	 * @brief Computes normalized characteristic-polynomial invariants for a 2x2 generalized eigenvalue problem.
+	 *
+	 * Given two 2x2 matrices S and T, the generalized eigenvalues are the roots
+	 * of the characteristic equation
+	 *
+	 * @f[
+	 *     \det(S - \lambda T) = c_0 + c_1\lambda + c_2\lambda^2.
+	 * @f]
+	 *
+	 * The polynomial coefficients are
+	 *
+	 * @f[
+	 *     c_0 = \det(S),
+	 * @f]
+	 *
+	 * @f[
+	 *     c_1 = -\left(
+	 *         S_{00}T_{11} + S_{11}T_{00}
+	 *         - S_{01}T_{10} - S_{10}T_{01}
+	 *     \right),
+	 * @f]
+	 *
+	 * @f[
+	 *     c_2 = \det(T).
+	 * @f]
+	 *
+	 * Assuming @f$c_2 \ne 0@f$, this function returns the normalized
+	 * coefficients
+	 *
+	 * @f[
+	 *     \begin{bmatrix}
+	 *         c_0/c_2 \\
+	 *         c_1/c_2
+	 *     \end{bmatrix}.
+	 * @f]
+	 *
+	 * These normalized coefficients are characteristic-polynomial invariants:
+	 * they uniquely determine the monic polynomial associated with the
+	 * generalized eigenvalues, including when the eigenvalues form a
+	 * complex-conjugate pair.
+	 *
+	 * They are useful for verifying that two 2x2 matrix pairs have the same
+	 * generalized eigenvalues without comparing diagonal entry ratios, which
+	 * are not generally the individual eigenvalues of a real 2x2 Schur block.
+	 *
+	 * Under orthogonal equivalence transformations
+	 *
+	 * @f[
+	 *     S' = U^\top S V,\qquad T' = U^\top T V,
+	 * @f]
+	 *
+	 * where U and V are orthogonal, the determinant coefficients acquire
+	 * the same common factor, @f$\det(U^\top)\det(V)@f$. Consequently, their
+	 * normalized ratios remain unchanged whenever @f$\det(T)\ne 0@f$.
+	 *
+	 * @param S The 2x2 matrix in the generalized eigenvalue problem.
+	 * @param T The 2x2 matrix paired with S.
+	 *
+	 * @return A vector containing @f$c_0/c_2@f$ and @f$c_1/c_2@f$.
+	 *
+	 * @note Requires @f$\det(T)\ne 0@f$. If T is singular or nearly singular,
+	 *       the normalized coefficients may be undefined or numerically
+	 *       unreliable.
+	 */
+	template<class Type>
+	Eigen::Vector<Type, 2> generalized_charpoly_invariants(
+    	const Eigen::Matrix<Type, 2, 2>& S,
+    	const Eigen::Matrix<Type, 2, 2>& T
+	){
+		// det(S - lambda*T) = c0 + c1*lambda + c2*lambda^2
+		const double c0 = S.determinant();
+
+		const double c1 =
+			-(S(0, 0) * T(1, 1)
+			+ S(1, 1) * T(0, 0)
+			- S(0, 1) * T(1, 0)
+			- S(1, 0) * T(0, 1));
+
+		const double c2 = T.determinant();
+
+		return Eigen::Vector<Type, 2>(c0 / c2, c1 / c2);
+	}
+
     /**
 	 * @brief Determines if a given pencil block (Sb, Tb) is stable, meaning all eigenvalues of the pencil are inside the unit circle.
 	 * 
@@ -427,10 +511,13 @@ namespace controlpp{
 	 * swaps the eigenvalus of the matrices while remaining the
 	 * generalised Shur form for both of them
 	 * 
+	 * @param s Upper triangular generalised Schur S matrix from the QZ decomposition
+	 * @param t Upper triangular generalised Schur T matrix from the QZ decomposition
 	 * 
+	 * @tparam T The value type. Usually float or double.
 	 */
 	template<class T>
-	QZSwap<T, 2> create_local_qz_1x1_swap(const Eigen::Matrix<T, 2, 2>& s, const Eigen::Matrix<T, 2, 2>& t){
+	QZSwap<T, 2> qz_1x1_swap_matrix(const Eigen::Matrix<T, 2, 2>& s, const Eigen::Matrix<T, 2, 2>& t){
 		// find the right generalised eigenvector
 		// for the second eigenvalue: (sb - lambda tb) v = 0
 
@@ -478,6 +565,335 @@ namespace controlpp{
 		const QZSwap<T, 2> result{
 			.V = V,
 			.U = U
+		};
+
+		return result;
+	}
+
+	/**
+	 * @brief Creates the matrices to swap eigenvalues of an adjacent 1x1 with a 2x2 block in Shur form
+	 * 
+	 * Where T and S contain the generalised 1x1 and 2x2 blocks in shur form
+	 * f\[
+	 *	S=
+	 *	\begin{bmatrix}
+	 *		a & b_1 & b_2\\
+	 *		0 & d & e\\
+	 *		0 & f & g
+	 *	\end{bmatrix},
+	 *	\qquad
+	 *	T=
+	 *	\begin{bmatrix}
+	 *		\alpha & \beta_1 & \beta_2\\
+	 *		0 & \delta & \epsilon\\
+	 *		0 & 0 & \gamma
+	 *	\end{bmatrix}.
+	 *	f\]
+	 * 
+	 * @param S Generalised Schur matrix S
+	 * @param T Generalised Schur matrix T
+	 * 
+	 * @throws `std::runtime_error` on: Singular Sylvester systems, non-finite sylvester solutions, degenerate systems, qz decomposition failure
+	 */
+	template<class T>
+	QZSwap<T, 3> qz_1x2_swap_matrix(const Eigen::Matrix<T, 3, 3>& Sb, const Eigen::Matrix<T, 3, 3>& Tb){
+
+		const T eps = std::numeric_limits<T>::epsilon();
+		
+		// find right invariant subspace
+		// partition input matrices:
+		//	S_b = 	a C
+		//			0 A
+		//
+		//	T_b =   alpha F 
+		//          0     B
+
+		// Local diagonal blocks and upper-right coupling rows.
+		const T a = Sb(0, 0);
+		const T alpha = Tb(0, 0);
+		const Eigen::Matrix<T, 2, 2> A = Sb.template block<2, 2>(1, 1);
+		const Eigen::Matrix<T, 2, 2> B = Tb.template block<2, 2>(1, 1);
+		const Eigen::Matrix<T, 1, 2> C = Sb.template block<1, 2>(0, 1);
+		const Eigen::Matrix<T, 1, 2> F = Tb.template block<1, 2>(0, 1);
+
+		// Solve:
+		//   a*R - L*A = -C
+		// alpha*R - L*B = -F
+		//
+		// Unknown ordering: [R0, R1, L0, L1]^T.
+
+		Eigen::Matrix<T, 4, 4> M({
+			{a,     T(0), -A(0, 0), -A(1, 0)},
+			{T(0),  a,    -A(0, 1), -A(1, 1)},
+			{alpha, T(0), -B(0, 0), -B(1, 0)},
+			{T(0),  alpha,-B(0, 1), -B(1, 1)}
+		});
+
+		Eigen::Vector<T, 4> r(
+			-C(0, 0),
+			-C(0, 1),
+			-F(0, 0),
+			-F(0, 1)
+		);
+
+		// Scale the system to reduce overflow/underflow risk.
+
+		const T scale = M.cwiseAbs().maxCoeff();
+
+		if (scale == T(0)) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: degenerate Sylvester system");
+		}
+
+		M /= scale;
+    	r /= scale;
+
+		Eigen::FullPivLU<Eigen::Matrix<T, 4, 4>> lu(M);
+
+		if (lu.rank() < 4) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: singular Sylvester system");
+		}
+
+		const Eigen::Vector<T, 4> z = lu.solve(r);
+
+		if (!z.allFinite()) {
+			throw std::runtime_error("QZ 1x2 swap: non-finite Sylvester solution");
+		}
+
+		const T residual = (M * z - r).norm();
+    	const T residual_scale = M.norm() * z.norm() + r.norm();
+
+		if (residual > eps * residual_scale) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: Sylvester solve residual too large");
+		}
+
+		const Eigen::Matrix<T, 1, 2> R = z.template head<2>().transpose();
+    	const Eigen::Matrix<T, 1, 2> L = z.template tail<2>().transpose();
+
+		// Build the right and left deflating-subspace bases.
+		const Eigen::Matrix<T, 3, 2> X2({
+			{R(0), R(1)},
+			{T(1), T(0)},
+			{T(0), T(1)}
+		});
+		const Eigen::Matrix<T, 3, 2> Y2({
+			{L(0), L(1)},
+			{T(1), T(0)},
+			{T(0), T(1)}
+		});
+
+		Eigen::HouseholderQR<Eigen::Matrix<T, 3, 2>> qrX(X2);
+    	Eigen::HouseholderQR<Eigen::Matrix<T, 3, 2>> qrY(Y2);
+
+		const Eigen::Matrix<T, 3, 3> V = qrX.householderQ();
+    	const Eigen::Matrix<T, 3, 3> U = qrY.householderQ();
+
+		// Apply the orthogonal transformations.
+		const Eigen::Matrix<T, 3, 3> S1 = U.transpose() * Sb * V;
+		const Eigen::Matrix<T, 3, 3> T1 = U.transpose() * Tb * V;
+
+		// Restore generalized Schur form in the leading 2x2 pair.
+		const Eigen::Matrix<T, 2, 2> Slead = S1.template block<2, 2>(0, 0);
+		const Eigen::Matrix<T, 2, 2> Tlead = T1.template block<2, 2>(0, 0);
+
+		Eigen::RealQZ<Eigen::Matrix<T, 2, 2>> localQZ;
+    	localQZ.compute(Slead, Tlead);
+
+		if (localQZ.info() != Eigen::Success) {
+        	throw std::runtime_error("Controlpp: QZ 1x2 swap: local 2x2 QZ decomposition failed");
+		}
+
+		Eigen::Matrix<T, 3, 3> Ulead = Eigen::Matrix<T, 3, 3>::Identity();
+    	Eigen::Matrix<T, 3, 3> Vlead = Eigen::Matrix<T, 3, 3>::Identity();
+		
+		Ulead.template block<2, 2>(0, 0) = localQZ.matrixQ();
+    	Vlead.template block<2, 2>(0, 0) = localQZ.matrixZ().transpose();
+
+		const Eigen::Matrix<T, 3, 3> U_restored = U * Ulead;
+    	const Eigen::Matrix<T, 3, 3> V_restored = V * Vlead;
+
+		const QZSwap<T, 3> result{
+			.V = V_restored,
+			.U = U_restored
+		};
+
+		return result;
+	}
+
+	/**
+ * @brief Creates the matrices to swap an adjacent 2x2 block with a 1x1
+ * block in generalized Schur form.
+ *
+ * The input matrices are partitioned as:
+ *
+ * \[
+ * S_b=\begin{bmatrix}A&C\\0&a\end{bmatrix},
+ * \qquad
+ * T_b=\begin{bmatrix}B&F\\0&\alpha\end{bmatrix},
+ * \]
+ * 
+ * The resulting transformations move the 1x1 block to the leading
+ * position and the 2x2 block to the trailing position.
+ *
+ * @param Sb Generalized Schur matrix S.
+ * @param Tb Generalized Schur matrix T.
+ *
+ * @throws std::runtime_error on a singular Sylvester system, non-finite
+ * solution, excessive solve residual, or local QZ decomposition failure.
+ */
+template<class T>
+	QZSwap<T, 3> qz_2x1_swap_matrix(
+		const Eigen::Matrix<T, 3, 3>& Sb, 
+		const Eigen::Matrix<T, 3, 3>& Tb)
+	{
+		const T eps = std::numeric_limits<T>::epsilon();
+
+		// Partition the input matrices:
+		//
+		// S = [ A  C ]       T = [ B  F ]
+		//     [ 0  a ]           [ 0  alpha ]
+
+		const Eigen::Matrix<T, 2, 2> A =
+			Sb.template block<2, 2>(0, 0);
+
+		const Eigen::Matrix<T, 2, 2> B =
+			Tb.template block<2, 2>(0, 0);
+
+		const Eigen::Matrix<T, 2, 1> C =
+			Sb.template block<2, 1>(0, 2);
+
+		const Eigen::Matrix<T, 2, 1> F =
+			Tb.template block<2, 1>(0, 2);
+
+		const T a = Sb(2, 2);
+		const T alpha = Tb(2, 2);
+
+		// Solve the coupled Sylvester equations:
+		//
+		// A*R - L*a     = -C
+		// B*R - L*alpha = -F
+		//
+		// Unknown ordering: [R0, R1, L0, L1]^T.
+
+		Eigen::Matrix<T, 4, 4> M({
+			{A(0, 0), A(0, 1), -a,     T(0)},
+			{A(1, 0), A(1, 1), T(0),  -a},
+			{B(0, 0), B(0, 1), -alpha, T(0)},
+			{B(1, 0), B(1, 1), T(0),  -alpha}
+		});
+
+		Eigen::Matrix<T, 4, 1> rhs(
+			-C(0),
+			-C(1),
+			-F(0),
+			-F(1)
+		);
+
+		if (!M.allFinite() || !rhs.allFinite()) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: non-finite Sylvester system");
+		}
+
+		// Scale the system to reduce overflow/underflow risk.
+		const T scale = std::max(
+			M.cwiseAbs().maxCoeff(),
+			rhs.cwiseAbs().maxCoeff());
+
+		if (scale == T(0)) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: degenerate Sylvester system");
+		}
+
+		M /= scale;
+		rhs /= scale;
+
+		Eigen::FullPivLU<Eigen::Matrix<T, 4, 4>> lu(M);
+
+		if (lu.rank() < 4) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: singular Sylvester system");
+		}
+
+		const Eigen::Matrix<T, 4, 1> z = lu.solve(rhs);
+
+		if (!z.allFinite()) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: non-finite Sylvester solution");
+		}
+
+		const T residual = (M * z - rhs).norm();
+		const T residual_scale =
+			M.norm() * z.norm() + rhs.norm();
+
+		if (residual > eps * residual_scale) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: Sylvester solve residual too large");
+		}
+
+		const Eigen::Matrix<T, 2, 1> R = z.template head<2>();
+		const Eigen::Matrix<T, 2, 1> L = z.template tail<2>();
+
+		// Build the right and left vectors associated with the 1x1 block.
+		const Eigen::Matrix<T, 3, 1> X1({
+			R(0),
+			R(1),
+			T(1)
+		});
+
+		const Eigen::Matrix<T, 3, 1> Y1({
+			L(0),
+			L(1),
+			T(1)
+		});
+
+		// Construct orthogonal transformations whose first columns span
+		// the right and left vectors, respectively.
+		Eigen::HouseholderQR<Eigen::Matrix<T, 3, 1>> qrX(X1);
+		Eigen::HouseholderQR<Eigen::Matrix<T, 3, 1>> qrY(Y1);
+
+		const Eigen::Matrix<T, 3, 3> V = qrX.householderQ();
+		const Eigen::Matrix<T, 3, 3> U = qrY.householderQ();
+
+		// Apply the orthogonal transformations.
+		const Eigen::Matrix<T, 3, 3> S1 =
+			U.transpose() * Sb * V;
+
+		const Eigen::Matrix<T, 3, 3> T1 =
+			U.transpose() * Tb * V;
+
+		// Restore generalized Schur form in the trailing 2x2 pair.
+		const Eigen::Matrix<T, 2, 2> Strail =
+			S1.template block<2, 2>(1, 1);
+
+		const Eigen::Matrix<T, 2, 2> Ttrail =
+			T1.template block<2, 2>(1, 1);
+
+		Eigen::RealQZ<Eigen::Matrix<T, 2, 2>> localQZ;
+		localQZ.compute(Strail, Ttrail);
+
+		if (localQZ.info() != Eigen::Success) {
+			throw std::runtime_error(
+				"Controlpp: QZ 2x1 swap: local 2x2 QZ decomposition failed");
+		}
+
+		// Embed the local QZ transformations in the trailing 2x2 block.
+		Eigen::Matrix<T, 3, 3> Utrail =
+			Eigen::Matrix<T, 3, 3>::Identity();
+
+		Eigen::Matrix<T, 3, 3> Vtrail =
+			Eigen::Matrix<T, 3, 3>::Identity();
+
+		Utrail.template block<2, 2>(1, 1) =
+			localQZ.matrixQ();
+
+		Vtrail.template block<2, 2>(1, 1) =
+			localQZ.matrixZ().transpose();
+
+		const Eigen::Matrix<T, 3, 3> U_restored = U * Utrail;
+		const Eigen::Matrix<T, 3, 3> V_restored = V * Vtrail;
+
+		const QZSwap<T, 3> result{
+			.V = V_restored,
+			.U = U_restored
 		};
 
 		return result;
