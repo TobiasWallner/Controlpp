@@ -518,7 +518,7 @@ namespace controlpp{
 	 * @tparam T The value type. Usually float or double.
 	 */
 	template<class T>
-	QZSwap<T, 2> qz_1x1_swap_matrix(const Eigen::Matrix<T, 2, 2>& s, const Eigen::Matrix<T, 2, 2>& t){
+	QZSwap<T, 2> qz_1x1_swap_matrix(const Eigen::Matrix<T, 2, 2>& s_in, const Eigen::Matrix<T, 2, 2>& t_in){
 		// find the right generalised eigenvector
 		// for the second eigenvalue: (sb - lambda tb) v = 0
 
@@ -527,11 +527,49 @@ namespace controlpp{
 		// --> (s11 - s11 / t11 * t11) = 0
 		// --> always satisfied for every v1
 		
+		using Mat2 = Eigen::Matrix<T, 2, 2>;
+		using Vec2 = Eigen::Vector<T, 2>;
+		const T eps = std::numeric_limits<T>::epsilon();
+
+		if (!s_in.allFinite() || !t_in.allFinite()) {
+			throw std::runtime_error("Controlpp: QZ 1x1 swap: non-finite input");
+		}
+
+		const T scale = std::max(s_in.cwiseAbs().maxCoeff(), t_in.cwiseAbs().maxCoeff());
+		if (scale == T(0)) {
+			// TODO: return propper error
+			const QZSwap<T, 2> result{
+				.V = Eigen::Matrix<T, 2, 2>::Identity(),
+				.U = Eigen::Matrix<T, 2, 2>::Identity()
+			};
+			return result;
+		}
+
+		const Mat2 s = s_in / scale;
+		const Mat2 t = t_in / scale;
+		const T s_norm = s.norm();
+		const T t_norm = t.norm();
+
+		// Singular pencil: a diagonal pair (s_ii, t_ii) = (0, 0) means a 0/0 eigenvalue.
+		if (std::hypot(s(0,0), t(0,0)) <= eps || std::hypot(s(1,1), t(1,1)) <= eps) {
+			//TODO: return propper error
+			throw std::runtime_error("Singular pencil: a diagonal pair (s_ii, t_ii) = (0, 0) means a 0/0 eigenvalue.");
+		}
+
 		// The first row: (s00 - lambda1 t00) v1 + (s01 - lambda1 t01) v1 = 0
 		const T v0 = - (s(0,1) * t(1,1) - s(1,1) * t(0,1));
 		const T v1 = (s(0,0) * t(1,1) - s(1,1) * t(0,0));
 
+		// Equal eigenvalues: v is pure rounding noise. The input is already upper triangular,
+		// so "no swap" is a valid result.
+		const T v_noise = eps * (std::abs(s(0,1) * t(1,1)) + std::abs(s(1,1) * t(0,1))
+							+ std::abs(s(0,0) * t(1,1)) + std::abs(s(1,1) * t(0,0)));
+
 		const Eigen::Vector<T, 2> v(v0, v1);
+
+		if (v.norm() <= v_noise) {
+			throw std::runtime_error("Equal eigenvalues: v is pure rounding noise. The input is already upper triangular, so no swap is a valid result.");
+		}
 
 		// normalise it to unit length
 		const Eigen::Vector<T, 2> v_u = v.normalized();
@@ -544,17 +582,23 @@ namespace controlpp{
 
 		// calculate the right transformed matrices
 		const Eigen::Vector<T, 2> a = s * V.col(0);
-		// const Eigen::Matrix<T, 2, 2> B = t * B; // ignored because its parallel
+		const Eigen::Vector<T, 2> b = t * V.col(0);
 
-		// now satisfy U^T A.col(0) = [*, 0] and similarly for B
+		// use larger norm to avoid NaN from singular A matrices that lead to zero eigenvalues
+		const bool take_a = (a.norm() > b.norm());
+		
+		// now satisfy U^T A.col(0) = [*, 0] and similar for B
 		// u10 a0 + u11 a1 = 0
 		// u10 b0 + u11 b1 = 0
-		
-		const T u11 = a(0);
-		const T u10 = -a(1);
-		const Eigen::Vector<T, 2> u_c1(u10, u11); // bottom row vector of U
-		
-		// norm it
+
+		const Vec2& w = take_a ? a : b;
+
+		// Both tiny relative to their matrices: S and T share a null vector, pencil is singular.
+		if (w.norm() <= eps * (take_a ? s_norm : t_norm)) {
+			throw std::runtime_error("Both tiny relative to their matrices: S and T share a null vector, pencil is singular.");
+		}
+
+		const Eigen::Vector<T, 2> u_c1(-w(1), w(0));
 		const Eigen::Vector<T, 2> u_n = u_c1.normalized();
 
 		// build the U matrix
@@ -563,11 +607,16 @@ namespace controlpp{
 			{-u_n(0), u_n(1)}
 		});
 
-		const QZSwap<T, 2> result{
-			.V = V,
-			.U = U
-		};
+		// Stability test (LAPACK dtgex2 style): lower-left entries must vanish.
+		const Mat2 s2 = U.transpose() * s * V;
+		const Mat2 t2 = U.transpose() * t * V;
+		const T tol = T(20) * eps * std::max(s_norm, t_norm);
+		if (std::abs(s2(1,0)) > tol || std::abs(t2(1,0)) > tol) {
+			//TODO: return propper error
+			throw std::runtime_error("Controlpp: qz_1x1_swap swap is not stable");		
+		}
 
+		const QZSwap<T, 2> result{.V = V, .U = U};
 		return result;
 	}
 
@@ -916,28 +965,24 @@ namespace controlpp{
 		const Eigen::Matrix<T, 4, 4>& Sb,
 		const Eigen::Matrix<T, 4, 4>& Tb)
 	{
-		#define print_var(var) {std::cout << "--------\n" << #var << ":\n" << var << std::endl;}
-
 		using Mat2 = Eigen::Matrix<T, 2, 2>;
 		using Mat4 = Eigen::Matrix<T, 4, 4>;
 		using Mat8 = Eigen::Matrix<T, 8, 8>;
 		using Vec8 = Eigen::Matrix<T, 8, 1>;
 
 		const T eps = std::numeric_limits<T>::epsilon();
-		print_var(eps);
-
 		// Partition the two matrix pencils:
 		//
 		// Sb = [ A  C ]       Tb = [ B  F ]
 		//      [ 0  D ]            [ 0  E ]
 		//
-		const Mat2 A = Sb.template block<2, 2>(0, 0); print_var(A);
-		const Mat2 C = Sb.template block<2, 2>(0, 2); print_var(C);
-		const Mat2 D = Sb.template block<2, 2>(2, 2); print_var(D);
+		const Mat2 A = Sb.template block<2, 2>(0, 0); 
+		const Mat2 C = Sb.template block<2, 2>(0, 2); 
+		const Mat2 D = Sb.template block<2, 2>(2, 2); 
 
-		const Mat2 B = Tb.template block<2, 2>(0, 0); print_var(B);
-		const Mat2 F = Tb.template block<2, 2>(0, 2); print_var(F);
-		const Mat2 E = Tb.template block<2, 2>(2, 2); print_var(E);
+		const Mat2 B = Tb.template block<2, 2>(0, 0); 
+		const Mat2 F = Tb.template block<2, 2>(0, 2); 
+		const Mat2 E = Tb.template block<2, 2>(2, 2); 
 
 		// Solve:
 		//     A*R - L*D = -C
@@ -947,8 +992,7 @@ namespace controlpp{
 		//     z = [R00, R10, R01, R11,
 		//          L00, L10, L01, L11]^T
 		//
-		// This is column-major vectorization.
-
+		
 		const Mat8 M({
 			{ A(0, 0), 0,       A(0, 1), 0,       -D(0, 0), -D(1, 0), 0,        0        },
 			{ A(1, 0), 0,       A(1, 1), 0,       0,        0,        -D(0, 0), -D(1, 0) },
@@ -965,8 +1009,6 @@ namespace controlpp{
 			-C(0, 0), -C(1, 0), -C(0, 1), -C(1, 1),
 			-F(0, 0), -F(1, 0), -F(0, 1), -F(1, 1)
 		);
-		print_var(M);
-		print_var(rhs);
 
 		if (!M.allFinite() || !rhs.allFinite()) {
 			throw std::runtime_error("qz_2x2_swap: non-finite Sylvester system");
@@ -974,13 +1016,12 @@ namespace controlpp{
 
 		// Scale the system before solving.
 		const T scale = std::max(M.cwiseAbs().maxCoeff(), rhs.cwiseAbs().maxCoeff());
-		print_var(scale);
 		if (!(scale > T(0)) || !std::isfinite(scale)) {
 			throw std::runtime_error("qz_2x2_swap: invalid Sylvester system scale");
 		}
 
-		const Mat8 Ms = M / scale; print_var(Ms);
-		const Vec8 bs = rhs / scale; print_var(bs);
+		const Mat8 Ms = M / scale; 
+		const Vec8 bs = rhs / scale; 
 
 		Eigen::FullPivLU<Mat8> lu(Ms);
 
@@ -988,14 +1029,14 @@ namespace controlpp{
 			throw std::runtime_error("qz_2x2_swap: singular Sylvester system");
 		}
 
-		const Vec8 z = lu.solve(bs); print_var(z);
+		const Vec8 z = lu.solve(bs); 
 
 		if (!z.allFinite()) {
 			throw std::runtime_error("qz_2x2_swap: non-finite Sylvester solution");
 		}
 
-		const T residual = (Ms * z - bs).norm(); print_var(residual);
-		const T residual_scale = std::max(T(1), Ms.norm() * z.norm() + bs.norm()); print_var(residual_scale);
+		const T residual = (Ms * z - bs).norm(); 
+		const T residual_scale = std::max(T(1), Ms.norm() * z.norm() + bs.norm());
 
 		if (residual > T(100) * eps * residual_scale) {
 			throw std::runtime_error("qz_2x2_swap: inaccurate Sylvester solution");
@@ -1010,8 +1051,6 @@ namespace controlpp{
 			{z(4), z(5)},
 			{z(6), z(7)}
 		});
-		print_var(R);
-		print_var(L);
 
 		// Construct bases for the subspaces to move to the front.
 		const Eigen::Matrix<T, 4, 2> X({
@@ -1027,8 +1066,6 @@ namespace controlpp{
 			{1,       0      },
 			{0,       1      }
 		});
-		print_var(X);
-		print_var(Y);
 
 		// Orthogonal completions.
 		Eigen::HouseholderQR<Eigen::Matrix<T, 4, 2>> qrX(X);
@@ -1036,21 +1073,15 @@ namespace controlpp{
 
 		const Mat4 V = qrX.householderQ();
 		const Mat4 U = qrY.householderQ();
-		print_var(V);
-		print_var(U);
 
 		// Apply the initial orthogonal transformations.
 		const Mat4 S1 = U.transpose() * Sb * V;
 		const Mat4 T1 = U.transpose() * Tb * V;
-		print_var(S1);
-		print_var(T1);
 
 		// Re-triangularize the leading 2x2 pair.
 		// This preserves real generalized Schur form.
 		const Mat2 Slead = S1.template block<2, 2>(0, 0);
 		const Mat2 Tlead = T1.template block<2, 2>(0, 0);
-		print_var(Slead);
-		print_var(Tlead);
 
 		Eigen::RealQZ<Mat2> localQZ;
 		localQZ.compute(Slead, Tlead);
@@ -1074,10 +1105,6 @@ namespace controlpp{
 			{0, 0, 1, 0},
 			{0, 0, 0, 1}
 		});
-
-		print_var(Ulead);
-		print_var(Vlead);
-
 
 		// Apply the leading-block QZ transformations.
 		const Mat4 Urestored = U * Ulead;
