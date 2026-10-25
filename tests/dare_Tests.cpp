@@ -145,3 +145,119 @@ TEST(dare, qz_2x1_swap) {
 
     EXPECT_TRUE(original_invariants.isApprox(after_invariants, 1e-12));
 }
+
+
+TEST(dare, qz_2x2_swap){
+    using namespace controlpp;
+
+    using Mat4 = Eigen::Matrix4d;
+    using Mat2 = Eigen::Matrix2d;
+
+    Mat4 S = Mat4::Zero();
+    Mat4 T = Mat4::Zero();
+
+    // S = [ A  C ]
+    //     [ 0  D ]
+    //
+    // T = [ B  F ]
+    //     [ 0  E ]
+
+    // First generalized Schur block.
+    S.block<2, 2>(0, 0) <<
+        1.0, 2.0,
+        0.0, 3.0;
+
+    T.block<2, 2>(0, 0) <<
+        1.0, 0.0,
+        0.0, 1.0;
+
+    // Second generalized Schur block.
+    S.block<2, 2>(2, 2) <<
+        8.0, 1.0,
+        0.0, 10.0;
+
+    T.block<2, 2>(2, 2) <<
+        2.0, 0.0,
+        0.0, 2.0;
+
+    // Coupling blocks.
+    S.block<2, 2>(0, 2) <<
+        0.5, 1.0,
+        1.5, 0.25;
+
+    T.block<2, 2>(0, 2) <<
+        0.1, 0.2,
+        0.3, 0.15;
+
+    const Mat4 Sb = S;
+    const Mat4 Tb = T;
+
+    // Eigenvalues before swapping:
+    // Leading block: 1, 3
+    // Trailing block: 4, 5
+    const Mat2 S_first = S.block<2, 2>(0, 0);
+    const Mat2 T_first = T.block<2, 2>(0, 0);
+    const Mat2 S_second = S.block<2, 2>(2, 2);
+    const Mat2 T_second = T.block<2, 2>(2, 2);
+
+    // Perform the swap.
+    const auto swap = qz_2x2_swap_matrix(Sb, Tb);
+
+    const Mat4 U = swap.U;
+    const Mat4 V = swap.V;
+
+    const Mat4 Snew = U.transpose() * Sb * V;
+    const Mat4 Tnew = U.transpose() * Tb * V;
+
+    constexpr double tol = 1e-10;
+
+    // 1. Orthogonality.
+    EXPECT_NEAR((U.transpose() * U - Mat4::Identity()).norm(), 0.0, tol);
+    EXPECT_NEAR((V.transpose() * V - Mat4::Identity()).norm(), 0.0, tol);
+
+    // 2. Equivalence transformation reconstructs the original pair.
+    EXPECT_NEAR((U * Snew * V.transpose() - Sb).norm(), 0.0, tol);
+    EXPECT_NEAR((U * Tnew * V.transpose() - Tb).norm(),0.0, tol);
+
+    // 3. Generalized real Schur structure:
+    //    S is quasi-upper-triangular; T is upper-triangular.
+    EXPECT_NEAR(Snew(2, 0), 0.0, tol);
+    EXPECT_NEAR(Snew(2, 1), 0.0, tol);
+    EXPECT_NEAR(Snew(3, 0), 0.0, tol);
+    EXPECT_NEAR(Snew(3, 1), 0.0, tol);
+
+    EXPECT_NEAR(Tnew(1, 0), 0.0, tol);
+    EXPECT_NEAR(Tnew(2, 0), 0.0, tol);
+    EXPECT_NEAR(Tnew(2, 1), 0.0, tol);
+    EXPECT_NEAR(Tnew(3, 0), 0.0, tol);
+    EXPECT_NEAR(Tnew(3, 1), 0.0, tol);
+    EXPECT_NEAR(Tnew(3, 2), 0.0, tol);
+
+    // 4. The trailing block after the swap should have eigenvalues 1, 3.
+    const Mat2 S_trailing = Snew.block<2, 2>(2, 2);
+    const Mat2 T_trailing = Tnew.block<2, 2>(2, 2);
+
+    EXPECT_NEAR(
+        generalized_charpoly_invariants(S_trailing, T_trailing)(0),
+        generalized_charpoly_invariants(S_first, T_first)(0),
+        tol);
+
+    EXPECT_NEAR(
+        generalized_charpoly_invariants(S_trailing, T_trailing)(1),
+        generalized_charpoly_invariants(S_first, T_first)(1),
+        tol);
+
+    // 5. The leading block after the swap should have eigenvalues 4, 5.
+    const Mat2 S_leading = Snew.block<2, 2>(0, 0);
+    const Mat2 T_leading = Tnew.block<2, 2>(0, 0);
+
+    EXPECT_NEAR(
+        generalized_charpoly_invariants(S_leading, T_leading)(0),
+        generalized_charpoly_invariants(S_second, T_second)(0),
+        tol);
+
+    EXPECT_NEAR(
+        generalized_charpoly_invariants(S_leading, T_leading)(1),
+        generalized_charpoly_invariants(S_second, T_second)(1),
+        tol);
+}
