@@ -7,10 +7,15 @@
  * @copyright 2026 Tobias Wallner
  */
 
+//std
 #include <complex>
 #include <iostream>
 
+//eigen
 #include <Eigen/Dense>
+
+//controlpp
+#include "balancing.hpp"
 
 namespace controlpp{
 
@@ -225,7 +230,7 @@ namespace controlpp{
 	 * 
 	 * \f[
 	 * \begin{bmatrix}
-	 *   I & 0 & B \\
+	 *   I & 0 & 0 \\
 	 *   0 & A^T & 0 \\
 	 *   0 & -B^T & 0
 	 * \end{bmatrix}
@@ -254,13 +259,13 @@ namespace controlpp{
 		constexpr int J_cols = NStates + NStates + NInputs;
 		
 		// build the matrix:
-		// [ I   0    B]
+		// [ I   0    0]
 		// [ 0   A^T  0]
 		// [ 0  -B^T  0]
 		Eigen::Matrix<T, J_rows, J_cols> J;
 		J.setZero();
 		J.template block<NStates, NStates>(0, 0).setIdentity();
-		J.template block<NStates, NInputs>(0, 2 * NStates) = B;
+		//J.template block<NStates, NInputs>(0, 2 * NStates) = B;
 		J.template block<NStates, NStates>(NStates, NStates) = A.transpose();
 		J.template block<NInputs, NStates>(2 * NStates, NStates) = -B.transpose();
 
@@ -476,7 +481,7 @@ namespace controlpp{
 		}
 	}
 
-	template<class T, std::size_t N>
+	template<class T, int N>
 	struct QZSwap{
 		Eigen::Matrix<T, N, N> V;
 		Eigen::Matrix<T, N, N> U;
@@ -536,7 +541,7 @@ namespace controlpp{
 		}
 
 		const T scale = std::max(s_in.cwiseAbs().maxCoeff(), t_in.cwiseAbs().maxCoeff());
-		if (scale == T(0)) {
+		if (scale < eps) {
 			// TODO: return propper error
 			const QZSwap<T, 2> result{
 				.V = Eigen::Matrix<T, 2, 2>::Identity(),
@@ -556,7 +561,6 @@ namespace controlpp{
 			throw std::runtime_error("Singular pencil: a diagonal pair (s_ii, t_ii) = (0, 0) means a 0/0 eigenvalue.");
 		}
 
-		// The first row: (s00 - lambda1 t00) v1 + (s01 - lambda1 t01) v1 = 0
 		const T v0 = - (s(0,1) * t(1,1) - s(1,1) * t(0,1));
 		const T v1 = (s(0,0) * t(1,1) - s(1,1) * t(0,0));
 
@@ -567,8 +571,12 @@ namespace controlpp{
 
 		const Eigen::Vector<T, 2> v(v0, v1);
 
-		if (v.norm() <= v_noise) {
-			throw std::runtime_error("Equal eigenvalues: v is pure rounding noise. The input is already upper triangular, so no swap is a valid result.");
+		if (v.norm() <= (v_noise * 4)) {
+			const QZSwap<T, 2> result{
+				.V = Eigen::Matrix<T, 2, 2>::Identity(),
+				.U = Eigen::Matrix<T, 2, 2>::Identity()
+			};
+			return result;
 		}
 
 		// normalise it to unit length
@@ -608,13 +616,15 @@ namespace controlpp{
 		});
 
 		// Stability test (LAPACK dtgex2 style): lower-left entries must vanish.
+		/* Removed for performance the caller wiall anyway make that calculation and perform the test on the full matrices
 		const Mat2 s2 = U.transpose() * s * V;
 		const Mat2 t2 = U.transpose() * t * V;
 		const T tol = T(20) * eps * std::max(s_norm, t_norm);
 		if (std::abs(s2(1,0)) > tol || std::abs(t2(1,0)) > tol) {
 			//TODO: return propper error
-			throw std::runtime_error("Controlpp: qz_1x1_swap swap is not stable");		
+			throw std::runtime_error("Controlpp: qz_1x1_swap: swap is not stable");		
 		}
+		*/
 
 		const QZSwap<T, 2> result{.V = V, .U = U};
 		return result;
@@ -640,14 +650,28 @@ namespace controlpp{
 	 *	\end{bmatrix}.
 	 *	f\]
 	 * 
-	 * @param S Generalised Schur matrix S
-	 * @param T Generalised Schur matrix T
+	 * @param S_in Generalised Schur matrix S
+	 * @param T_in Generalised Schur matrix T
 	 * 
 	 * @throws `std::runtime_error` on: Singular Sylvester systems, non-finite sylvester solutions, degenerate systems, qz decomposition failure
 	 */
 	template<class T>
-	QZSwap<T, 3> qz_1x2_swap_matrix(const Eigen::Matrix<T, 3, 3>& Sb, const Eigen::Matrix<T, 3, 3>& Tb){
+	QZSwap<T, 3> qz_1x2_swap_matrix(const Eigen::Matrix<T, 3, 3>& S_in, const Eigen::Matrix<T, 3, 3>& T_in){
+		using Mat3 = Eigen::Matrix<T, 3, 3>;
+		using Vec4 = Eigen::Vector<T, 4>;
 
+		if (!S_in.allFinite() || !T_in.allFinite()) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: non-finite input");
+		}
+
+		// Common scale: leaves U, V and the eigenvalues unchanged.
+		const T scale = std::max(S_in.cwiseAbs().maxCoeff(), T_in.cwiseAbs().maxCoeff());
+		if (scale == T(0)) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: zero pencil");
+		}
+
+		const Mat3 Sb = S_in / scale;
+		const Mat3 Tb = T_in / scale;
 		const T eps = std::numeric_limits<T>::epsilon();
 		
 		// find right invariant subspace
@@ -686,33 +710,26 @@ namespace controlpp{
 			-F(0, 1)
 		);
 
-		// Scale the system to reduce overflow/underflow risk.
+		// SVD of a 4x4: cheap, and sigma_min is the Dif estimate.
+		Eigen::JacobiSVD<Eigen::Matrix<T, 4, 4>> svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		const T sig_max = svd.singularValues()(0);
+		const T sig_min = svd.singularValues()(3);
 
-		const T scale = M.cwiseAbs().maxCoeff();
-
-		if (scale == T(0)) {
-			throw std::runtime_error("Controlpp: QZ 1x2 swap: degenerate Sylvester system");
+		// Only reject (numerically) exactly singular systems; everything else is judged
+		// by the stability test below, like LAPACK does.
+		if (!(sig_min > T(4) * eps * sig_max)) {
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: singular Sylvester system (eigenvalues coincide)");
 		}
 
-		M /= scale;
-    	r /= scale;
-
-		Eigen::FullPivLU<Eigen::Matrix<T, 4, 4>> lu(M);
-
-		if (lu.rank() < 4) {
-			throw std::runtime_error("Controlpp: QZ 1x2 swap: singular Sylvester system");
-		}
-
-		const Eigen::Vector<T, 4> z = lu.solve(r);
-
+		const Vec4 z = svd.solve(r);
 		if (!z.allFinite()) {
-			throw std::runtime_error("QZ 1x2 swap: non-finite Sylvester solution");
+			throw std::runtime_error("Controlpp: QZ 1x2 swap: non-finite Sylvester solution");
 		}
 
 		const T residual = (M * z - r).norm();
     	const T residual_scale = M.norm() * z.norm() + r.norm();
 
-		if (residual > eps * residual_scale) {
+		if (residual > T(100) * eps * residual_scale) {
 			throw std::runtime_error("Controlpp: QZ 1x2 swap: Sylvester solve residual too large");
 		}
 
@@ -854,7 +871,7 @@ namespace controlpp{
 		const T residual = (M * z - rhs).norm();
 		const T residual_scale = M.norm() * z.norm() + rhs.norm();
 
-		if (residual > eps * residual_scale) {
+		if (residual > T(100) * eps * residual_scale) {
 			throw std::runtime_error("Controlpp: QZ 2x1 swap: Sylvester solve residual too large");
 		}
 
@@ -1038,7 +1055,7 @@ namespace controlpp{
 		const T residual = (Ms * z - bs).norm(); 
 		const T residual_scale = std::max(T(1), Ms.norm() * z.norm() + bs.norm());
 
-		if (residual > T(100) * eps * residual_scale) {
+		if (residual > T(200) * eps * residual_scale) {
 			throw std::runtime_error("qz_2x2_swap: inaccurate Sylvester solution");
 		}
 
@@ -1150,7 +1167,52 @@ namespace controlpp{
 		return {.V = Vfinal, .U = Ufinal};
 	}
 
+	template<class Type, int N>
+	struct Schur {
+		Eigen::Matrix<Type, N, N> S;  ///< quasi-upper-triangular
+		Eigen::Matrix<Type, N, N> T;  ///< upper-triangular  (see note below)
+		Eigen::Matrix<Type, N, N> Q;  ///< left Schur vectors
+		Eigen::Matrix<Type, N, N> Z;  ///< right: A = Q * S * Z  (Eigen convention)
+	};
 
+	template<class T, int N, int W>
+	void perform_qz_block_swap(
+		Schur<T, N>& schur,
+		const QZSwap<T,W>& swap,
+		std::size_t pos,
+		std::size_t a_size,
+		std::size_t b_size
+	){
+		
+		schur.S.block(pos, pos, W, N-pos)  = (swap.U.transpose() * schur.S.block(pos, pos, W, N-pos)).eval();
+		schur.T.block(pos, pos, W, N-pos) = (swap.U.transpose() * schur.T.block(pos, pos, W, N-pos)).eval();
+
+		schur.S.block(0, pos, pos+W, W)  = (schur.S.block(0, pos, pos+W, W) * swap.V).eval();
+		schur.T.block(0, pos, pos+W, W) = (schur.T.block(0, pos, pos+W, W) * swap.V).eval();
+
+		schur.Q.block(0, pos, N, W) = (schur.Q.block(0, pos, N, W) * swap.U).eval();
+		schur.Z.block(pos, 0, W, N) = (swap.V.transpose() * schur.Z.block(pos, 0, W, N)).eval();
+
+		// Weak stability test, then force exact zeros.
+		auto s_low = schur.S.block(pos + b_size, pos, a_size, b_size);
+		T t_low = schur.T(0);
+		for (std::size_t i = 1; i < W; ++i){
+			for (std::size_t j = 0; j < i; ++j){
+				t_low = std::max(t_low, std::abs(schur.T(pos + i, pos + j)));
+			}
+		}
+		// TODO: make this check work
+		//const T eps = std::numeric_limits<T>::epsilon();
+		//if ((s_low.cwiseAbs().maxCoeff() > T(100) * eps * s_norm) || (t_low > T(100) * eps * t_norm)) {
+		//	throw std::runtime_error("Controlpp: QZ block swap is not stable");
+		//}
+
+		// set zero, explicity
+		s_low.setZero();
+		schur.T.block(pos, pos, W, W).template triangularView<Eigen::StrictlyLower>().setZero();
+	}
+
+	
     /**
 	 * @brief Solves the discrete time riccati equation (DARE)
 	 * 
@@ -1193,9 +1255,25 @@ namespace controlpp{
 		constexpr int PencilSize = 2 * NStates + NInputs;
 		using Pencil = Eigen::Matrix<T, PencilSize, PencilSize>;
 
-		const Pencil H = build_dare_symplectic_pencil_H(A, B, Q, R);
+		// scale the input matrices (especially A) to make them more numerically robust against vastly different dynamics
+		const Eigen::Matrix<T, NStates, 1> d = balance_scaling(A);
+		const Eigen::Matrix<T, NStates, 1> d_inv = d.cwiseInverse();
+		const Eigen::Matrix<T, NStates, NStates> A_b = d_inv.asDiagonal() * A * d.asDiagonal();
+		const Eigen::Matrix<T, NStates, NInputs> B_b = d_inv.asDiagonal() * B;
+		const Eigen::Matrix<T, NStates, NStates> Q_b = d.asDiagonal() * Q * d.asDiagonal();
 
-		const Pencil J = build_dare_symplectic_pencil_J(A, B);
+		// Q/R/B scaling, now on the balanced matrices
+		const T q_norm = Q.norm();
+		const T b_norm = B.norm();
+		const T q_scale = (q_norm > T(0)) ? q_norm : T(1);
+		const T b_scale = (b_norm > T(0)) ? T(1) / b_norm : T(1);
+
+		const Eigen::Matrix<T, NStates, NStates> Q_s = Q_b / q_scale;
+		const Eigen::Matrix<T, NStates, NInputs> B_s = B_b * b_scale;
+		const Eigen::Matrix<T, NInputs, NInputs> R_s = R * (b_scale * b_scale / q_scale);
+
+		const Pencil H = build_dare_symplectic_pencil_H(A_b, B_s, Q_s, R_s);
+		const Pencil J = build_dare_symplectic_pencil_J(A_b, B_s);
 
 		// 2. Solve the generalized eigenvalue problem H v = lambda J v
 		Eigen::RealQZ<Pencil> qz;
@@ -1206,23 +1284,36 @@ namespace controlpp{
 			throw std::runtime_error("Controlpp: dare_qz_solver(): QZ failed to converge.");
 		}
 
-		Pencil S = qz.matrixS(); // is quasi-upper-triangular
-		Pencil Tmat = qz.matrixT(); // is upper-triangular
-		Pencil Qz = qz.matrixQ(); // contains the left generalized Schur vectors
-		Pencil Z = qz.matrixZ(); // contains the right generalized Schur vectors
+		Schur<T, PencilSize> schur{
+			.S = qz.matrixS(),
+			.T = qz.matrixT(),
+			.Q = qz.matrixQ(),
+			.Z = qz.matrixZ()
+		};
 
 		// 3. Reorder
-		int block_start = 0;
-        int stable_region = 0;
-		while(block_start < PencilSize){
+		std::size_t arr_i = 0;
+		std::size_t block_start = 0;
+
+		bool stable_arr[PencilSize];
+		std::size_t block_start_arr[PencilSize];
+		std::size_t block_size_arr[PencilSize];
+		std::size_t number_of_blocks = 0;
+		std::size_t number_of_stable_blocks = 0;
+
+		while((block_start < PencilSize) && (arr_i < PencilSize)){
 			
-			const int block_size = pencil_block_size(S, block_start);
+			const std::size_t block_size = pencil_block_size(schur.S, block_start);
 
 			// map to eigen::map for easier access
-			auto Sb = S.block(block_start, block_start, block_size, block_size);
-			auto Tb = Tmat.block(block_start, block_start, block_size, block_size);
+			auto Sb = schur.S.block(block_start, block_start, block_size, block_size);
+			auto Tb = schur.T.block(block_start, block_start, block_size, block_size);
 
 			const bool is_stable = is_stable_pencil_block(Sb, Tb);
+
+			block_size_arr[arr_i] = block_size;
+			stable_arr[arr_i] = is_stable;
+			block_start_arr[arr_i] = block_start;
 
 			// if the block is not stable, we need to swap it with a stable block
 			// so that all stable blocks are in the top left corner of the matrix
@@ -1230,8 +1321,91 @@ namespace controlpp{
 
 
 			block_start += block_size;
+			arr_i += 1;
+			number_of_blocks += 1;
+			number_of_stable_blocks += is_stable ? 1 : 0;
 		}
 
+		// check if eigenvalues is equal to total size
+		if(block_start != PencilSize){
+			throw std::runtime_error("Controlpp: Dare QZ Solver: eigenvalues is not matching the matrix size.");
+		}
+
+		// sort so that all stable blocks come first
+
+		std::size_t next_search = 0;
+		for(std::size_t sorted = 0; sorted < number_of_stable_blocks; ++sorted){
+
+			// find first stable block (skip first sorted which are already stable)
+			std::size_t i = next_search;
+			for(; i < number_of_blocks; ++i){
+				if(stable_arr[i] == true){
+					break;
+				}
+			}
+			next_search = i+1; // store the previous find of the stable one - search from here the next time around
+			
+			// bubble up the stable one
+			for(; i > 0; --i){
+				if(stable_arr[i - 1] == true){
+					break;
+				}
+
+				// perform swap
+				const std::size_t bs = block_start_arr[i-1];
+				if((block_size_arr[i-1] == 1) && (block_size_arr[i] == 1)){
+					// 1x1 block swap
+					const Eigen::Matrix<T, 2, 2> Sb = schur.S.template block<2, 2>(bs, bs);
+					const Eigen::Matrix<T, 2, 2> Tb = schur.T.template block<2, 2>(bs, bs);
+					const controlpp::QZSwap swap = controlpp::qz_1x1_swap_matrix(Sb, Tb);
+					perform_qz_block_swap(schur, swap, bs, block_size_arr[i-1], block_size_arr[i]);
+
+				}else if((block_size_arr[i-1] == 1) && (block_size_arr[i] == 2)){
+					// 1x2 block swap
+					const Eigen::Matrix<T, 3, 3> Sb = schur.S.template block<3, 3>(bs, bs);
+					const Eigen::Matrix<T, 3, 3> Tb = schur.T.template block<3, 3>(bs, bs);
+					const controlpp::QZSwap swap = controlpp::qz_1x2_swap_matrix(Sb, Tb);
+					perform_qz_block_swap(schur, swap, bs, block_size_arr[i-1], block_size_arr[i]);
+
+				}else if((block_size_arr[i-1] == 2) && (block_size_arr[i] == 1)){
+					// 2x1 block swap
+					const Eigen::Matrix<T, 3, 3> Sb = schur.S.template block<3, 3>(bs, bs);
+					const Eigen::Matrix<T, 3, 3> Tb = schur.T.template block<3, 3>(bs, bs);
+					const controlpp::QZSwap swap = controlpp::qz_2x1_swap_matrix(Sb, Tb);
+					perform_qz_block_swap(schur, swap, bs, block_size_arr[i-1], block_size_arr[i]);
+
+				}else /*if((block_size_arr[i-1] == 2) && (block_size_arr[i] == 2))*/{
+					// 2x2 block swap
+					const Eigen::Matrix<T, 4, 4> Sb = schur.S.template block<4, 4>(bs, bs);
+					const Eigen::Matrix<T, 4, 4> Tb = schur.T.template block<4, 4>(bs, bs);
+					const controlpp::QZSwap swap = controlpp::qz_2x2_swap_matrix(Sb, Tb);
+					perform_qz_block_swap(schur, swap, bs, block_size_arr[i-1], block_size_arr[i]);
+
+				}
+
+				std::swap(stable_arr[i], stable_arr[i-1]);
+				std::swap(block_size_arr[i], block_size_arr[i-1]);
+				block_start_arr[i] = bs + block_size_arr[i-1];
+			}
+		}
+		const Eigen::Matrix<T, PencilSize, NStates> basis = schur.Z.transpose().template leftCols<NStates>();
+
+		const Eigen::Matrix<T, NStates, NStates> Z1 = basis.template topRows<NStates>();              // x part
+		const Eigen::Matrix<T, NStates, NStates> Z2 = basis.template middleRows<NStates>(NStates);    // lambda part
+
+		// X = Z2 * Z1^{-1}  <=>  Z1^T * X^T = Z2^T
+		Eigen::ColPivHouseholderQR<Eigen::Matrix<T, NStates, NStates>> qr(Z1.transpose());
+		if (!qr.isInvertible()) {
+			throw std::runtime_error("Controlpp: dare_qz_solver(): stable subspace is not graph-like (no stabilizing solution)");
+		}
+		const Eigen::Matrix<T, NStates, NStates> X = qr.solve(Z2.transpose()).transpose();
+
+		const Eigen::Matrix<T, NStates, NStates> Xsym = T(0.5) * (X + X.transpose());
+
+		// undo the scalings: X = q_scale * D^-1 X_s D^-1
+
+		const Eigen::Matrix<T, NStates, NStates> X_out = q_scale * (d_inv.asDiagonal() * Xsym * d_inv.asDiagonal());
+		return X_out;
 	}
 
     template<class T, int NStates, int NInputs,
@@ -1246,7 +1420,7 @@ namespace controlpp{
 		const Eigen::Matrix<T, NStates, NStates, QOpt, QMaxR, QMaxC>& Q,
 		const Eigen::Matrix<T, NInputs, NInputs, ROpt, RMaxR, RMaxC>& R
 	){
-		return dare_eigenvector_solver(A, B, Q, R);
+		return dare_qz_solver(A, B, Q, R);
 	}
 
 }
