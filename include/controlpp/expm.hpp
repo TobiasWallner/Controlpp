@@ -8,6 +8,7 @@
 
 
 #include "math.hpp"
+#include "balancing.hpp"
 
 namespace controlpp{
     /**
@@ -272,8 +273,13 @@ namespace controlpp{
 	 * \see controlpp::expm_pade_scaled
 	 */
 	template<class T, int N, int Options, int MaxRows, int MaxCols>
-	Eigen::Matrix<T, N, N> expm(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& M){
+	Eigen::Matrix<T, N, N> expm(const Eigen::Matrix<T, N, N, Options, MaxRows, MaxCols>& A){
 		// actual exponent calculation
-		return expm_pade_scaled(M);
+		const Eigen::Matrix<T, N, 1> d = balance_scaling(A);
+		const Eigen::Matrix<T, N, 1> d_inv = d.cwiseInverse();
+		const Eigen::Matrix<T, N, N> M = d_inv.asDiagonal() * A * d.asDiagonal();
+		const Eigen::Matrix<T, N, N> E = expm_pade_scaled(M);
+		const Eigen::Matrix<T, N, N> R = d.asDiagonal() * E * d_inv.asDiagonal();
+		return R;
 	}
 }
