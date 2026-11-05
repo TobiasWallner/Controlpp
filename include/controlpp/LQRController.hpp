@@ -88,51 +88,9 @@ namespace controlpp{
     template<class T, int NStates, int NInputs, int NOutputs>
     Eigen::Matrix<T, NInputs, NStates> lqr(
         const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
-        const Eigen::Matrix<T, NStates, NStates>& Q,
-        const Eigen::Matrix<T, NInputs, NInputs>& R
+        const Eigen::Matrix<T, NStates, NStates>& Q = Eigen::Matrix<T, NStates, NStates>::Identity(),
+        const Eigen::Matrix<T, NInputs, NInputs>& R = Eigen::Matrix<T, NInputs, NInputs>::Identity()
     ){
-        return lqr_discrete(Gss.A(), Gss.B(), Q, R);
-    }
-
-    /**
-     * @brief Construcs a discrete LQR controller with automatic weights Q and R
-     * 
-     * The weights Q (state penalty) and R (control penalty) are chosen automatically.
-     * 
-     * How Q is chosen:
-     * \f[
-     *   Q_1 = C^\top C;
-     *   Q = Q_1 + I \| Q_1 \|  \text{eps}^2;
-     * \f]
-     * 
-     * How R is chosen:
-     * \f[
-     *  R = I * r
-     * \f]
-     * 
-     * @tparam T The value type of the parameters
-     * @tparam NStates The number of states of the plant
-     * @tparam NInputs The number of inputs of the plant
-     * @tparam NOutputs The number of outputs of the plant
-     * @param Gss The state space description of the plant
-     * @param r The control penalty (See r in the equations)
-     * @param eps Makes sure to also penalises states that do not contribute to the output (see eps in the equations)
-     * @returns The LQR gain matrix as an `Eigen::Matrix`
-     * 
-     * @see lqr_feed_forward
-     */
-    template<
-        class T, int NStates, int NInputs, int NOutputs, 
-        std::convertible_to<T> U1 = T, std::convertible_to<T> U2 = T>
-    Eigen::Matrix<T, NInputs, NStates> lqr(
-        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
-        const U1& r = static_cast<U1>(1),
-        const U2& eps = static_cast<U2>(0.001)
-    ){
-        const Eigen::Matrix<T, NStates, NStates> Iq = Eigen::Matrix<T, NStates, NStates>::Identity(); 
-        const Eigen::Matrix<T, NStates, NStates> Q1 = Gss.C().transpose() * Gss.C();
-        const Eigen::Matrix<T, NStates, NStates> Q = Q1 + Iq * (Q1.norm() * (eps * eps));
-        const Eigen::Matrix<T, NInputs, NInputs> R = Eigen::Matrix<T, NInputs, NInputs>::Ones() * (r * r);
         return lqr_discrete(Gss.A(), Gss.B(), Q, R);
     }
 

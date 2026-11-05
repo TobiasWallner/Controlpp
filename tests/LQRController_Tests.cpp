@@ -25,36 +25,22 @@ TEST(LQRController, for_PT2){
     / //-------------------------------------------------- 
     (1 + 2 * D * s / omega_p + s * s / (omega_p * omega_p));
     
-    constexpr int NStates = 2;
+    // constexpr int NStates = 2;
 
     const auto Pss = to_state_space(P);
     const auto Pz = discretise_zoh(Pss, Ts);
     
     // LQR gain
-    const Eigen::Matrix<double, 1, NStates> K = controlpp::lqr(Pz);
+    const Eigen::Matrix<double, 1, 2> K = controlpp::lqr(
+        Pz, 
+        Eigen::Matrix<double, 2, 2>::Identity().eval(), 
+        Eigen::Matrix<double, 1, 1>::Identity().eval()
+    );
+
+    EXPECT_NEAR(K(0), 0.00020199, 1e-6);
+    EXPECT_NEAR(K(1), -0.08006232, 1e-6);
 
     // LQR feed forward
     const auto F = lqr_feed_forward(Pz, K);
-
-    controlpp::DssFilter Pf(Pz);
-
-    std::ofstream file("data.csv");
- 
-    file << "time, uk, uf, u, x1, x2, y, set_point" << std::endl;
-    double y = 0;
-
-    Eigen::Vector<double, NStates> x;
-    x.setZero();
-    for(double time = 0; time < 0.1; time+=Ts){
-        const double set_point = (time < 0.01) ? 0.0 : 1.0;
-        const double uk = ((-K * x)).eval()(0,0);
-        const double uf = (F * set_point).eval()(0,0);
-        const double u = uk + uf;
-        y = Pf(u);
-        x = Pf.states();
-        file << time << ", " << uk << ", " << uf << ", " << u << ", " << x(0) << ", " << x(1) << ", " << y << ", " << set_point << std::endl;
-    }
-
-    // TODO: somehow verify the results
-
+    EXPECT_NEAR(F(0), 0.0616135, 1e-6);
 }
