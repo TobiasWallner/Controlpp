@@ -60,12 +60,17 @@ namespace controlpp
      * \param sample_time The sample time in seconds
      * 
      * \returns The discretised version of `sys`
+     * 
+     * \throws `std::invalid_argument` on zero or negative sample times
      */
     template<class ValueType, int states>
     DiscreteStateSpace<ValueType, states, 1, 1> discretise_zoh(
             const ContinuousStateSpace<ValueType, states, 1, 1>& sys, 
             ValueType sample_time
     ){
+        if(sample_time <= ValueType(0)){
+            throw std::invalid_argument("Controlpp: discretise_zoh: sample_time <= 0: Sample time has to be greater than zero");
+        }
         // allocation
         DiscreteStateSpace<ValueType, states, 1, 1> result;
         Eigen::Matrix<ValueType, states+1, states+1> M;
