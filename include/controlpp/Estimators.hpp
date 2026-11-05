@@ -148,8 +148,6 @@ namespace controlpp
 
         // solve r = S * param
         // since S is symetric positive definite use llt
-        std::cout << "S:\n" << S << std::endl;
-        std::cout << "r:\n" << r.transpose() << std::endl;
         const Eigen::Vector<T, P> params = S.ldlt().solve(r);
 
         // partition result into numerator and denominator
