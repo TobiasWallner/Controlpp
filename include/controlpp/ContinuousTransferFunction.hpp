@@ -227,9 +227,25 @@ namespace controlpp
         return result;
     }
 
+    /**
+     * @brief Namespace for transfer functions
+     */
     namespace tf{
-        template<class T=double>
-        static inline const ContinuousTransferFunction<T, 1, 0> s({T(0), T(1)}, {T(1)});
+
+        /**
+         * @brief The s laplace variable as a transfer function
+         * 
+         * uses `double` as an underlying datatype
+         */
+        static const inline ContinuousTransferFunction<double, 1, 0> s({0., 1.}, {1.});
+
+        /**
+         * @brief The s laplace variable as a transfer function
+         * 
+         * uses `float` as an underlying datatype
+         */
+        static const inline ContinuousTransferFunction<float, 1, 0> s_f({0.f, 1.f}, {1.f});
+
     }
 
 // analysis
