@@ -1,6 +1,7 @@
 #pragma once
 #include <controlpp/algorithm.hpp>
 #include <controlpp/math.hpp>
+#include <controlpp/balancing.hpp>
 #include <controlpp/expm.hpp>
 #include <controlpp/conversion.hpp>
 #include <controlpp/Polynom.hpp>
@@ -13,15 +14,16 @@
 #include <controlpp/DiscreteFilter.hpp>
 #include <controlpp/transformations.hpp>
 #include <controlpp/Estimators.hpp>
-#include <controlpp/KalmanFilter.hpp>
 #include <controlpp/TimeVariantControl.hpp>
-#include <controlpp/H2Controller.hpp>
 #include <controlpp/PadeDelay.hpp>
 #include <controlpp/analysis.hpp>
 #include <controlpp/Bode.hpp>
 #include <controlpp/Generator.hpp>
-#include <controlpp/care.hpp>
+//#include <controlpp/care.hpp>
 #include <controlpp/dare.hpp>
+#include <controlpp/LQRController.hpp>
+#include <controlpp/KalmanFilter.hpp>
+#include <controlpp/H2Controller.hpp>
 
 
 /**
