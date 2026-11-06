@@ -63,19 +63,7 @@ namespace controlpp{
     /**
      * @brief Computes a discrete LQR controller from a discrete state space plant model
      * 
-     * ## Ways to choose Q (state penalty) and R (control penalty):
-     * 
-     * ### Brysons rule
-     * 
-     * \[
-     * Q = \text{diag}\left( \frac{1}{x^2_{1,\text{max}}}, \frac{1}{x^2_{2,\text{max}}}, \frac{1}{x^2_{3,\text{max}}}, \cdots \right)
-     * \]
-     * 
-     * \[
-     * R = \text{diag}\left( \frac{1}{u^2_{1,\text{max}}}, \frac{1}{u^2_{2,\text{max}}}, \frac{1}{u^2_{3,\text{max}}}, \cdots \right)
-     * \]
-     * 
-     * for states x and control inputs u.
+     * Example: @ref examples/lqr.cpp
      * 
      * @tparam T The value types of the parameters
      * @tparam NStates The number of states of the plant
@@ -89,16 +77,40 @@ namespace controlpp{
      */
     template<class T, int NStates, int NInputs, int NOutputs>
     Eigen::Matrix<T, NInputs, NStates> lqr(
-        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
+        const DiscreteStateSpace<T, NStates, NInputs, NOutputs>& Gss,
         const Eigen::Matrix<T, NStates, NStates>& Q = Eigen::Matrix<T, NStates, NStates>::Identity(),
         const Eigen::Matrix<T, NInputs, NInputs>& R = Eigen::Matrix<T, NInputs, NInputs>::Identity()
     ){
-        return lqr_discrete(Gss.A(), Gss.B(), Q, R);
+        return lqr(Gss.A(), Gss.B(), Q, R);
     }
 
+    /**
+     * @brief Calculates the feed forward gain for LQR feedback loops
+     * 
+     * \f[
+     * u = -K x + F r;
+     * \f]
+     * 
+     * With:
+     * - u the control output and plant input
+     * - K the LQR gain
+     * - x the plants state vector
+     * - F the feed forward gain
+     * - r the reference (aka. target) value that the plant should reach
+     * 
+     * Example: @ref examples/lqr.cpp
+     * 
+     * @param Gss The Plant description in state space form
+     * @param LQR The LQR gain matrix
+     * 
+     * @tparam T The value type. Usually `float` or `double`
+     * @tparam NStates The number of states of the plant
+     * @tparam NInputs The number of inputs of the plant
+     * @tparam NOutputs The number of outputs of the plant
+     */
     template<class T, int NStates, int NInputs, int NOutputs>
     Eigen::Matrix<T, NInputs, NOutputs> lqr_feed_forward(
-        const DiscreteStateSpace<T, NStates, NInputs, NOutputs> Gss,
+        const DiscreteStateSpace<T, NStates, NInputs, NOutputs>& Gss,
         Eigen::Matrix<T, NInputs, NStates> LQR
     ){
         // LQR feed forward

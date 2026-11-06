@@ -8,6 +8,21 @@
 namespace controlpp{
 
 	/**
+     * @brief step function
+     * @returns 0 for all inputs < 0
+     * @returns 1 for all inputs >= 0
+     */
+    template<class T>
+    [[nodiscard]]
+    constexpr T step(const T& t){
+        if(t < 0){
+            return T(0);
+        }else{
+            return T(1);
+        }
+    }
+
+	/**
 	 * \brief Calculates the product of all numbers in the closed open range [from, to)
 	 * \returns An integer
 	 * @tparam T The value type of the range

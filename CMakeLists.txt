@@ -138,3 +138,9 @@ endif()
 #                               Examples
 ##################################################################################
 
+option(CONTROLPP_ENABLE_EXAMPLES "" OFF)
+if(CONTROLPP_ENABLE_EXAMPLES)
+    add_executable(controlpp_example_lqr examples/lqr.cpp)
+    target_link_libraries(controlpp_example_lqr PRIVATE controlpp::controlpp)
+endif()
+
